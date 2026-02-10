@@ -9,6 +9,6 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@ai-music/core": "*"
+    "@ai-music/core": "workspace:*"
   }
 }

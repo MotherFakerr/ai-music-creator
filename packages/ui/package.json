@@ -1,16 +1,20 @@
 {
   "name": "@ai-music/ui",
   "version": "0.0.1",
-  "description": "UI components for music creation",
+  "description": "React UI components for music creation",
   "main": "src/index.ts",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
   },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
   "dependencies": {
-    "@ai-music/core": "*",
-    "@ai-music/audio": "*",
-    "@ai-music/midi": "*"
+    "@ai-music/core": "workspace:*",
+    "@ai-music/audio": "workspace:*",
+    "@ai-music/midi": "workspace:*"
   }
 }

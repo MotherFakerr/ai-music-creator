@@ -47,7 +47,7 @@
 |-----|------|------|------|
 | 语言 | TypeScript | ✅ 已确认 | |
 | 架构 | Monorepo (PNPM + Turborepo) | ✅ 已确认 | |
-| 前端框架 | React / Vue / Svelte | ⏳ | 待决策 |
+| 前端框架 | React | ✅ 已确认 | Vite 构建 |
 | 音频引擎 | Web Audio API / Tone.js | ⏳ | Tone.js 更友好 |
 | MIDI处理 | @midi / midicube | ⏳ | 待评估 |
 | 状态管理 | Zustand / Jotai / Redux | ⏳ | 待决策 |
@@ -64,29 +64,11 @@ root/
 ├── tsconfig.json          # TypeScript 根配置
 └── packages/
     ├── core/             # 核心领域模型与类型定义
-    │   ├── src/index.ts
-    │   ├── package.json
-    │   └── tsconfig.json
     ├── audio/            # 音频引擎 (Web Audio API)
-    │   ├── src/index.ts
-    │   ├── package.json
-    │   └── tsconfig.json
     ├── midi/             # MIDI 解析与生成
-    │   ├── src/index.ts
-    │   ├── package.json
-    │   └── tsconfig.json
-    ├── ui/               # UI 组件
-    │   ├── src/
-    │   │   ├── index.ts
-    │   │   ├── Keyboard.tsx
-    │   │   ├── Timeline.tsx
-    │   │   └── Controls.tsx
-    │   ├── package.json
-    │   └── tsconfig.json
-    └── ai/               # AI 接入层
-        ├── src/index.ts
-        ├── package.json
-        └── tsconfig.json
+    ├── ui/               # React UI 组件库
+    ├── ai/               # AI 接入层
+    └── web/              # React 应用入口 (Vite)
 ```
 
 ## 模块职责

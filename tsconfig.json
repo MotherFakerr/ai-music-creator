@@ -13,6 +13,7 @@
     { "path": "./packages/audio" },
     { "path": "./packages/midi" },
     { "path": "./packages/ui" },
-    { "path": "./packages/ai" }
+    { "path": "./packages/ai" },
+    { "path": "./packages/web" }
   ]
 }
