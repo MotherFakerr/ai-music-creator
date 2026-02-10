@@ -1,0 +1,11 @@
+{
+  "name": "@ai-music/core",
+  "version": "0.0.1",
+  "description": "Core domain models and types",
+  "main": "src/index.ts",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  }
+}
