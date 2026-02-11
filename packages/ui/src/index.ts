@@ -9,3 +9,4 @@ export * from './useKeyboard';
 export * from './Timeline';
 export * from './Controls';
 export * from './InstrumentSelector';
+export * from './BaseNoteSelector';

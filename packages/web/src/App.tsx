@@ -4,19 +4,20 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Keyboard, useKeyboard, InstrumentSelector } from '@ai-music-creator/ui';
+import { Keyboard, useKeyboard, InstrumentSelector, BaseNoteSelector } from '@ai-music-creator/ui';
 import { 
   initAudioEngine, 
   getAudioEngine, 
   AudioEngine,
   InstrumentType 
 } from '@ai-music-creator/audio';
-import { getNoteName } from '@ai-music-creator/core';
+import { getNoteName, setBaseNote, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [currentNote, setCurrentNote] = useState<string | null>(null);
   const [instrument, setInstrument] = useState<InstrumentType>('piano');
+  const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
   const [audioEngine] = useState(() => getAudioEngine());
   
   // 初始化音频引擎
@@ -64,6 +65,12 @@ function App() {
     audioEngine.setInstrument(newInstrument);
   }, [audioEngine]);
 
+  // 切换基准音
+  const handleBaseNoteChange = useCallback((note: number) => {
+    setBaseNoteState(note);
+    setBaseNote(note);
+  }, []);
+
   // 键盘事件 Hook
   const { activeNotes } = useKeyboard({
     onNoteOn: handleNoteOn,
@@ -78,6 +85,12 @@ function App() {
       </header>
 
       <main className="app-main">
+        {/* 基准音选择器 */}
+        <BaseNoteSelector
+          value={baseNote}
+          onChange={handleBaseNoteChange}
+        />
+        
         {/* 音色选择器 */}
         <InstrumentSelector 
           value={instrument}
