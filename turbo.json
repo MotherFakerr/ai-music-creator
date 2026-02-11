@@ -1,13 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**"]
     },
     "lint": {},
-    "test": {
-      "outputs": ["coverage/**"]
-    }
+    "test": {}
   }
 }
