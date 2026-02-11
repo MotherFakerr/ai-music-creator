@@ -2,9 +2,8 @@
   "name": "ai-music-creator",
   "version": "0.0.1",
   "private": true,
+  "packageManager": "pnpm@10.28.2",
   "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",

@@ -1,92 +1,100 @@
 /**
- * 键盘到音符的映射表
- * QWERTY 键盘 → MIDI 音符 (C3 = 48)
+ * 键盘映射表（连续布局）
+ * 
+ * 规则：
+ * - 行 3（A 键）= 基准音（默认 C3）
+ * - 同行右移 = +1 半音
+ * - 行 1（A 上 2 行）= 基准 + 2 八度 (+24)
+ * - 行 2（A 上 1 行）= 基准 + 1 八度 (+12)
+ * - 行 4（A 下 1 行）= 基准 - 1 八度 (-12)
  */
 
-// 白键映射：按键 → MIDI Note Number
-export const WHITE_KEY_MAP: Record<string, number> = {
-  // 主键盘区 (C3-E4)
-  Q: 48,  // C3
-  W: 50,  // D3
-  E: 52,  // E3
-  R: 53,  // F3
-  T: 55,  // G3
-  Y: 57,  // A3
-  U: 59,  // B3
-  I: 60,  // C4
-  O: 62,  // D4
-  P: 64,  // E4
+export const DEFAULT_BASE_NOTE = 48; // C3
+
+/**
+ * 键盘行定义
+ */
+export const KEYBOARD_ROWS = {
+  row1: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
+  row2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'],
+  row3: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"],
+  row4: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'],
+} as const;
+
+/**
+ * 生成键盘映射表
+ */
+export function generateKeyboardMap(baseNote: number = DEFAULT_BASE_NOTE): Record<string, number> {
+  const map: Record<string, number> = {};
   
-  // 辅助键盘区 (F3-A5)
-  A: 53,  // F3
-  S: 55,  // G3
-  D: 57,  // A3
-  F: 59,  // B3
-  G: 60,  // C5
-  H: 62,  // D5
-  J: 64,  // E5
-  K: 65,  // F5
-  L: 67,  // G5
-  ';': 69, // A5
-  "'": 69, // A5 (兼容)
-};
-
-// 黑键映射：按键 → MIDI Note Number
-export const BLACK_KEY_MAP: Record<string, number> = {
-  // 主键盘区
-  '2': 49,  // C#3
-  '3': 51,  // D#3
-  '5': 54,  // F#3
-  '6': 56,  // G#3
-  '8': 61,  // C#4
-  '9': 63,  // D#4
+  // 行 3（A 键）= 基准音
+  KEYBOARD_ROWS.row3.forEach((key, index) => {
+    map[key] = baseNote + index;
+  });
   
-  // 辅助键盘区 (复用字母键)
-  W: 54,   // F#3
-  E: 56,   // G#3
-  T: 58,   // A#3
-  Y: 61,   // C#5
-  O: 63,   // D#5
-  P: 66,   // F#5
-};
+  // 行 2（A 上 1 行）= 基准 + 1 八度 (+12)
+  KEYBOARD_ROWS.row2.forEach((key, index) => {
+    map[key] = baseNote + 12 + index;
+  });
+  
+  // 行 1（A 上 2 行）= 基准 + 2 八度 (+24)
+  KEYBOARD_ROWS.row1.forEach((key, index) => {
+    map[key] = baseNote + 24 + index;
+  });
+  
+  // 行 4（A 下 1 行）= 基准 - 1 八度 (-12)
+  KEYBOARD_ROWS.row4.forEach((key, index) => {
+    map[key] = baseNote - 12 + index;
+  });
+  
+  return map;
+}
 
-// 完整的按键 → 音符映射
-export const KEYBOARD_MAP: Record<string, number> = {
-  ...WHITE_KEY_MAP,
-  ...BLACK_KEY_MAP,
-};
+// 当前基准音
+let currentBaseNote = DEFAULT_BASE_NOTE;
 
-// 音符到音名的反向映射
-export const NOTE_NAMES: Record<number, string> = {
-  48: 'C3', 49: 'C#3', 50: 'D3', 51: 'D#3', 52: 'E3',
-  53: 'F3', 54: 'F#3', 55: 'G3', 56: 'G#3', 57: 'A3',
-  58: 'A#3', 59: 'B3', 60: 'C4', 61: 'C#4', 62: 'D4',
-  63: 'D#4', 64: 'E4', 65: 'F4', 66: 'F#4', 67: 'G4',
-  68: 'G#4', 69: 'A4', 70: 'A#4', 71: 'B4', 72: 'C5',
-  73: 'C#5', 74: 'D5', 75: 'D#5', 76: 'E5', 77: 'F5',
-  78: 'F#5', 79: 'G5', 80: 'G#5', 81: 'A5',
-};
+/**
+ * 设置基准音
+ */
+export function setBaseNote(note: number): void {
+  currentBaseNote = note;
+}
+
+/**
+ * 获取当前映射表
+ */
+export function getKeyboardMap(): Record<string, number> {
+  return generateKeyboardMap(currentBaseNote);
+}
+
+// 默认映射表（基准 = C3）
+export const KEYBOARD_MAP = generateKeyboardMap(DEFAULT_BASE_NOTE);
 
 /**
  * 判断是否为黑键
  */
 export function isBlackKey(key: string): boolean {
-  return key in BLACK_KEY_MAP;
+  const note = KEYBOARD_MAP[key];
+  if (note === undefined) return false;
+  const noteInC = note % 12;
+  return [1, 3, 6, 8, 10].includes(noteInC);
 }
 
 /**
- * 获取当前音符名称
+ * 获取音符名称
  */
 export function getNoteName(noteNumber: number): string {
-  return NOTE_NAMES[noteNumber] || `N${noteNumber}`;
+  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const octave = Math.floor(noteNumber / 12);
+  const note = noteNames[noteNumber % 12];
+  return `${note}${octave}`;
 }
 
 /**
  * 音高范围
  */
 export const KEYBOARD_RANGE = {
-  min: 48,  // C3
-  max: 81,  // A5
-  whiteKeyCount: 20,
-  blackKeyCount: 14,
+  min: 36,  // C3 - 12 = C2 (基准 C3 时)
+  max: 84,  // C5 + 12 (基准 C3 时)
+  baseNote: DEFAULT_BASE_NOTE,
 };

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useCallback, useState } from 'react';
-import { KEYBOARD_MAP } from '@ai-music-creator/core';
+import { getKeyboardMap } from '@ai-music-creator/core';
 
 export interface UseKeyboardOptions {
   onNoteOn?: (pitch: number, velocity: number) => void;
@@ -13,23 +13,24 @@ export interface UseKeyboardOptions {
 
 export function useKeyboard({ onNoteOn, onNoteOff }: UseKeyboardOptions) {
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
+  const keyboardMap = getKeyboardMap();
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // 避免重复触发
     if (event.repeat) return;
     
     const key = event.key.toUpperCase();
-    const note = KEYBOARD_MAP[key];
+    const note = keyboardMap[key];
     
     if (note !== undefined && !activeNotes.has(note)) {
       setActiveNotes(prev => new Set([...prev, note]));
       onNoteOn?.(note, 100); // 默认力度 100
     }
-  }, [activeNotes, onNoteOn]);
+  }, [activeNotes, onNoteOn, keyboardMap]);
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     const key = event.key.toUpperCase();
-    const note = KEYBOARD_MAP[key];
+    const note = keyboardMap[key];
     
     if (note !== undefined) {
       setActiveNotes(prev => {
@@ -39,7 +40,7 @@ export function useKeyboard({ onNoteOn, onNoteOff }: UseKeyboardOptions) {
       });
       onNoteOff?.(note);
     }
-  }, [onNoteOff]);
+  }, [onNoteOff, keyboardMap]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

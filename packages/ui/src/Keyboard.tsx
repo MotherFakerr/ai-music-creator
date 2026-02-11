@@ -1,34 +1,40 @@
 /**
  * Keyboard Component
- * 键盘演奏界面
+ * 可视键盘（连续布局）
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { KEYBOARD_RANGE, isBlackKey, NOTE_NAMES } from '@ai-music-creator/core';
+import React, { useMemo } from 'react';
+import { KEYBOARD_ROWS, getKeyboardMap, getNoteName, isBlackKey } from '@ai-music-creator/core';
 
 export interface KeyboardProps {
-  onNoteOn?: (pitch: number, velocity: number) => void;
-  onNoteOff?: (pitch: number) => void;
   activeNotes?: Set<number>;
 }
 
-export function Keyboard({ 
-  onNoteOn, 
-  onNoteOff,
-  activeNotes = new Set<number>()
-}: KeyboardProps) {
-  // 生成键盘上的音符列表（从 C3 到 A5）
-  const notes: number[] = [];
-  for (let note = KEYBOARD_RANGE.min; note <= KEYBOARD_RANGE.max; note++) {
-    notes.push(note);
-  }
+export function Keyboard({ activeNotes = new Set<number>() }: KeyboardProps) {
+  // 生成按音高排序的音符列表
+  const notes = useMemo(() => {
+    const noteSet = new Set<number>();
+    const map = getKeyboardMap();
+    
+    // 添加所有行的音符
+    Object.values(KEYBOARD_ROWS).forEach((row) => {
+      row.forEach((key) => {
+        if (map[key] !== undefined) {
+          noteSet.add(map[key]);
+        }
+      });
+    });
+    
+    // 排序并返回数组
+    return Array.from(noteSet).sort((a, b) => a - b);
+  }, []);
 
   return (
     <div className="keyboard-container">
       <div className="piano-keyboard">
         {notes.map((note) => {
           const isBlack = isBlackKey(note.toString());
-          const noteName = NOTE_NAMES[note] || '';
+          const noteName = getNoteName(note);
           const isActive = activeNotes.has(note);
           
           return (
@@ -36,7 +42,6 @@ export function Keyboard({
               key={note}
               className={`key ${isBlack ? 'black' : 'white'} ${isActive ? 'active' : ''}`}
               data-note={note}
-              data-name={noteName}
             >
               <span className="key-label">{noteName}</span>
             </div>
@@ -71,7 +76,7 @@ export function Keyboard({
         }
         
         .key.white {
-          width: 50px;
+          width: 44px;
           height: 200px;
           background: linear-gradient(to bottom, #fff 0%, #f0f0f0 100%);
           border: 1px solid #ccc;
@@ -89,14 +94,14 @@ export function Keyboard({
         }
         
         .key.black {
-          width: 30px;
+          width: 28px;
           height: 120px;
           background: linear-gradient(to bottom, #333 0%, #111 100%);
           border: none;
           border-radius: 0 0 4px 4px;
           position: absolute;
           z-index: 2;
-          margin-left: -15px; /* 居中对齐 */
+          margin-left: -14px;
         }
         
         .key.black:hover {

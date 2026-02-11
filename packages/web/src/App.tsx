@@ -105,9 +105,10 @@ function App() {
         
         {/* 使用提示 */}
         <div className="keyboard-hint">
-          <p>使用 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd><kbd>I</kbd><kbd>O</kbd><kbd>P</kbd> 演奏 C3-E4</p>
-          <p>使用 <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd><kbd>;</kbd><kbd>'</kbd> 演奏 F3-A5</p>
-          <p>使用 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd><kbd>6</kbd><kbd>7</kbd><kbd>8</kbd><kbd>9</kbd><kbd>0</kbd> 演奏黑键</p>
+          <p><kbd>1</kbd><kbd>-</kbd> 演奏 C5-B5（高音区）</p>
+          <p><kbd>Q</kbd><kbd>]</kbd> 演奏 C4-B4（中音区）</p>
+          <p><kbd>A</kbd><kbd>'</kbd> 演奏 C3-B3（基准区）</p>
+          <p><kbd>Z</kbd><kbd>/</kbd> 演奏 C2-A2（低音区）</p>
         </div>
       </main>
 
