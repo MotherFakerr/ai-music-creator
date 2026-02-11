@@ -15,6 +15,8 @@
 - [docs/TECHNICAL.md](./docs/TECHNICAL.md) — 技术架构
 - [docs/ADR](./docs/ADR/) — 决策记录
 - [docs/EVOLUTION.md](./docs/EVOLUTION.md) — 演进记录
+- [docs/milestones/](./docs/milestones/) — 里程碑文档
+- [docs/RETROSPECTIVE.md](./docs/RETROSPECTIVE.md) — 问题复盘
 
 ## 核心功能
 
