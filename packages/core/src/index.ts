@@ -48,3 +48,6 @@ export function createTrack(
 ): Track {
   return { id, name, instrument, notes: [] };
 }
+
+// 键盘映射
+export * from './keyboard-map';

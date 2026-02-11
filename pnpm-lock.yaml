@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@tsconfig/recommended':
+        specifier: ^1.0.13
+        version: 1.0.13
       turbo:
         specifier: latest
         version: 2.8.4
@@ -62,6 +65,21 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
     devDependencies:
+      '@ai-music/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@ai-music/audio':
+        specifier: workspace:*
+        version: link:../audio
+      '@ai-music/core':
+        specifier: workspace:*
+        version: link:../core
+      '@ai-music/midi':
+        specifier: workspace:*
+        version: link:../midi
+      '@ai-music/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.28
@@ -457,6 +475,9 @@ packages:
     resolution: {integrity: sha512-mxRFDdHIWRxg3UfIIAwCm6NzvxG0jDX/wBN6KsQFTvKFqqg9vTrWUE68qEjHt19A5wwx5X5aUi2zuZT7YR0jrA==}
     cpu: [x64]
     os: [win32]
+
+  '@tsconfig/recommended@1.0.13':
+    resolution: {integrity: sha512-sySRuBfMKyKO/j2ZAhR8kSembhjuPEV4Ra3AHtmWLq51+iGaudr45crPSzNC5b7/Ctrh9dfUpBuTlYrH6rM58Q==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -962,6 +983,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.57.1':
     optional: true
+
+  '@tsconfig/recommended@1.0.13': {}
 
   '@types/babel__core@7.20.5':
     dependencies:
