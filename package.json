@@ -16,8 +16,5 @@
     "@tsconfig/recommended": "^1.0.13",
     "turbo": "latest",
     "typescript": "latest"
-  },
-  "dependencies": {
-    "tone": "^15.1.22"
   }
 }
