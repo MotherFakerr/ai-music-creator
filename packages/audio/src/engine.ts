@@ -17,7 +17,9 @@ export class AudioEngine {
   private currentInstrument: EN_INSTRUMENT_TYPE = EN_INSTRUMENT_TYPE.PIANO;
   private volume: number = 1.0; // 默认音量提高到 1.0
   private instrumentPlayer: Soundfont | null = null;
-  private instrumentLoading: Promise<void> | null = null;
+  private instrumentPlayers: Map<EN_INSTRUMENT_TYPE, Soundfont> = new Map();
+  private instrumentLoadings: Map<EN_INSTRUMENT_TYPE, Promise<Soundfont>> =
+    new Map();
 
   constructor() {
     // 延迟初始化，直到用户交互
@@ -71,45 +73,64 @@ export class AudioEngine {
       throw new Error("AudioEngine 未初始化，请先调用 init()");
     }
 
-    // 如果正在加载，等待加载完成
-    if (this.instrumentLoading) {
-      await this.instrumentLoading;
-      return;
-    }
-
     // 鼓组特殊处理，使用基础振荡器
     if (instrument === EN_INSTRUMENT_TYPE.DRUM) {
       this.instrumentPlayer = null;
       return;
     }
 
-    const soundfontName = INSTRUMENT_MAP[instrument];
+    try {
+      this.instrumentPlayer = await this.getOrLoadInstrument(instrument);
+    } catch (error) {
+      const soundfontName = INSTRUMENT_MAP[instrument];
+      console.error(`[AudioEngine] 加载音色失败: ${soundfontName}`, error);
 
-    this.instrumentLoading = (async () => {
-      try {
-        const player = new Soundfont(this.context!, {
-          instrument: soundfontName,
-          destination: this.masterGain ?? this.context!.destination,
-        });
-        await player.loaded();
-        this.instrumentPlayer = player;
-        console.log(`[AudioEngine] 已加载音色: ${soundfontName}`);
-      } catch (error) {
-        console.error(`[AudioEngine] 加载音色失败: ${soundfontName}`, error);
-        // 如果加载失败，使用默认钢琴音色
-        if (instrument !== "piano") {
-          const fallbackPlayer = new Soundfont(this.context!, {
-            instrument: INSTRUMENT_MAP.piano,
-            destination: this.masterGain ?? this.context!.destination,
-          });
-          await fallbackPlayer.loaded();
-          this.instrumentPlayer = fallbackPlayer;
-        }
+      // 如果加载失败，使用默认钢琴音色
+      if (instrument !== EN_INSTRUMENT_TYPE.PIANO) {
+        this.instrumentPlayer = await this.getOrLoadInstrument(
+          EN_INSTRUMENT_TYPE.PIANO
+        );
+      } else {
+        this.instrumentPlayer = null;
       }
-      this.instrumentLoading = null;
+    }
+  }
+
+  /**
+   * 获取已缓存播放器，或按乐器去重加载
+   */
+  private async getOrLoadInstrument(
+    instrument: EN_INSTRUMENT_TYPE
+  ): Promise<Soundfont> {
+    const cachedPlayer = this.instrumentPlayers.get(instrument);
+    if (cachedPlayer) {
+      return cachedPlayer;
+    }
+
+    const loadingPlayer = this.instrumentLoadings.get(instrument);
+    if (loadingPlayer) {
+      return loadingPlayer;
+    }
+
+    const soundfontName = INSTRUMENT_MAP[instrument];
+    const loading = (async () => {
+      const player = new Soundfont(this.context!, {
+        instrument: soundfontName,
+        destination: this.masterGain ?? this.context!.destination,
+      });
+      await player.loaded();
+      this.instrumentPlayers.set(instrument, player);
+      console.log(`[AudioEngine] 已加载音色: ${soundfontName}`);
+      return player;
     })();
 
-    await this.instrumentLoading;
+    this.instrumentLoadings.set(instrument, loading);
+
+    try {
+      return await loading;
+    } finally {
+      this.instrumentLoadings.delete(instrument);
+    }
   }
 
   /**
@@ -249,7 +270,8 @@ export class AudioEngine {
   dispose(): void {
     this.stopAllNotes();
     this.instrumentPlayer = null;
-    this.instrumentLoading = null;
+    this.instrumentPlayers.clear();
+    this.instrumentLoadings.clear();
     if (this.context) {
       this.context.close();
       this.context = null;
