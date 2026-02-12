@@ -3,32 +3,26 @@
  * AI Music Creator - 音乐演奏入口
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Keyboard, useKeyboard, InstrumentSelector, BaseNoteSelector } from '@ai-music-creator/ui';
+import { useState, useEffect, useCallback } from "react";
 import {
-  initAudioEngine,
-  getAudioEngine,
-  AudioEngine,
-  InstrumentType
-} from '@ai-music-creator/audio';
-import { getNoteName, setBaseNote, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
-
-interface NoteParticle {
-  id: number;
-  note: string;
-  x: number;
-  y: number;
-  timestamp: number;
-}
+  Keyboard,
+  useKeyboard,
+  InstrumentSelector,
+  BaseNoteSelector,
+} from "@ai-music-creator/ui";
+import { getAudioEngine, InstrumentType } from "@ai-music-creator/audio";
+import {
+  getNoteName,
+  setBaseNote,
+  DEFAULT_BASE_NOTE,
+} from "@ai-music-creator/core";
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [currentNote, setCurrentNote] = useState<string | null>(null);
-  const [instrument, setInstrument] = useState<InstrumentType>('piano');
+  const [instrument, setInstrument] = useState<InstrumentType>("piano");
   const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
   const [audioEngine] = useState(() => getAudioEngine());
-  const [particles, setParticles] = useState<NoteParticle[]>([]);
-  const particleIdRef = useRef(0);
 
   // 初始化音频引擎
   useEffect(() => {
@@ -36,19 +30,19 @@ function App() {
       try {
         await audioEngine.init();
         setIsInitialized(true);
-        console.log('[App] 音频引擎初始化成功');
+        console.log("[App] 音频引擎初始化成功");
       } catch (err) {
-        console.error('[App] 音频引擎初始化失败:', err);
+        console.error("[App] 音频引擎初始化失败:", err);
       }
     };
 
     // 首次需要用户交互触发
     const handleFirstInteraction = () => {
       init();
-      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener("click", handleFirstInteraction);
     };
 
-    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener("click", handleFirstInteraction);
 
     return () => {
       audioEngine.dispose();
@@ -56,37 +50,33 @@ function App() {
   }, [audioEngine]);
 
   // 音符事件处理
-  const handleNoteOn = useCallback((note: number, velocity: number) => {
-    if (isInitialized) {
-      audioEngine.playNote(note, velocity);
-      setCurrentNote(getNoteName(note));
+  const handleNoteOn = useCallback(
+    (note: number, velocity: number) => {
+      if (isInitialized) {
+        audioEngine.playNote(note, velocity);
+        setCurrentNote(getNoteName(note));
+      }
+    },
+    [isInitialized, audioEngine]
+  );
 
-      // 添加粒子效果
-      const id = particleIdRef.current++;
-      const screenWidth = window.innerWidth;
-      const x = screenWidth / 2 + (Math.random() - 0.5) * 200;
-      const y = 300 + Math.random() * 100;
-
-      setParticles(prev => [...prev, { id, note: getNoteName(note), x, y, timestamp: Date.now() }]);
-
-      // 3秒后移除粒子
-      setTimeout(() => {
-        setParticles(prev => prev.filter(p => p.id !== id));
-      }, 3000);
-    }
-  }, [isInitialized, audioEngine]);
-
-  const handleNoteOff = useCallback((note: number) => {
-    if (isInitialized) {
-      audioEngine.stopNote(note);
-    }
-  }, [isInitialized, audioEngine]);
+  const handleNoteOff = useCallback(
+    (note: number) => {
+      if (isInitialized) {
+        audioEngine.stopNote(note);
+      }
+    },
+    [isInitialized, audioEngine]
+  );
 
   // 切换音色
-  const handleInstrumentChange = useCallback((newInstrument: InstrumentType) => {
-    setInstrument(newInstrument);
-    audioEngine.setInstrument(newInstrument);
-  }, [audioEngine]);
+  const handleInstrumentChange = useCallback(
+    (newInstrument: InstrumentType) => {
+      setInstrument(newInstrument);
+      audioEngine.setInstrument(newInstrument);
+    },
+    [audioEngine]
+  );
 
   // 切换基准音
   const handleBaseNoteChange = useCallback((note: number) => {
@@ -108,23 +98,6 @@ function App() {
         <div className="orb orb-1" />
         <div className="orb orb-2" />
         <div className="orb orb-3" />
-      </div>
-
-      {/* 粒子效果层 */}
-      <div className="particles-layer">
-        {particles.map(particle => (
-          <div
-            key={particle.id}
-            className="particle"
-            style={{
-              left: particle.x,
-              top: particle.y,
-            }}
-          >
-            <span className="particle-note">{particle.note}</span>
-            <div className="particle-ring" />
-          </div>
-        ))}
       </div>
 
       <header className="app-header">
@@ -167,12 +140,7 @@ function App() {
         </div>
 
         {/* 键盘组件 */}
-        <Keyboard
-          activeNotes={activeNotes}
-          baseNote={baseNote}
-          onNoteOn={handleNoteOn}
-          onNoteOff={handleNoteOff}
-        />
+        <Keyboard activeNotes={activeNotes} baseNote={baseNote} />
       </main>
 
       <style>{`
