@@ -3,22 +3,25 @@
  * 音色选择器
  */
 
-import React from 'react';
-import { InstrumentType } from '@ai-music-creator/audio';
+import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
 
 export interface InstrumentSelectorProps {
-  value: InstrumentType;
-  onChange: (instrument: InstrumentType) => void;
+  value: EN_INSTRUMENT_TYPE;
+  onChange: (instrument: EN_INSTRUMENT_TYPE) => void;
 }
 
-const INSTRUMENTS: { id: InstrumentType; label: string }[] = [
-  { id: 'piano', label: '钢琴' },
-  { id: 'synth', label: '合成器' },
-  { id: 'guitar', label: '电吉他' },
-  { id: 'drum', label: '鼓组' },
+const INSTRUMENTS: { id: EN_INSTRUMENT_TYPE; label: string }[] = [
+  { id: EN_INSTRUMENT_TYPE.PIANO, label: "钢琴" },
+  { id: EN_INSTRUMENT_TYPE.SYNTH, label: "合成器" },
+  { id: EN_INSTRUMENT_TYPE.GUITAR, label: "吉他" },
+  { id: EN_INSTRUMENT_TYPE.DISTORTION_GUITAR, label: "失真吉他" },
+  { id: EN_INSTRUMENT_TYPE.DRUM, label: "鼓组" },
 ];
 
-export function InstrumentSelector({ value, onChange }: InstrumentSelectorProps) {
+export function InstrumentSelector({
+  value,
+  onChange,
+}: InstrumentSelectorProps) {
   return (
     <div className="instrument-selector">
       <span className="selector-label">音色</span>
@@ -26,7 +29,7 @@ export function InstrumentSelector({ value, onChange }: InstrumentSelectorProps)
         {INSTRUMENTS.map((inst) => (
           <button
             key={inst.id}
-            className={`instrument-btn ${value === inst.id ? 'active' : ''}`}
+            className={`instrument-btn ${value === inst.id ? "active" : ""}`}
             onClick={() => onChange(inst.id)}
           >
             {inst.label}

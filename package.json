@@ -16,5 +16,9 @@
     "@tsconfig/recommended": "^1.0.13",
     "turbo": "latest",
     "typescript": "latest"
+  },
+  "dependencies": {
+    "smplr": "^0.16.4",
+    "@tonejs/midi": "^2.0.28"
   }
 }

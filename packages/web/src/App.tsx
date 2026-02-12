@@ -10,7 +10,7 @@ import {
   InstrumentSelector,
   BaseNoteSelector,
 } from "@ai-music-creator/ui";
-import { getAudioEngine, InstrumentType } from "@ai-music-creator/audio";
+import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import {
   getNoteName,
   setBaseNote,
@@ -20,7 +20,9 @@ import {
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [currentNote, setCurrentNote] = useState<string | null>(null);
-  const [instrument, setInstrument] = useState<InstrumentType>("piano");
+  const [instrument, setInstrument] = useState<EN_INSTRUMENT_TYPE>(
+    EN_INSTRUMENT_TYPE.PIANO
+  );
   const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
   const [audioEngine] = useState(() => getAudioEngine());
 
@@ -30,19 +32,13 @@ function App() {
       try {
         await audioEngine.init();
         setIsInitialized(true);
-        console.log("[App] 音频引擎初始化成功");
+        console.log("[App] 音频引擎初始化成功（自动加载）");
       } catch (err) {
         console.error("[App] 音频引擎初始化失败:", err);
       }
     };
 
-    // 首次需要用户交互触发
-    const handleFirstInteraction = () => {
-      init();
-      document.removeEventListener("click", handleFirstInteraction);
-    };
-
-    document.addEventListener("click", handleFirstInteraction);
+    void init();
 
     return () => {
       audioEngine.dispose();
@@ -52,10 +48,9 @@ function App() {
   // 音符事件处理
   const handleNoteOn = useCallback(
     (note: number, velocity: number) => {
-      if (isInitialized) {
-        audioEngine.playNote(note, velocity);
-        setCurrentNote(getNoteName(note));
-      }
+      if (!isInitialized) return;
+      audioEngine.playNote(note, velocity);
+      setCurrentNote(getNoteName(note));
     },
     [isInitialized, audioEngine]
   );
@@ -71,9 +66,9 @@ function App() {
 
   // 切换音色
   const handleInstrumentChange = useCallback(
-    (newInstrument: InstrumentType) => {
+    async (newInstrument: EN_INSTRUMENT_TYPE) => {
       setInstrument(newInstrument);
-      audioEngine.setInstrument(newInstrument);
+      await audioEngine.setInstrument(newInstrument);
     },
     [audioEngine]
   );
