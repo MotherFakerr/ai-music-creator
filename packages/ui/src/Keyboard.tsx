@@ -4,14 +4,17 @@
  */
 
 import React, { useMemo } from 'react';
-import { KEYBOARD_ROWS, getKeyboardMap, getNoteName, isBlackKey, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
+import { KEYBOARD_ROWS, getNoteName, isBlackKey, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
+import { useKeyboardMap, getKeyForNote } from '@ai-music-creator/core';
 
 export interface KeyboardProps {
   activeNotes?: Set<number>;
+  baseNote?: number;
 }
 
-export function Keyboard({ activeNotes = new Set<number>() }: KeyboardProps) {
-  const keyboardMap = useMemo(() => getKeyboardMap(), []);
+export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_BASE_NOTE }: KeyboardProps) {
+  // 使用 hook 响应基准音变化
+  const keyboardMap = useKeyboardMap(baseNote);
 
   // 获取按键对应的音符
   const getNoteForKey = (key: string) => keyboardMap[key];

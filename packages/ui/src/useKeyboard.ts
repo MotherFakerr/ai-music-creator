@@ -4,16 +4,17 @@
  */
 
 import { useEffect, useCallback, useState } from 'react';
-import { getKeyboardMap } from '@ai-music-creator/core';
+import { useKeyboardMap } from '@ai-music-creator/core';
 
 export interface UseKeyboardOptions {
   onNoteOn?: (pitch: number, velocity: number) => void;
   onNoteOff?: (pitch: number) => void;
+  baseNote?: number;
 }
 
-export function useKeyboard({ onNoteOn, onNoteOff }: UseKeyboardOptions) {
+export function useKeyboard({ onNoteOn, onNoteOff, baseNote }: UseKeyboardOptions = {}) {
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
-  const keyboardMap = getKeyboardMap();
+  const keyboardMap = useKeyboardMap(baseNote);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // 避免重复触发

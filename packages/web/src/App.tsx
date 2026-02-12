@@ -96,6 +96,7 @@ function App() {
 
   // 键盘事件 Hook
   const { activeNotes } = useKeyboard({
+    baseNote,
     onNoteOn: handleNoteOn,
     onNoteOff: handleNoteOff,
   });
@@ -168,6 +169,7 @@ function App() {
         {/* 键盘组件 */}
         <Keyboard
           activeNotes={activeNotes}
+          baseNote={baseNote}
           onNoteOn={handleNoteOn}
           onNoteOff={handleNoteOff}
         />

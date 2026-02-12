@@ -51,3 +51,4 @@ export function createTrack(
 
 // 键盘映射
 export * from './keyboard-map';
+export * from './useKeyboardMap';
