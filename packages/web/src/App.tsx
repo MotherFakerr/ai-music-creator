@@ -208,55 +208,6 @@ function App() {
           75% { transform: translate(20px, 30px) scale(1.02); }
         }
 
-        /* 粒子层 */
-        .particles-layer {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 100;
-        }
-
-        .particle {
-          position: absolute;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          animation: particleFloat 3s ease-out forwards;
-        }
-
-        .particle-note {
-          font-size: 24px;
-          font-weight: 700;
-          font-family: 'Monaco', 'Consolas', monospace;
-          color: #6366f1;
-          text-shadow: 0 0 20px rgba(99, 102, 241, 0.8);
-          animation: notePop 0.3s ease-out;
-        }
-
-        .particle-ring {
-          width: 40px;
-          height: 40px;
-          border: 2px solid rgba(99, 102, 241, 0.5);
-          border-radius: 50%;
-          animation: ringExpand 1s ease-out forwards;
-        }
-
-        @keyframes particleFloat {
-          0% { opacity: 1; transform: translateY(0) scale(1); }
-          100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
-        }
-
-        @keyframes notePop {
-          0% { transform: scale(0.5); opacity: 0; }
-          50% { transform: scale(1.2); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes ringExpand {
-          0% { transform: scale(0.5); opacity: 1; }
-          100% { transform: scale(2); opacity: 0; }
-        }
-
         .app-header {
           position: relative;
           z-index: 10;
