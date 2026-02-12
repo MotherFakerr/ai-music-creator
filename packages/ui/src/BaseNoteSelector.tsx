@@ -3,8 +3,8 @@
  * 基准音选择器
  */
 
-import React from 'react';
-import { DEFAULT_BASE_NOTE, getNoteName } from '@ai-music-creator/core';
+import React from "react";
+import { DEFAULT_BASE_NOTE, getNoteName } from "@ai-music-creator/core";
 
 export interface BaseNoteSelectorProps {
   value?: number;
@@ -13,7 +13,7 @@ export interface BaseNoteSelectorProps {
 
 export function BaseNoteSelector({
   value = DEFAULT_BASE_NOTE,
-  onChange
+  onChange,
 }: BaseNoteSelectorProps) {
   // 输入范围
   const MIN_NOTE = 48; // C3
@@ -43,13 +43,17 @@ export function BaseNoteSelector({
             onClick={handleIncrement}
             disabled={value >= MAX_NOTE}
             aria-label="升高"
-          >▲</button>
+          >
+            ▲
+          </button>
           <button
             className="arrow-btn down"
             onClick={handleDecrement}
             disabled={value <= MIN_NOTE}
             aria-label="降低"
-          >▼</button>
+          >
+            ▼
+          </button>
         </div>
       </div>
 
@@ -62,9 +66,9 @@ export function BaseNoteSelector({
 
         .selector-label {
           color: #9ca3af;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.8px;
         }
 
         .selector-content {

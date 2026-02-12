@@ -19,6 +19,8 @@
   "dependencies": {
     "@ai-music-creator/core": "workspace:*",
     "@ai-music-creator/audio": "workspace:*",
-    "@ai-music-creator/midi": "workspace:*"
+    "@ai-music-creator/midi": "workspace:*",
+    "@mantine/core": "^8.3.14",
+    "@mantine/hooks": "^8.3.14"
   }
 }

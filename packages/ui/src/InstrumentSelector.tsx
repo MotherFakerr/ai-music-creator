@@ -28,9 +28,7 @@ export function InstrumentSelector({
 }: InstrumentSelectorProps) {
   return (
     <div className="instrument-selector">
-      <span className="selector-label">
-        {isLoading ? "音色（加载中...）" : "音色"}
-      </span>
+      <span className="selector-label">音色</span>
       <div className="instrument-buttons">
         {INSTRUMENTS.map((inst) => (
           <button
@@ -40,12 +38,12 @@ export function InstrumentSelector({
             disabled={disabled || isLoading}
           >
             {inst.label}
+            {isLoading && value === inst.id ? (
+              <span className="loading-dot" aria-hidden="true" />
+            ) : null}
           </button>
         ))}
       </div>
-      {isLoading ? (
-        <span className="loading-tip">正在加载乐器，请稍候...</span>
-      ) : null}
 
       <style>{`
         .instrument-selector {
@@ -56,9 +54,9 @@ export function InstrumentSelector({
 
         .selector-label {
           color: #9ca3af;
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.8px;
         }
 
         .instrument-buttons {
@@ -68,6 +66,7 @@ export function InstrumentSelector({
         }
 
         .instrument-btn {
+          position: relative;
           padding: 12px 24px;
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.08);
@@ -105,10 +104,31 @@ export function InstrumentSelector({
           color: #9ca3af;
         }
 
-        .loading-tip {
-          color: #93c5fd;
-          font-size: 12px;
-          margin-top: 4px;
+        .loading-dot {
+          position: absolute;
+          right: 7px;
+          top: 7px;
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: #fbbf24;
+          box-shadow: 0 0 0 rgba(251, 191, 36, 0.6);
+          animation: loading-dot-pulse 900ms ease-out infinite;
+        }
+
+        @keyframes loading-dot-pulse {
+          0% {
+            transform: scale(0.9);
+            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6);
+          }
+          70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
+          }
+          100% {
+            transform: scale(0.9);
+            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+          }
         }
       `}</style>
     </div>

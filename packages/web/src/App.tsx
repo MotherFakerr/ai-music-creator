@@ -1,23 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Box, Card, Container, Grid, Stack } from "@mantine/core";
 import {
-  Badge,
-  Box,
-  Card,
-  Center,
-  Container,
-  Group,
-  Loader,
-  Paper,
-  SimpleGrid,
-  Stack,
-  Text,
-  ThemeIcon,
-  Title,
-} from "@mantine/core";
-import {
-  BaseNoteSelector,
   InstrumentSelector,
   Keyboard,
+  PerformancePreviewPanel,
+  type PerformanceTrace,
   useKeyboard,
 } from "@ai-music-creator/ui";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
@@ -26,16 +13,29 @@ import {
   getNoteName,
   setBaseNote,
 } from "@ai-music-creator/core";
+import { AppHeader } from "./components/AppHeader";
+import { SettingsPanel } from "./components/SettingsPanel";
+import {
+  useActiveNoteLayout,
+  useNoteLaneMapper,
+} from "./hooks/usePerformanceLayout";
+
+const TRACE_LIFETIME_MS = 1650;
+const TRACE_MAX_ITEMS = 48;
+const TRACK_EDGE_PADDING = 0.02;
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInstrumentLoading, setIsInstrumentLoading] = useState(false);
-  const [currentNote, setCurrentNote] = useState<string | null>(null);
+  const [traces, setTraces] = useState<PerformanceTrace[]>([]);
+  const [volume, setVolume] = useState(0.9);
   const [instrument, setInstrument] = useState<EN_INSTRUMENT_TYPE>(
     EN_INSTRUMENT_TYPE.PIANO
   );
   const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
   const [audioEngine] = useState(() => getAudioEngine());
+  const traceIdRef = useRef(0);
+  const mapNoteToLane = useNoteLaneMapper(baseNote, TRACK_EDGE_PADDING);
 
   useEffect(() => {
     const init = async () => {
@@ -60,9 +60,23 @@ function App() {
     (note: number, velocity: number) => {
       if (!canPlay) return;
       audioEngine.playNote(note, velocity);
-      setCurrentNote(getNoteName(note));
+
+      const lane = mapNoteToLane(note);
+      const hue = 8 + ((note % 12) / 12) * 35; // 暖色谱，接近“能量束”观感
+      const strength = Math.max(0.35, Math.min(1, velocity / 127));
+      const nextTrace: PerformanceTrace = {
+        id: ++traceIdRef.current,
+        note,
+        noteName: getNoteName(note),
+        x: lane,
+        hue,
+        bornAt: Date.now(),
+        strength,
+      };
+
+      setTraces((prev) => [...prev, nextTrace].slice(-TRACE_MAX_ITEMS));
     },
-    [canPlay, audioEngine]
+    [audioEngine, canPlay, mapNoteToLane]
   );
 
   const handleNoteOff = useCallback(
@@ -78,7 +92,6 @@ function App() {
       if (newInstrument === instrument) return;
 
       setIsInstrumentLoading(true);
-      setCurrentNote(null);
       audioEngine.stopAllNotes();
       setInstrument(newInstrument);
 
@@ -102,6 +115,37 @@ function App() {
     onNoteOff: handleNoteOff,
     disabled: !canPlay,
   });
+  const { activeNoteAnchors, alignedNoteLabels } = useActiveNoteLayout({
+    activeNotes,
+    mapNoteToLane,
+  });
+  const activeNoteLabel = useMemo(() => {
+    if (activeNotes.size === 0) return null;
+    return Array.from(activeNotes)
+      .sort((a, b) => a - b)
+      .map((note) => getNoteName(note))
+      .join(" · ");
+  }, [activeNotes]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setTraces((prev) => {
+        const next = prev.filter(
+          (item) => now - item.bornAt < TRACE_LIFETIME_MS
+        );
+        return next.length === prev.length ? prev : next;
+      });
+    }, 120);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    audioEngine.setVolume(volume);
+  }, [audioEngine, volume]);
 
   return (
     <Box
@@ -113,108 +157,33 @@ function App() {
     >
       <Container size="xl" py={36}>
         <Stack gap={24}>
-          <Paper
-            radius="xl"
-            p="lg"
-            style={{
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(10, 14, 24, 0.7)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <Group
-              justify="space-between"
-              align="flex-start"
-              wrap="wrap"
-              gap={12}
-            >
-              <Group gap={12}>
-                <ThemeIcon
-                  size={42}
-                  radius="md"
-                  variant="gradient"
-                  gradient={{ from: "indigo.5", to: "cyan.5", deg: 120 }}
-                >
-                  🎵
-                </ThemeIcon>
-                <Box>
-                  <Title order={2}>AI Music Co-Creator</Title>
-                  <Text c="dimmed" size="sm">
-                    演奏 · 跟奏 · MIDI记录 · AI续写
-                  </Text>
-                </Box>
-              </Group>
+          <AppHeader
+            isInitialized={isInitialized}
+            isInstrumentLoading={isInstrumentLoading}
+          />
 
-              <Group gap={8}>
-                <Badge color={isInitialized ? "teal" : "gray"} variant="light">
-                  {isInitialized ? "音频引擎已就绪" : "音频引擎初始化中"}
-                </Badge>
-                <Badge
-                  color={isInstrumentLoading ? "yellow" : "grape"}
-                  variant="light"
-                >
-                  {isInstrumentLoading ? "音色加载中" : "可演奏"}
-                </Badge>
-              </Group>
-            </Group>
-          </Paper>
-
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-            <Card
-              radius="lg"
-              padding="lg"
-              style={{
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(15, 19, 32, 0.7)",
-              }}
-            >
-              <BaseNoteSelector
-                value={baseNote}
-                onChange={handleBaseNoteChange}
+          <Grid gutter="md" align="stretch">
+            <Grid.Col span={{ base: 12, md: 4 }} style={{ display: "flex" }}>
+              <SettingsPanel
+                baseNote={baseNote}
+                volume={volume}
+                onBaseNoteChange={handleBaseNoteChange}
+                onVolumeChange={setVolume}
               />
-            </Card>
+            </Grid.Col>
 
-            <Card
-              radius="lg"
-              padding="lg"
-              style={{
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(15, 19, 32, 0.7)",
-              }}
-            >
-              {currentNote ? (
-                <Center h={88}>
-                  <Stack align="center" gap={4}>
-                    <Text size="xs" c="dimmed">
-                      当前音符
-                    </Text>
-                    <Text
-                      fw={700}
-                      size="2.4rem"
-                      ff="Monaco, Consolas, monospace"
-                      variant="gradient"
-                      gradient={{ from: "indigo.4", to: "violet.3", deg: 120 }}
-                    >
-                      {currentNote}
-                    </Text>
-                  </Stack>
-                </Center>
-              ) : (
-                <Center h={88}>
-                  <Group gap={8}>
-                    {isInstrumentLoading ? (
-                      <Loader color="yellow" size="sm" />
-                    ) : null}
-                    <Text size="sm" c="dimmed">
-                      {isInstrumentLoading
-                        ? "乐器加载中，暂不可演奏"
-                        : "按下键盘开始演奏"}
-                    </Text>
-                  </Group>
-                </Center>
-              )}
-            </Card>
-          </SimpleGrid>
+            <Grid.Col span={{ base: 12, md: 8 }} style={{ display: "flex" }}>
+              <PerformancePreviewPanel
+                activeNoteLabel={activeNoteLabel}
+                activeNotesSize={activeNotes.size}
+                isInstrumentLoading={isInstrumentLoading}
+                activeNoteAnchors={activeNoteAnchors}
+                traces={traces}
+                alignedNoteLabels={alignedNoteLabels}
+                traceLifetimeMs={TRACE_LIFETIME_MS}
+              />
+            </Grid.Col>
+          </Grid>
 
           <Card
             radius="lg"
