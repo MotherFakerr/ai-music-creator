@@ -1,130 +1,204 @@
 /**
  * Keyboard Component
- * 可视键盘（连续布局）
+ * 虚拟键盘（QWERTY 布局 + 音阶显示）
  */
 
 import React, { useMemo } from 'react';
-import { KEYBOARD_ROWS, getKeyboardMap, getNoteName, isBlackKey } from '@ai-music-creator/core';
+import { KEYBOARD_ROWS, getKeyboardMap, getNoteName, isBlackKey, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
 
 export interface KeyboardProps {
   activeNotes?: Set<number>;
 }
 
 export function Keyboard({ activeNotes = new Set<number>() }: KeyboardProps) {
-  // 生成按音高排序的音符列表
-  const notes = useMemo(() => {
-    const noteSet = new Set<number>();
-    const map = getKeyboardMap();
-    
-    // 添加所有行的音符
-    Object.values(KEYBOARD_ROWS).forEach((row) => {
-      row.forEach((key) => {
-        if (map[key] !== undefined) {
-          noteSet.add(map[key]);
-        }
-      });
-    });
-    
-    // 排序并返回数组
-    return Array.from(noteSet).sort((a, b) => a - b);
-  }, []);
+  const keyboardMap = useMemo(() => getKeyboardMap(), []);
+
+  // 获取按键对应的音符
+  const getNoteForKey = (key: string) => keyboardMap[key];
 
   return (
-    <div className="keyboard-container">
-      <div className="piano-keyboard">
-        {notes.map((note) => {
-          const isBlack = isBlackKey(note.toString());
-          const noteName = getNoteName(note);
-          const isActive = activeNotes.has(note);
-          
+    <div className="keyboard-wrapper">
+      {/* 行 1：数字键 */}
+      <div className="keyboard-row">
+        {KEYBOARD_ROWS.row1.map((key) => {
+          const note = getNoteForKey(key);
+          const noteName = note ? getNoteName(note) : '';
+          const isActive = note ? activeNotes.has(note) : false;
+          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
+
           return (
-            <div
-              key={note}
-              className={`key ${isBlack ? 'black' : 'white'} ${isActive ? 'active' : ''}`}
-              data-note={note}
+            <button
+              key={key}
+              className={`key ${isActive ? 'active' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              data-key={key}
             >
-              <span className="key-label">{noteName}</span>
-            </div>
+              <span className="key-char">{key}</span>
+              <span className="note-name">{noteName}</span>
+            </button>
           );
         })}
       </div>
-      
+
+      {/* 行 2：Q-P */}
+      <div className="keyboard-row">
+        {KEYBOARD_ROWS.row2.map((key) => {
+          const note = getNoteForKey(key);
+          const noteName = note ? getNoteName(note) : '';
+          const isActive = note ? activeNotes.has(note) : false;
+          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
+
+          return (
+            <button
+              key={key}
+              className={`key ${isActive ? 'active' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              data-key={key}
+            >
+              <span className="key-char">{key}</span>
+              <span className="note-name">{noteName}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 行 3：A-L（基准区） */}
+      <div className="keyboard-row">
+        {KEYBOARD_ROWS.row3.map((key) => {
+          const note = getNoteForKey(key);
+          const noteName = note ? getNoteName(note) : '';
+          const isActive = note ? activeNotes.has(note) : false;
+          const isBaseKey = key === 'A'; // A 键是基准
+          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
+
+          return (
+            <button
+              key={key}
+              className={`key ${isActive ? 'active' : ''} ${isBaseKey ? 'base-key' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              data-key={key}
+            >
+              <span className="key-char">{key}</span>
+              <span className="note-name">{noteName}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 行 4：Z-/ */}
+      <div className="keyboard-row">
+        {KEYBOARD_ROWS.row4.map((key) => {
+          const note = getNoteForKey(key);
+          const noteName = note ? getNoteName(note) : '';
+          const isActive = note ? activeNotes.has(note) : false;
+          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
+
+          return (
+            <button
+              key={key}
+              className={`key ${isActive ? 'active' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              data-key={key}
+            >
+              <span className="key-char">{key}</span>
+              <span className="note-name">{noteName}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <style>{`
-        .keyboard-container {
-          padding: 20px;
+        .keyboard-wrapper {
           background: #1a1a2e;
           border-radius: 12px;
-          overflow-x: auto;
+          padding: 20px;
         }
-        
-        .piano-keyboard {
+
+        .keyboard-row {
           display: flex;
-          position: relative;
-          height: 200px;
-          min-width: fit-content;
+          gap: 6px;
+          margin-bottom: 8px;
+          justify-content: center;
         }
-        
+
+        .keyboard-row:last-child {
+          margin-bottom: 0;
+        }
+
         .key {
           position: relative;
           display: flex;
-          align-items: flex-end;
+          flex-direction: column;
+          align-items: center;
           justify-content: center;
-          padding-bottom: 10px;
+          width: 48px;
+          height: 56px;
+          background: linear-gradient(to bottom, #e8e8e8 0%, #d0d0d0 100%);
+          border: 1px solid #999;
+          border-radius: 6px;
           cursor: pointer;
-          user-select: none;
-          transition: all 0.05s ease;
+          transition: all 0.1s ease;
+          padding: 6px;
         }
-        
-        .key.white {
-          width: 44px;
-          height: 200px;
-          background: linear-gradient(to bottom, #fff 0%, #f0f0f0 100%);
-          border: 1px solid #ccc;
-          border-radius: 0 0 6px 6px;
-          z-index: 1;
+
+        .key:hover {
+          background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
-        
-        .key.white:hover {
-          background: linear-gradient(to bottom, #fff 0%, #e0e0e0 100%);
-        }
-        
-        .key.white.active {
-          background: linear-gradient(to bottom, #ddd 0%, #ccc 100%);
+
+        .key.active {
+          background: linear-gradient(to bottom, #888 0%, #666 100%);
           transform: translateY(2px);
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
-        
-        .key.black {
-          width: 28px;
-          height: 120px;
-          background: linear-gradient(to bottom, #333 0%, #111 100%);
-          border: none;
-          border-radius: 0 0 4px 4px;
-          position: absolute;
-          z-index: 2;
-          margin-left: -14px;
+
+        /* 基准键 A */
+        .key.base-key {
+          background: linear-gradient(to bottom, #d4f5d4 0%, #b8e6b8 100%);
+          border-color: #10b981;
         }
-        
-        .key.black:hover {
-          background: linear-gradient(to bottom, #444 0%, #222 100%);
+
+        .key.base-key.active {
+          background: linear-gradient(to bottom, #10b981 0%, #059669 100%);
         }
-        
-        .key.black.active {
-          background: linear-gradient(to bottom, #555 0%, #333 100%);
-          transform: translateY(2px);
+
+        .key.base-key:hover {
+          background: linear-gradient(to bottom, #dcfce7 0%, #bbf7d0 100%);
         }
-        
-        .key-label {
+
+        /* 黑键变体 */
+        .key.black-key {
+          background: linear-gradient(to bottom, #4a4a4a 0%, #2a2a2a 100%);
+          border-color: #1a1a1a;
+          color: #fff;
+        }
+
+        .key.black-key:hover {
+          background: linear-gradient(to bottom, #5a5a5a 0%, #3a3a3a 100%);
+        }
+
+        .key.black-key.active {
+          background: linear-gradient(to bottom, #1a1a1a 0%, #000 100%);
+        }
+
+        .key-char {
+          font-size: 18px;
+          font-weight: 600;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          color: #333;
+          line-height: 1;
+        }
+
+        .key.black-key .key-char {
+          color: #fff;
+        }
+
+        .note-name {
           font-size: 10px;
           color: #666;
-          pointer-events: none;
+          font-family: 'Monaco', 'Consolas', monospace;
+          margin-top: 4px;
         }
-        
-        .key.white .key-label {
-          color: #999;
-        }
-        
-        .key.black .key-label {
-          color: #888;
+
+        .key.black-key .note-name {
+          color: #aaa;
         }
       `}</style>
     </div>

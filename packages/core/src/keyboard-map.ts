@@ -16,7 +16,7 @@ export const DEFAULT_BASE_NOTE = 48; // C3
  */
 export const KEYBOARD_ROWS = {
   row1: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
-  row2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'],
+  row2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']'],
   row3: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"],
   row4: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'],
 } as const;

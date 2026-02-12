@@ -115,14 +115,6 @@ function App() {
           onNoteOn={handleNoteOn}
           onNoteOff={handleNoteOff}
         />
-        
-        {/* 使用提示 */}
-        <div className="keyboard-hint">
-          <p><kbd>1</kbd><kbd>-</kbd> 演奏 C5-B5（高音区）</p>
-          <p><kbd>Q</kbd><kbd>]</kbd> 演奏 C4-B4（中音区）</p>
-          <p><kbd>A</kbd><kbd>'</kbd> 演奏 C3-B3（基准区）</p>
-          <p><kbd>Z</kbd><kbd>/</kbd> 演奏 C2-A2（低音区）</p>
-        </div>
       </main>
 
       <style>{`
@@ -185,30 +177,6 @@ function App() {
         .note-placeholder {
           color: #666;
           font-size: 16px;
-        }
-        
-        .keyboard-hint {
-          margin-top: 24px;
-          padding: 16px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-          color: #888;
-          font-size: 14px;
-        }
-        
-        .keyboard-hint p {
-          margin: 8px 0;
-        }
-        
-        .keyboard-hint kbd {
-          display: inline-block;
-          padding: 4px 8px;
-          background: #333;
-          border: 1px solid #555;
-          border-radius: 4px;
-          font-family: monospace;
-          font-size: 12px;
-          margin: 0 2px;
         }
       `}</style>
     </div>
