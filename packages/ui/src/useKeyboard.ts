@@ -23,7 +23,7 @@ export function useKeyboard({ onNoteOn, onNoteOff }: UseKeyboardOptions) {
     const note = keyboardMap[key];
     
     if (note !== undefined && !activeNotes.has(note)) {
-      setActiveNotes(prev => new Set([...prev, note]));
+      setActiveNotes((prev: Set<number>) => new Set([...prev, note]));
       onNoteOn?.(note, 100); // 默认力度 100
     }
   }, [activeNotes, onNoteOn, keyboardMap]);

@@ -143,6 +143,9 @@ export class AudioEngine {
   private playDrum(note: number, gain: GainNode): void {
     const ctx = this.ensureContext();
     const now = ctx.currentTime;
+
+    // 创建振荡器
+    const osc = ctx.createOscillator();
     
     // 简化处理：不同 note 对应不同打击乐器
     if (note >= 60) {
@@ -156,6 +159,11 @@ export class AudioEngine {
       gain.gain.setValueAtTime(0.5, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     }
+
+    osc.connect(gain);
+    gain.connect(this.masterGain!);
+    osc.start(now);
+    osc.stop(now + 0.5);
   }
 
   /**

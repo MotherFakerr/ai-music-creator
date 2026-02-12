@@ -21,7 +21,7 @@ const INSTRUMENTS: { id: InstrumentType; label: string }[] = [
 export function InstrumentSelector({ value, onChange }: InstrumentSelectorProps) {
   return (
     <div className="instrument-selector">
-      <label>音色</label>
+      <span className="selector-label">音色</span>
       <div className="instrument-buttons">
         {INSTRUMENTS.map((inst) => (
           <button
@@ -33,42 +33,50 @@ export function InstrumentSelector({ value, onChange }: InstrumentSelectorProps)
           </button>
         ))}
       </div>
-      
+
       <style>{`
         .instrument-selector {
-          margin-bottom: 20px;
-        }
-        
-        .instrument-selector label {
-          display: block;
-          margin-bottom: 8px;
-          color: #fff;
-          font-size: 14px;
-        }
-        
-        .instrument-buttons {
           display: flex;
+          flex-direction: column;
           gap: 8px;
         }
-        
+
+        .selector-label {
+          color: #9ca3af;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+        }
+
+        .instrument-buttons {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
+
         .instrument-btn {
-          padding: 8px 16px;
-          background: #2a2a4e;
-          border: 1px solid #444;
-          border-radius: 6px;
-          color: #aaa;
+          padding: 12px 24px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          color: #9ca3af;
+          font-size: 14px;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
         }
-        
+
         .instrument-btn:hover {
-          background: #3a3a6e;
-        }
-        
-        .instrument-btn.active {
-          background: #6366f1;
-          border-color: #6366f1;
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.15);
           color: #fff;
+        }
+
+        .instrument-btn.active {
+          background: rgba(99, 102, 241, 0.15);
+          border-color: rgba(99, 102, 241, 0.4);
+          color: #fff;
+          box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
         }
       `}</style>
     </div>

@@ -105,9 +105,30 @@ export function Keyboard({ activeNotes = new Set<number>() }: KeyboardProps) {
 
       <style>{`
         .keyboard-wrapper {
-          background: #1a1a2e;
-          border-radius: 12px;
-          padding: 20px;
+          position: relative;
+          background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(10, 10, 20, 0.98));
+          border-radius: 28px;
+          padding: 32px;
+          box-shadow:
+            0 0 60px rgba(99, 102, 241, 0.1),
+            0 20px 60px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        /* 霓虹边框光晕 */
+        .keyboard-wrapper::before {
+          content: '';
+          position: absolute;
+          inset: -2px;
+          border-radius: 30px;
+          background: linear-gradient(135deg,
+            rgba(99, 102, 241, 0.3),
+            rgba(139, 92, 246, 0.3),
+            rgba(16, 185, 129, 0.3)
+          );
+          z-index: -1;
+          filter: blur(8px);
+          opacity: 0.5;
         }
 
         .keyboard-row {
@@ -115,6 +136,7 @@ export function Keyboard({ activeNotes = new Set<number>() }: KeyboardProps) {
           gap: 6px;
           margin-bottom: 8px;
           justify-content: center;
+          position: relative;
         }
 
         .keyboard-row:last-child {
@@ -127,78 +149,156 @@ export function Keyboard({ activeNotes = new Set<number>() }: KeyboardProps) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 48px;
-          height: 56px;
-          background: linear-gradient(to bottom, #e8e8e8 0%, #d0d0d0 100%);
-          border: 1px solid #999;
-          border-radius: 6px;
+          width: 52px;
+          height: 52px;
+          background: linear-gradient(180deg, rgba(40, 40, 60, 0.9) 0%, rgba(25, 25, 40, 0.95) 100%);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 12px;
           cursor: pointer;
-          transition: all 0.1s ease;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           padding: 6px;
+          overflow: visible;
+        }
+
+        /* 按键顶部高光 */
+        .key::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 8px;
+          right: 8px;
+          height: 50%;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+          border-radius: 10px 10px 0 0;
+          pointer-events: none;
+        }
+
+        /* 按键底部阴影 */
+        .key::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 70%;
+          height: 8px;
+          background: rgba(0, 0, 0, 0.4);
+          filter: blur(4px);
+          border-radius: 50%;
+          z-index: -1;
+          transition: all 0.2s ease;
         }
 
         .key:hover {
-          background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          transform: translateY(-4px);
+          border-color: rgba(99, 102, 241, 0.4);
+          box-shadow:
+            0 12px 32px rgba(0, 0, 0, 0.4),
+            0 0 24px rgba(99, 102, 241, 0.15);
+        }
+
+        .key:hover::after {
+          bottom: -6px;
+          filter: blur(6px);
+          opacity: 0.6;
         }
 
         .key.active {
-          background: linear-gradient(to bottom, #888 0%, #666 100%);
-          transform: translateY(2px);
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+          transform: translateY(3px);
+          background: linear-gradient(180deg, rgba(60, 60, 90, 0.9) 0%, rgba(40, 40, 65, 0.95) 100%);
+          box-shadow:
+            inset 0 4px 12px rgba(0, 0, 0, 0.5),
+            0 0 30px rgba(99, 102, 241, 0.25);
+        }
+
+        .key.active::after {
+          opacity: 0;
+        }
+
+        /* 霓虹点阵效果 */
+        .key.active::before {
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%);
+        }
+
+        /* 按键内发光 */
+        .key.active {
+          border-color: rgba(139, 92, 246, 0.5);
         }
 
         /* 基准键 A */
         .key.base-key {
-          background: linear-gradient(to bottom, #d4f5d4 0%, #b8e6b8 100%);
-          border-color: #10b981;
+          background: linear-gradient(180deg, rgba(6, 78, 59, 0.9) 0%, rgba(4, 55, 42, 0.95) 100%);
+          border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .key.base-key::before {
+          background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, transparent 100%);
         }
 
         .key.base-key.active {
-          background: linear-gradient(to bottom, #10b981 0%, #059669 100%);
+          background: linear-gradient(180deg, rgba(5, 150, 105, 0.9) 0%, rgba(4, 70, 52, 0.95) 100%);
+          border-color: rgba(16, 185, 129, 0.7);
+          box-shadow:
+            inset 0 4px 12px rgba(0, 0, 0, 0.4),
+            0 0 40px rgba(16, 185, 129, 0.3),
+            0 0 60px rgba(16, 185, 129, 0.1);
         }
 
         .key.base-key:hover {
-          background: linear-gradient(to bottom, #dcfce7 0%, #bbf7d0 100%);
+          border-color: rgba(16, 185, 129, 0.6);
+          box-shadow:
+            0 12px 32px rgba(0, 0, 0, 0.4),
+            0 0 32px rgba(16, 185, 129, 0.2);
         }
 
         /* 黑键变体 */
         .key.black-key {
-          background: linear-gradient(to bottom, #4a4a4a 0%, #2a2a2a 100%);
-          border-color: #1a1a1a;
-          color: #fff;
+          background: linear-gradient(180deg, rgba(20, 20, 35, 0.95) 0%, rgba(10, 10, 20, 0.98) 100%);
+          border-color: rgba(0, 0, 0, 0.3);
         }
 
-        .key.black-key:hover {
-          background: linear-gradient(to bottom, #5a5a5a 0%, #3a3a3a 100%);
+        .key.black-key::before {
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
         }
 
         .key.black-key.active {
-          background: linear-gradient(to bottom, #1a1a1a 0%, #000 100%);
+          background: linear-gradient(180deg, rgba(30, 30, 50, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+          border-color: rgba(139, 92, 246, 0.4);
+          box-shadow:
+            inset 0 4px 12px rgba(0, 0, 0, 0.6),
+            0 0 30px rgba(139, 92, 246, 0.2);
         }
 
         .key-char {
-          font-size: 18px;
-          font-weight: 600;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          color: #333;
+          font-size: 20px;
+          font-weight: 700;
+          font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+          color: #e8e8f0;
           line-height: 1;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+          letter-spacing: 0.5px;
         }
 
         .key.black-key .key-char {
-          color: #fff;
+          color: #b8b8c8;
         }
 
         .note-name {
-          font-size: 10px;
-          color: #666;
-          font-family: 'Monaco', 'Consolas', monospace;
+          font-size: 11px;
+          color: #6b7280;
+          font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
           margin-top: 4px;
+          font-weight: 500;
+          letter-spacing: 1px;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
 
         .key.black-key .note-name {
-          color: #aaa;
+          color: #555;
+        }
+
+        .key:hover .note-name {
+          color: #9ca3af;
         }
       `}</style>
     </div>

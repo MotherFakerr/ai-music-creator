@@ -1,5 +1,5 @@
 {
-  "name": "@ai-music/core",
+  "name": "@ai-music-creator/core",
   "version": "0.0.1",
   "description": "Core domain models and types",
   "main": "src/index.ts",

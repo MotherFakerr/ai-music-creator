@@ -1,5 +1,5 @@
 {
-  "name": "@ai-music/web",
+  "name": "@ai-music-creator/web",
   "version": "0.0.1",
   "description": "React web application",
   "type": "module",
@@ -18,10 +18,10 @@
     "@vitejs/plugin-react": "^4.0.0",
     "typescript": "^5.0.0",
     "vite": "^5.0.0",
-    "@ai-music/core": "workspace:*",
-    "@ai-music/audio": "workspace:*",
-    "@ai-music/midi": "workspace:*",
-    "@ai-music/ui": "workspace:*",
-    "@ai-music/ai": "workspace:*"
+    "@ai-music-creator/core": "workspace:*",
+    "@ai-music-creator/audio": "workspace:*",
+    "@ai-music-creator/midi": "workspace:*",
+    "@ai-music-creator/ui": "workspace:*",
+    "@ai-music-creator/ai": "workspace:*"
   }
 }

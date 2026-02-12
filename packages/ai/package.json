@@ -1,5 +1,5 @@
 {
-  "name": "@ai-music/ai",
+  "name": "@ai-music-creator/ai",
   "version": "0.0.1",
   "description": "AI integration for music continuation",
   "main": "src/index.ts",
@@ -9,6 +9,6 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@ai-music/core": "workspace:*"
+    "@ai-music-creator/core": "workspace:*"
   }
 }

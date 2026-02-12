@@ -1,6 +1,6 @@
 /**
  * BaseNoteSelector Component
- * 基准音选择器（直接显示音阶 + 上下箭头）
+ * 基准音选择器
  */
 
 import React from 'react';
@@ -34,8 +34,8 @@ export function BaseNoteSelector({
 
   return (
     <div className="base-note-selector">
-      <label>基准音</label>
-      <div className="selector-wrapper">
+      <span className="selector-label">基准音</span>
+      <div className="selector-content">
         <span className="note-display">{displayNote}</span>
         <div className="arrow-controls">
           <button
@@ -55,28 +55,30 @@ export function BaseNoteSelector({
 
       <style>{`
         .base-note-selector {
-          margin-bottom: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
-        .base-note-selector label {
-          display: block;
-          margin-bottom: 8px;
-          color: #fff;
-          font-size: 14px;
+        .selector-label {
+          color: #9ca3af;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
         }
 
-        .selector-wrapper {
+        .selector-content {
           display: flex;
           align-items: center;
           gap: 12px;
         }
 
         .note-display {
-          font-size: 32px;
-          font-weight: 700;
-          color: #6366f1;
+          font-size: 28px;
+          font-weight: 600;
           font-family: 'Monaco', 'Consolas', monospace;
-          min-width: 60px;
+          color: #fff;
+          min-width: 50px;
         }
 
         .arrow-controls {
@@ -89,10 +91,10 @@ export function BaseNoteSelector({
           width: 28px;
           height: 20px;
           padding: 0;
-          background: #2a2a4e;
-          border: 1px solid #444;
-          border-radius: 4px;
-          color: #fff;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          color: #6b7280;
           font-size: 10px;
           cursor: pointer;
           display: flex;
@@ -102,12 +104,13 @@ export function BaseNoteSelector({
         }
 
         .arrow-btn:hover:not(:disabled) {
-          background: #3a3a5e;
-          border-color: #6366f1;
+          background: rgba(99, 102, 241, 0.2);
+          border-color: rgba(99, 102, 241, 0.4);
+          color: #fff;
         }
 
         .arrow-btn:disabled {
-          opacity: 0.4;
+          opacity: 0.3;
           cursor: not-allowed;
         }
       `}</style>

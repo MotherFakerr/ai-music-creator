@@ -20,13 +20,13 @@ importers:
 
   packages/ai:
     dependencies:
-      '@ai-music/core':
+      '@ai-music-creator/core':
         specifier: workspace:*
         version: link:../core
 
   packages/audio:
     dependencies:
-      '@ai-music/core':
+      '@ai-music-creator/core':
         specifier: workspace:*
         version: link:../core
 
@@ -34,19 +34,19 @@ importers:
 
   packages/midi:
     dependencies:
-      '@ai-music/core':
+      '@ai-music-creator/core':
         specifier: workspace:*
         version: link:../core
 
   packages/ui:
     dependencies:
-      '@ai-music/audio':
+      '@ai-music-creator/audio':
         specifier: workspace:*
         version: link:../audio
-      '@ai-music/core':
+      '@ai-music-creator/core':
         specifier: workspace:*
         version: link:../core
-      '@ai-music/midi':
+      '@ai-music-creator/midi':
         specifier: workspace:*
         version: link:../midi
       react:
@@ -55,6 +55,13 @@ importers:
       react-dom:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.2.0
+        version: 18.3.7(@types/react@18.3.28)
 
   packages/web:
     dependencies:
@@ -65,19 +72,19 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
     devDependencies:
-      '@ai-music/ai':
+      '@ai-music-creator/ai':
         specifier: workspace:*
         version: link:../ai
-      '@ai-music/audio':
+      '@ai-music-creator/audio':
         specifier: workspace:*
         version: link:../audio
-      '@ai-music/core':
+      '@ai-music-creator/core':
         specifier: workspace:*
         version: link:../core
-      '@ai-music/midi':
+      '@ai-music-creator/midi':
         specifier: workspace:*
         version: link:../midi
-      '@ai-music/ui':
+      '@ai-music-creator/ui':
         specifier: workspace:*
         version: link:../ui
       '@types/react':

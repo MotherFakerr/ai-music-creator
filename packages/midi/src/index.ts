@@ -3,7 +3,7 @@
  * MIDI 解析与生成
  */
 
-import { Sequence, Track, Note } from '@ai-music/core';
+import { Sequence, Track, Note } from '@ai-music-creator/core';
 
 export function parseMidi(data: Uint8Array): Sequence {
   // TODO: 实现 MIDI 解析逻辑

@@ -3,15 +3,23 @@
  * AI Music Creator - 音乐演奏入口
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Keyboard, useKeyboard, InstrumentSelector, BaseNoteSelector } from '@ai-music-creator/ui';
-import { 
-  initAudioEngine, 
-  getAudioEngine, 
+import {
+  initAudioEngine,
+  getAudioEngine,
   AudioEngine,
-  InstrumentType 
+  InstrumentType
 } from '@ai-music-creator/audio';
 import { getNoteName, setBaseNote, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
+
+interface NoteParticle {
+  id: number;
+  note: string;
+  x: number;
+  y: number;
+  timestamp: number;
+}
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -19,7 +27,9 @@ function App() {
   const [instrument, setInstrument] = useState<InstrumentType>('piano');
   const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
   const [audioEngine] = useState(() => getAudioEngine());
-  
+  const [particles, setParticles] = useState<NoteParticle[]>([]);
+  const particleIdRef = useRef(0);
+
   // 初始化音频引擎
   useEffect(() => {
     const init = async () => {
@@ -31,15 +41,15 @@ function App() {
         console.error('[App] 音频引擎初始化失败:', err);
       }
     };
-    
+
     // 首次需要用户交互触发
     const handleFirstInteraction = () => {
       init();
       document.removeEventListener('click', handleFirstInteraction);
     };
-    
+
     document.addEventListener('click', handleFirstInteraction);
-    
+
     return () => {
       audioEngine.dispose();
     };
@@ -50,6 +60,19 @@ function App() {
     if (isInitialized) {
       audioEngine.playNote(note, velocity);
       setCurrentNote(getNoteName(note));
+
+      // 添加粒子效果
+      const id = particleIdRef.current++;
+      const screenWidth = window.innerWidth;
+      const x = screenWidth / 2 + (Math.random() - 0.5) * 200;
+      const y = 300 + Math.random() * 100;
+
+      setParticles(prev => [...prev, { id, note: getNoteName(note), x, y, timestamp: Date.now() }]);
+
+      // 3秒后移除粒子
+      setTimeout(() => {
+        setParticles(prev => prev.filter(p => p.id !== id));
+      }, 3000);
     }
   }, [isInitialized, audioEngine]);
 
@@ -79,38 +102,71 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* 背景动画 */}
+      <div className="bg-animation">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="orb orb-3" />
+      </div>
+
+      {/* 粒子效果层 */}
+      <div className="particles-layer">
+        {particles.map(particle => (
+          <div
+            key={particle.id}
+            className="particle"
+            style={{
+              left: particle.x,
+              top: particle.y,
+            }}
+          >
+            <span className="particle-note">{particle.note}</span>
+            <div className="particle-ring" />
+          </div>
+        ))}
+      </div>
+
       <header className="app-header">
-        <h1>🎵 AI Music Creator</h1>
+        <div className="logo">
+          <span className="logo-icon">🎵</span>
+          <h1>AI Music Creator</h1>
+        </div>
         <p className="subtitle">里程碑一：音乐演奏</p>
       </header>
 
       <main className="app-main">
-        {/* 基准音选择器 */}
-        <BaseNoteSelector
-          value={baseNote}
-          onChange={handleBaseNoteChange}
-        />
-        
-        {/* 音色选择器 */}
-        <InstrumentSelector 
-          value={instrument}
-          onChange={handleInstrumentChange}
-        />
-        
-        {/* 当前音符显示 */}
-        <div className="current-note-display">
-          {currentNote ? (
-            <>
-              <span className="note-label">当前音符</span>
-              <span className="note-value">{currentNote}</span>
-            </>
-          ) : (
-            <span className="note-placeholder">按下键盘开始演奏</span>
-          )}
+        {/* 第一行：基准音 + 当前音符 */}
+        <div className="control-row">
+          <div className="control-card base-card">
+            <BaseNoteSelector
+              value={baseNote}
+              onChange={handleBaseNoteChange}
+            />
+          </div>
+          <div className="control-card note-card">
+            {currentNote ? (
+              <>
+                <span className="note-label">当前音符</span>
+                <span className="note-value pulse">{currentNote}</span>
+              </>
+            ) : (
+              <span className="note-placeholder">
+                <span className="hint-dot" /> 按下键盘开始演奏
+              </span>
+            )}
+          </div>
         </div>
-        
+
+        {/* 第二行：音色选择 */}
+        <div className="control-card instrument-card">
+          <InstrumentSelector
+            value={instrument}
+            onChange={handleInstrumentChange}
+          />
+        </div>
+
         {/* 键盘组件 */}
-        <Keyboard 
+        <Keyboard
           activeNotes={activeNotes}
           onNoteOn={handleNoteOn}
           onNoteOff={handleNoteOff}
@@ -121,62 +177,241 @@ function App() {
         * {
           box-sizing: border-box;
         }
-        
+
         .app-container {
           min-height: 100vh;
-          background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+          background: #0a0a0f;
           color: #fff;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          position: relative;
+          overflow: hidden;
         }
-        
+
+        /* 背景动画 */
+        .bg-animation {
+          position: fixed;
+          inset: 0;
+          overflow: hidden;
+          z-index: 0;
+        }
+
+        .orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(80px);
+          opacity: 0.4;
+          animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-1 {
+          width: 400px;
+          height: 400px;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          top: -100px;
+          right: -100px;
+          animation-delay: 0s;
+        }
+
+        .orb-2 {
+          width: 300px;
+          height: 300px;
+          background: linear-gradient(135deg, #10b981, #06b6d4);
+          bottom: -50px;
+          left: -50px;
+          animation-delay: -7s;
+        }
+
+        .orb-3 {
+          width: 250px;
+          height: 250px;
+          background: linear-gradient(135deg, #f59e0b, #ef4444);
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          animation-delay: -14s;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(30px, -30px) scale(1.05); }
+          50% { transform: translate(-20px, 20px) scale(0.95); }
+          75% { transform: translate(20px, 30px) scale(1.02); }
+        }
+
+        /* 粒子层 */
+        .particles-layer {
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 100;
+        }
+
+        .particle {
+          position: absolute;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          animation: particleFloat 3s ease-out forwards;
+        }
+
+        .particle-note {
+          font-size: 24px;
+          font-weight: 700;
+          font-family: 'Monaco', 'Consolas', monospace;
+          color: #6366f1;
+          text-shadow: 0 0 20px rgba(99, 102, 241, 0.8);
+          animation: notePop 0.3s ease-out;
+        }
+
+        .particle-ring {
+          width: 40px;
+          height: 40px;
+          border: 2px solid rgba(99, 102, 241, 0.5);
+          border-radius: 50%;
+          animation: ringExpand 1s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+          0% { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
+        }
+
+        @keyframes notePop {
+          0% { transform: scale(0.5); opacity: 0; }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes ringExpand {
+          0% { transform: scale(0.5); opacity: 1; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+
         .app-header {
-          padding: 24px 32px;
-          border-bottom: 1px solid #333;
+          position: relative;
+          z-index: 10;
+          padding: 32px 40px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .logo-icon {
+          font-size: 32px;
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+
         .app-header h1 {
           margin: 0;
           font-size: 28px;
-          font-weight: 600;
+          font-weight: 700;
+          background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
-        
+
         .subtitle {
-          margin: 8px 0 0;
-          color: #888;
+          margin: 6px 0 0;
+          color: #6b7280;
           font-size: 14px;
         }
-        
+
         .app-main {
-          padding: 32px;
-          max-width: 1200px;
+          position: relative;
+          z-index: 10;
+          padding: 40px;
+          max-width: 900px;
           margin: 0 auto;
         }
-        
-        .current-note-display {
+
+        .control-row {
           display: flex;
+          gap: 20px;
+          margin-bottom: 20px;
+        }
+
+        .control-card {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          padding: 20px 24px;
+          backdrop-filter: blur(10px);
+        }
+
+        .base-card {
+          flex: 0 0 auto;
+        }
+
+        .note-card {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 24px;
-          padding: 16px 24px;
-          background: #2a2a4e;
-          border-radius: 12px;
+          justify-content: center;
+          min-width: 180px;
         }
-        
+
+        .instrument-card {
+          margin-bottom: 32px;
+        }
+
         .note-label {
-          color: #888;
-          font-size: 14px;
+          color: #6b7280;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 8px;
         }
-        
+
         .note-value {
           font-size: 48px;
           font-weight: 700;
-          color: #6366f1;
           font-family: 'Monaco', 'Consolas', monospace;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
-        
+
+        .note-value.pulse {
+          animation: notePulse 0.3s ease-out;
+        }
+
+        @keyframes notePulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+
         .note-placeholder {
-          color: #666;
-          font-size: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #4b5563;
+          font-size: 14px;
+        }
+
+        .hint-dot {
+          width: 8px;
+          height: 8px;
+          background: #6366f1;
+          border-radius: 50%;
+          animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
       `}</style>
     </div>

@@ -3,7 +3,7 @@
  * AI 接入层 - 音乐续写
  */
 
-import { Sequence, Note } from '@ai-music/core';
+import { Sequence, Note } from '@ai-music-creator/core';
 
 export interface AIConfig {
   apiKey?: string;

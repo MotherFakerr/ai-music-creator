@@ -1,5 +1,5 @@
 {
-  "name": "@ai-music/midi",
+  "name": "@ai-music-creator/midi",
   "version": "0.0.1",
   "description": "MIDI parsing and generation",
   "main": "src/index.ts",
@@ -9,6 +9,6 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@ai-music/core": "workspace:*"
+    "@ai-music-creator/core": "workspace:*"
   }
 }
