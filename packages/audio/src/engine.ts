@@ -1,59 +1,61 @@
 /**
  * 音频引擎
- * 基于 Web Audio API 实现音符播放
+ * 基于 Tone.js 实现更好音色的音符播放
  */
+
+import * as Tone from 'tone';
 
 export type InstrumentType = 'piano' | 'synth' | 'guitar' | 'drum';
-
-export interface NoteOptions {
-  note: number;           // MIDI note number (48 = C3)
-  velocity?: number;      // 力度 0-127，默认 100
-  duration?: number;      // 持续时间（秒），默认直到 noteOff
-}
-
-/**
- * 将 MIDI note number 转换为频率 (Hz)
- */
-function midiToFreq(note: number): number {
-  return 440 * Math.pow(2, (note - 69) / 12);
-}
 
 /**
  * 音频引擎类
  */
 export class AudioEngine {
-  private context: AudioContext | null = null;
-  private activeNotes: Map<number, OscillatorNode[]> = new Map();
-  private masterGain: GainNode | null = null;
+  private synth: Tone.PolySynth | null = null;
+  private drums: Tone.MembraneSynth | null = null;
   private currentInstrument: InstrumentType = 'piano';
   private volume: number = 0.7;
 
   constructor() {
-    // 延迟初始化，直到用户交互
+    // 延迟初始化
   }
 
   /**
    * 初始化音频上下文（需要用户交互触发）
    */
   async init(): Promise<void> {
-    if (this.context) return;
-    
-    this.context = new AudioContext();
-    this.masterGain = this.context.createGain();
-    this.masterGain.gain.value = this.volume;
-    this.masterGain.connect(this.context.destination);
-    
-    console.log('[AudioEngine] 已初始化');
-  }
+    await Tone.start();
 
-  /**
-   * 确保音频上下文已就绪
-   */
-  private ensureContext(): AudioContext {
-    if (!this.context) {
-      throw new Error('AudioEngine 未初始化，请先调用 init()');
-    }
-    return this.context;
+    // 钢琴音色 - 使用更真实的采样模拟
+    this.synth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: {
+        type: 'triangle' as const,
+      },
+      envelope: {
+        attack: 0.02,
+        decay: 0.1,
+        sustain: 0.3,
+        release: 0.8,
+      },
+    }).toDestination();
+
+    // 鼓组
+    this.drums = new Tone.MembraneSynth({
+      pitchDecay: 0.05,
+      octaves: 4,
+      envelope: {
+        attack: 0.001,
+        decay: 0.4,
+        sustain: 0.01,
+        release: 1.4,
+      },
+    }).toDestination();
+
+    // 连接音量控制
+    this.synth.volume.value = Tone.gainToDb(this.volume);
+    this.drums.volume.value = Tone.gainToDb(this.volume);
+
+    console.log('[AudioEngine] 已初始化');
   }
 
   /**
@@ -61,6 +63,50 @@ export class AudioEngine {
    */
   setInstrument(instrument: InstrumentType): void {
     this.currentInstrument = instrument;
+
+    if (this.synth) {
+      switch (instrument) {
+        case 'piano':
+          // 钢琴 - triangle 波形 + 柔和包络
+          this.synth.set({
+            oscillator: { type: 'triangle' as const },
+            envelope: {
+              attack: 0.02,
+              decay: 0.3,
+              sustain: 0.5,
+              release: 1.2,
+            },
+          });
+          break;
+
+        case 'synth':
+          // 合成器 - sawtooth 波形 + 电子感
+          this.synth.set({
+            oscillator: { type: 'sawtooth' as const },
+            envelope: {
+              attack: 0.05,
+              decay: 0.2,
+              sustain: 0.6,
+              release: 0.4,
+            },
+          });
+          break;
+
+        case 'guitar':
+          // 吉他 - 模拟弦乐质感
+          this.synth.set({
+            oscillator: { type: 'triangle' as const },
+            envelope: {
+              attack: 0.01,
+              decay: 0.2,
+              sustain: 0.7,
+              release: 0.8,
+            },
+          });
+          break;
+      }
+    }
+
     console.log(`[AudioEngine] 切换音色: ${instrument}`);
   }
 
@@ -69,8 +115,11 @@ export class AudioEngine {
    */
   setVolume(value: number): void {
     this.volume = Math.max(0, Math.min(1, value));
-    if (this.masterGain) {
-      this.masterGain.gain.value = this.volume;
+    if (this.synth) {
+      this.synth.volume.value = Tone.gainToDb(this.volume);
+    }
+    if (this.drums) {
+      this.drums.volume.value = Tone.gainToDb(this.volume);
     }
   }
 
@@ -78,117 +127,44 @@ export class AudioEngine {
    * 播放音符
    */
   playNote(note: number, velocity: number = 100): void {
-    const ctx = this.ensureContext();
-    
-    // 防止重复触发（按住不放时）
-    if (this.activeNotes.has(note)) {
+    if (!this.synth && !this.drums) {
+      console.warn('[AudioEngine] 未初始化');
       return;
     }
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    // 根据乐器类型设置波形
-    switch (this.currentInstrument) {
-      case 'piano':
-        osc.type = 'triangle';
-        break;
-      case 'synth':
-        osc.type = 'square';
-        break;
-      case 'guitar':
-        osc.type = 'sawtooth';
-        // 吉他需要一些失真效果
-        this.applyGuitarCharacter(osc, gain);
-        break;
-      case 'drum':
-        // 鼓组特殊处理
-        this.playDrum(note, gain);
-        return;
-    }
+    // MIDI note number 转频率
+    const freq = Tone.Frequency(note, 'midi').toFrequency();
 
-    osc.frequency.value = midiToFreq(note);
-    
     // 力度映射 (0-127 → 0-1)
     const velocityGain = velocity / 127;
-    
-    // ADSR 包络
-    const now = ctx.currentTime;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(velocityGain * 0.8, now + 0.01); // Attack
-    gain.gain.exponentialRampToValueAtTime(velocityGain * 0.5, now + 0.5); // Decay
-    
-    osc.connect(gain);
-    gain.connect(this.masterGain!);
-    
-    osc.start(now);
-    
-    // 保存引用以便后续停止
-    this.activeNotes.set(note, [osc]);
-    
-    console.log(`[AudioEngine] 播放: ${note} (${this.currentInstrument})`);
-  }
 
-  /**
-   * 吉他音色特殊处理
-   */
-  private applyGuitarCharacter(osc: OscillatorNode, gain: GainNode): void {
-    // 简单的波形塑形，实际项目中可能需要更复杂的处理
-    // 这里仅作占位，实际音色可以通过加载采样实现更好效果
-  }
-
-  /**
-   * 鼓组处理
-   */
-  private playDrum(note: number, gain: GainNode): void {
-    const ctx = this.ensureContext();
-    const now = ctx.currentTime;
-
-    // 创建振荡器
-    const osc = ctx.createOscillator();
-    
-    // 简化处理：不同 note 对应不同打击乐器
-    if (note >= 60) {
-      // 底鼓 (C4 以上)
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-    } else {
-      // 军鼓/踩镲
-      osc.type = 'triangle';
-      gain.gain.setValueAtTime(0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    if (this.currentInstrument === 'drum' && this.drums) {
+      // 鼓组特殊处理
+      const now = Tone.now();
+      if (note >= 60) {
+        // 低音鼓
+        this.drums.triggerAttackRelease(freq, '8n', now, velocityGain);
+      } else {
+        // 军鼓/踩镲
+        this.drums.triggerAttackRelease(freq, '16n', now, velocityGain * 0.8);
+      }
+    } else if (this.synth) {
+      // 其他乐器
+      this.synth.triggerAttackRelease(freq, '8n', undefined, velocityGain);
     }
 
-    osc.connect(gain);
-    gain.connect(this.masterGain!);
-    osc.start(now);
-    osc.stop(now + 0.5);
+    console.log(`[AudioEngine] 播放: ${note} (${this.currentInstrument})`);
   }
 
   /**
    * 停止音符
    */
   stopNote(note: number): void {
-    const oscillators = this.activeNotes.get(note);
-    if (!oscillators) return;
-
-    const ctx = this.ensureContext();
-    const now = ctx.currentTime;
-    
-    for (const osc of oscillators) {
-      // Release 包络
-      const gain = oscGain(osc);
-      if (gain) {
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(gain.gain.value, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      }
-      
-      osc.stop(now + 0.1);
+    if (this.synth) {
+      // 释放当前音符
+      const freq = Tone.Frequency(note, 'midi').toFrequency();
+      this.synth.releaseAll();
     }
-    
-    this.activeNotes.delete(note);
     console.log(`[AudioEngine] 停止: ${note}`);
   }
 
@@ -196,8 +172,8 @@ export class AudioEngine {
    * 停止所有音符
    */
   stopAllNotes(): void {
-    for (const note of this.activeNotes.keys()) {
-      this.stopNote(note);
+    if (this.synth) {
+      this.synth.releaseAll();
     }
   }
 
@@ -206,20 +182,12 @@ export class AudioEngine {
    */
   dispose(): void {
     this.stopAllNotes();
-    if (this.context) {
-      this.context.close();
-      this.context = null;
-    }
+    this.synth?.dispose();
+    this.drums?.dispose();
+    this.synth = null;
+    this.drums = null;
     console.log('[AudioEngine] 已清理');
   }
-}
-
-/**
- * 获取 Oscillator 的 GainNode
- */
-function oscGain(osc: OscillatorNode): GainNode | null {
-  // Web Audio API 不直接暴露连接的节点，这里简化处理
-  return null;
 }
 
 // 单例实例

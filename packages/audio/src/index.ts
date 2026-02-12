@@ -4,4 +4,4 @@
  */
 
 export { AudioEngine, getAudioEngine, initAudioEngine } from './engine';
-export type { InstrumentType, NoteOptions } from './engine';
+export type { InstrumentType } from './engine';
