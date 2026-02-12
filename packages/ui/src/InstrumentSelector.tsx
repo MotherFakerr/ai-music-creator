@@ -8,6 +8,8 @@ import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
 export interface InstrumentSelectorProps {
   value: EN_INSTRUMENT_TYPE;
   onChange: (instrument: EN_INSTRUMENT_TYPE) => void;
+  isLoading?: boolean;
+  disabled?: boolean;
 }
 
 const INSTRUMENTS: { id: EN_INSTRUMENT_TYPE; label: string }[] = [
@@ -21,21 +23,29 @@ const INSTRUMENTS: { id: EN_INSTRUMENT_TYPE; label: string }[] = [
 export function InstrumentSelector({
   value,
   onChange,
+  isLoading = false,
+  disabled = false,
 }: InstrumentSelectorProps) {
   return (
     <div className="instrument-selector">
-      <span className="selector-label">音色</span>
+      <span className="selector-label">
+        {isLoading ? "音色（加载中...）" : "音色"}
+      </span>
       <div className="instrument-buttons">
         {INSTRUMENTS.map((inst) => (
           <button
             key={inst.id}
             className={`instrument-btn ${value === inst.id ? "active" : ""}`}
             onClick={() => onChange(inst.id)}
+            disabled={disabled || isLoading}
           >
             {inst.label}
           </button>
         ))}
       </div>
+      {isLoading ? (
+        <span className="loading-tip">正在加载乐器，请稍候...</span>
+      ) : null}
 
       <style>{`
         .instrument-selector {
@@ -80,6 +90,25 @@ export function InstrumentSelector({
           border-color: rgba(99, 102, 241, 0.4);
           color: #fff;
           box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
+        }
+
+        .instrument-btn:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .instrument-btn:disabled:hover {
+          background: rgba(255, 255, 255, 0.03);
+          border-color: rgba(255, 255, 255, 0.08);
+          color: #9ca3af;
+        }
+
+        .loading-tip {
+          color: #93c5fd;
+          font-size: 12px;
+          margin-top: 4px;
         }
       `}</style>
     </div>

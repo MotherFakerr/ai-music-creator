@@ -19,6 +19,7 @@ import {
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isInstrumentLoading, setIsInstrumentLoading] = useState(false);
   const [currentNote, setCurrentNote] = useState<string | null>(null);
   const [instrument, setInstrument] = useState<EN_INSTRUMENT_TYPE>(
     EN_INSTRUMENT_TYPE.PIANO
@@ -45,14 +46,16 @@ function App() {
     };
   }, [audioEngine]);
 
+  const canPlay = isInitialized && !isInstrumentLoading;
+
   // 音符事件处理
   const handleNoteOn = useCallback(
     (note: number, velocity: number) => {
-      if (!isInitialized) return;
+      if (!canPlay) return;
       audioEngine.playNote(note, velocity);
       setCurrentNote(getNoteName(note));
     },
-    [isInitialized, audioEngine]
+    [canPlay, audioEngine]
   );
 
   const handleNoteOff = useCallback(
@@ -67,10 +70,19 @@ function App() {
   // 切换音色
   const handleInstrumentChange = useCallback(
     async (newInstrument: EN_INSTRUMENT_TYPE) => {
+      if (newInstrument === instrument) return;
+
+      setIsInstrumentLoading(true);
+      setCurrentNote(null);
+      audioEngine.stopAllNotes();
       setInstrument(newInstrument);
-      await audioEngine.setInstrument(newInstrument);
+      try {
+        await audioEngine.setInstrument(newInstrument);
+      } finally {
+        setIsInstrumentLoading(false);
+      }
     },
-    [audioEngine]
+    [audioEngine, instrument]
   );
 
   // 切换基准音
@@ -84,6 +96,7 @@ function App() {
     baseNote,
     onNoteOn: handleNoteOn,
     onNoteOff: handleNoteOff,
+    disabled: !canPlay,
   });
 
   return (
@@ -118,6 +131,8 @@ function App() {
                 <span className="note-label">当前音符</span>
                 <span className="note-value pulse">{currentNote}</span>
               </>
+            ) : isInstrumentLoading ? (
+              <span className="note-placeholder">乐器加载中，暂不可演奏</span>
             ) : (
               <span className="note-placeholder">
                 <span className="hint-dot" /> 按下键盘开始演奏
@@ -131,6 +146,8 @@ function App() {
           <InstrumentSelector
             value={instrument}
             onChange={handleInstrumentChange}
+            isLoading={isInstrumentLoading}
+            disabled={!isInitialized}
           />
         </div>
 
