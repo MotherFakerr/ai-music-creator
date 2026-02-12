@@ -9,7 +9,7 @@ import {
   isBlackKey,
   DEFAULT_BASE_NOTE,
 } from "@ai-music-creator/core";
-import { useKeyboardMap } from "@ai-music-creator/core";
+import { useKeyboardMap } from "./useKeyboardMap";
 
 export interface KeyboardProps {
   activeNotes?: Set<number>;

@@ -1,10 +1,12 @@
-﻿/**
+/**
  * @ai-music/ui
- * UI 缁勪欢灞? */
+ * UI 组件库
+ */
 
-// 瀵煎嚭鎵€鏈?UI 缁勪欢
+// 导出所有 UI 组件
 export * from './Keyboard';
 export * from './useKeyboard';
+export * from './useKeyboardMap';
 export * from './Timeline';
 export * from './Controls';
 export * from './InstrumentSelector';

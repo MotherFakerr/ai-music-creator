@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { getNoteName, useKeyboardMap } from "@ai-music-creator/core";
+import { getNoteName } from "@ai-music-creator/core";
+import { useKeyboardMap } from "@ai-music-creator/ui";
 
 export interface NoteAnchor {
   note: number;

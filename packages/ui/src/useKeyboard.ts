@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useCallback, useState } from "react";
-import { useKeyboardMap } from "@ai-music-creator/core";
+import { useKeyboardMap } from "./useKeyboardMap";
 
 export interface UseKeyboardOptions {
   onNoteOn?: (pitch: number, velocity: number) => void;

@@ -21,4 +21,3 @@ export interface Recording {
 
 // 键盘映射
 export * from "./keyboard-map";
-export * from "./useKeyboardMap";
