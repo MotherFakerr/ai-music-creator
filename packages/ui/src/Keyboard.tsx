@@ -3,16 +3,23 @@
  * 虚拟键盘（QWERTY 布局 + 音阶显示）
  */
 
-import React, { useMemo } from 'react';
-import { KEYBOARD_ROWS, getNoteName, isBlackKey, DEFAULT_BASE_NOTE } from '@ai-music-creator/core';
-import { useKeyboardMap, getKeyForNote } from '@ai-music-creator/core';
+import {
+  KEYBOARD_ROWS,
+  getNoteName,
+  isBlackKey,
+  DEFAULT_BASE_NOTE,
+} from "@ai-music-creator/core";
+import { useKeyboardMap } from "@ai-music-creator/core";
 
 export interface KeyboardProps {
   activeNotes?: Set<number>;
   baseNote?: number;
 }
 
-export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_BASE_NOTE }: KeyboardProps) {
+export function Keyboard({
+  activeNotes = new Set<number>(),
+  baseNote = DEFAULT_BASE_NOTE,
+}: KeyboardProps) {
   // 使用 hook 响应基准音变化
   const keyboardMap = useKeyboardMap(baseNote);
 
@@ -25,14 +32,16 @@ export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_B
       <div className="keyboard-row">
         {KEYBOARD_ROWS.row1.map((key) => {
           const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : '';
+          const noteName = note ? getNoteName(note) : "";
           const isActive = note ? activeNotes.has(note) : false;
           const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
 
           return (
             <button
               key={key}
-              className={`key ${isActive ? 'active' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              className={`key ${isActive ? "active" : ""} ${
+                isBlackKeyNote ? "black-key" : ""
+              }`}
               data-key={key}
             >
               <span className="key-char">{key}</span>
@@ -46,14 +55,16 @@ export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_B
       <div className="keyboard-row">
         {KEYBOARD_ROWS.row2.map((key) => {
           const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : '';
+          const noteName = note ? getNoteName(note) : "";
           const isActive = note ? activeNotes.has(note) : false;
           const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
 
           return (
             <button
               key={key}
-              className={`key ${isActive ? 'active' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              className={`key ${isActive ? "active" : ""} ${
+                isBlackKeyNote ? "black-key" : ""
+              }`}
               data-key={key}
             >
               <span className="key-char">{key}</span>
@@ -67,15 +78,17 @@ export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_B
       <div className="keyboard-row">
         {KEYBOARD_ROWS.row3.map((key) => {
           const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : '';
+          const noteName = note ? getNoteName(note) : "";
           const isActive = note ? activeNotes.has(note) : false;
-          const isBaseKey = key === 'A'; // A 键是基准
+          const isBaseKey = key === "A"; // A 键是基准
           const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
 
           return (
             <button
               key={key}
-              className={`key ${isActive ? 'active' : ''} ${isBaseKey ? 'base-key' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              className={`key ${isActive ? "active" : ""} ${
+                isBaseKey ? "base-key" : ""
+              } ${isBlackKeyNote ? "black-key" : ""}`}
               data-key={key}
             >
               <span className="key-char">{key}</span>
@@ -89,14 +102,16 @@ export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_B
       <div className="keyboard-row">
         {KEYBOARD_ROWS.row4.map((key) => {
           const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : '';
+          const noteName = note ? getNoteName(note) : "";
           const isActive = note ? activeNotes.has(note) : false;
           const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
 
           return (
             <button
               key={key}
-              className={`key ${isActive ? 'active' : ''} ${isBlackKeyNote ? 'black-key' : ''}`}
+              className={`key ${isActive ? "active" : ""} ${
+                isBlackKeyNote ? "black-key" : ""
+              }`}
               data-key={key}
             >
               <span className="key-char">{key}</span>
@@ -109,37 +124,50 @@ export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_B
       <style>{`
         .keyboard-wrapper {
           position: relative;
-          background: linear-gradient(145deg, rgba(15, 15, 25, 0.95), rgba(10, 10, 20, 0.98));
-          border-radius: 28px;
-          padding: 32px;
+          background:
+            linear-gradient(160deg, rgba(13, 16, 29, 0.95) 0%, rgba(8, 10, 20, 0.98) 100%);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          padding: 22px;
           box-shadow:
-            0 0 60px rgba(99, 102, 241, 0.1),
-            0 20px 60px rgba(0, 0, 0, 0.5),
-            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            0 16px 45px rgba(0, 0, 0, 0.45),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          overflow: hidden;
         }
 
-        /* 霓虹边框光晕 */
         .keyboard-wrapper::before {
           content: '';
           position: absolute;
-          inset: -2px;
-          border-radius: 30px;
-          background: linear-gradient(135deg,
-            rgba(99, 102, 241, 0.3),
-            rgba(139, 92, 246, 0.3),
-            rgba(16, 185, 129, 0.3)
+          inset: 0;
+          border-radius: inherit;
+          background: radial-gradient(
+            600px circle at -10% -40%,
+            rgba(79, 70, 229, 0.25),
+            transparent 55%
           );
-          z-index: -1;
-          filter: blur(8px);
-          opacity: 0.5;
+          pointer-events: none;
+        }
+
+        .keyboard-wrapper::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: radial-gradient(
+            520px circle at 110% 130%,
+            rgba(6, 182, 212, 0.15),
+            transparent 58%
+          );
+          pointer-events: none;
         }
 
         .keyboard-row {
           display: flex;
-          gap: 6px;
-          margin-bottom: 8px;
+          gap: 8px;
+          margin-bottom: 10px;
           justify-content: center;
           position: relative;
+          z-index: 1;
         }
 
         .keyboard-row:last-child {
@@ -152,156 +180,168 @@ export function Keyboard({ activeNotes = new Set<number>(), baseNote = DEFAULT_B
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          width: 52px;
-          height: 52px;
-          background: linear-gradient(180deg, rgba(40, 40, 60, 0.9) 0%, rgba(25, 25, 40, 0.95) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          width: clamp(44px, 4vw, 54px);
+          height: clamp(46px, 4.2vw, 56px);
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 35%),
+            linear-gradient(180deg, rgba(42, 48, 73, 0.92) 0%, rgba(24, 29, 48, 0.95) 100%);
+          border: 1px solid rgba(147, 163, 184, 0.24);
           border-radius: 12px;
           cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-          padding: 6px;
-          overflow: visible;
+          transition:
+            transform 180ms ease,
+            border-color 180ms ease,
+            box-shadow 220ms ease,
+            background 220ms ease;
+          padding: 5px 4px 4px;
+          overflow: hidden;
+          backdrop-filter: blur(3px);
         }
 
-        /* 按键顶部高光 */
         .key::before {
           content: '';
           position: absolute;
-          top: 0;
-          left: 8px;
-          right: 8px;
-          height: 50%;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
-          border-radius: 10px 10px 0 0;
+          inset: 1px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.07);
           pointer-events: none;
         }
 
-        /* 按键底部阴影 */
         .key::after {
           content: '';
           position: absolute;
-          bottom: -4px;
+          bottom: 2px;
           left: 50%;
           transform: translateX(-50%);
-          width: 70%;
-          height: 8px;
-          background: rgba(0, 0, 0, 0.4);
-          filter: blur(4px);
+          width: 76%;
+          height: 10px;
+          background: rgba(56, 189, 248, 0.2);
+          filter: blur(10px);
           border-radius: 50%;
-          z-index: -1;
-          transition: all 0.2s ease;
+          opacity: 0;
+          transition: opacity 200ms ease;
         }
 
         .key:hover {
-          transform: translateY(-4px);
-          border-color: rgba(99, 102, 241, 0.4);
+          transform: translateY(-2px);
+          border-color: rgba(129, 140, 248, 0.55);
           box-shadow:
-            0 12px 32px rgba(0, 0, 0, 0.4),
-            0 0 24px rgba(99, 102, 241, 0.15);
+            0 10px 18px rgba(0, 0, 0, 0.35),
+            0 0 0 1px rgba(99, 102, 241, 0.14) inset;
         }
 
         .key:hover::after {
-          bottom: -6px;
-          filter: blur(6px);
-          opacity: 0.6;
+          opacity: 0.35;
         }
 
         .key.active {
-          transform: translateY(3px);
-          background: linear-gradient(180deg, rgba(60, 60, 90, 0.9) 0%, rgba(40, 40, 65, 0.95) 100%);
+          transform: translateY(1px) scale(0.98);
+          background:
+            linear-gradient(180deg, rgba(129, 140, 248, 0.22) 0%, rgba(129, 140, 248, 0) 45%),
+            linear-gradient(180deg, rgba(50, 58, 92, 0.95) 0%, rgba(30, 36, 62, 0.98) 100%);
+          border-color: rgba(165, 180, 252, 0.7);
           box-shadow:
-            inset 0 4px 12px rgba(0, 0, 0, 0.5),
-            0 0 30px rgba(99, 102, 241, 0.25);
+            inset 0 3px 10px rgba(7, 10, 22, 0.7),
+            0 0 18px rgba(99, 102, 241, 0.35),
+            0 0 30px rgba(99, 102, 241, 0.15);
         }
 
         .key.active::after {
-          opacity: 0;
+          opacity: 0.55;
         }
 
-        /* 霓虹点阵效果 */
-        .key.active::before {
-          background: linear-gradient(180deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%);
-        }
-
-        /* 按键内发光 */
-        .key.active {
-          border-color: rgba(139, 92, 246, 0.5);
-        }
-
-        /* 基准键 A */
         .key.base-key {
-          background: linear-gradient(180deg, rgba(6, 78, 59, 0.9) 0%, rgba(4, 55, 42, 0.95) 100%);
-          border: 1px solid rgba(16, 185, 129, 0.4);
+          background:
+            linear-gradient(180deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0) 48%),
+            linear-gradient(180deg, rgba(24, 65, 59, 0.94) 0%, rgba(11, 40, 35, 0.98) 100%);
+          border: 1px solid rgba(45, 212, 191, 0.45);
         }
 
-        .key.base-key::before {
-          background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, transparent 100%);
+        .key.base-key .key-char {
+          color: #d1fae5;
         }
 
         .key.base-key.active {
-          background: linear-gradient(180deg, rgba(5, 150, 105, 0.9) 0%, rgba(4, 70, 52, 0.95) 100%);
-          border-color: rgba(16, 185, 129, 0.7);
+          background:
+            linear-gradient(180deg, rgba(45, 212, 191, 0.28) 0%, rgba(45, 212, 191, 0) 45%),
+            linear-gradient(180deg, rgba(22, 80, 72, 0.96) 0%, rgba(14, 51, 45, 1) 100%);
+          border-color: rgba(94, 234, 212, 0.85);
           box-shadow:
-            inset 0 4px 12px rgba(0, 0, 0, 0.4),
-            0 0 40px rgba(16, 185, 129, 0.3),
-            0 0 60px rgba(16, 185, 129, 0.1);
+            inset 0 3px 10px rgba(0, 0, 0, 0.55),
+            0 0 16px rgba(20, 184, 166, 0.42),
+            0 0 28px rgba(20, 184, 166, 0.2);
         }
 
         .key.base-key:hover {
-          border-color: rgba(16, 185, 129, 0.6);
-          box-shadow:
-            0 12px 32px rgba(0, 0, 0, 0.4),
-            0 0 32px rgba(16, 185, 129, 0.2);
+          border-color: rgba(45, 212, 191, 0.75);
         }
 
-        /* 黑键变体 */
         .key.black-key {
-          background: linear-gradient(180deg, rgba(20, 20, 35, 0.95) 0%, rgba(10, 10, 20, 0.98) 100%);
-          border-color: rgba(0, 0, 0, 0.3);
-        }
-
-        .key.black-key::before {
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 30%),
+            linear-gradient(180deg, rgba(26, 29, 40, 0.96) 0%, rgba(11, 13, 20, 1) 100%);
+          border-color: rgba(71, 85, 105, 0.35);
         }
 
         .key.black-key.active {
-          background: linear-gradient(180deg, rgba(30, 30, 50, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
-          border-color: rgba(139, 92, 246, 0.4);
+          background:
+            linear-gradient(180deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0) 40%),
+            linear-gradient(180deg, rgba(30, 35, 52, 0.98) 0%, rgba(14, 18, 28, 1) 100%);
+          border-color: rgba(129, 140, 248, 0.65);
           box-shadow:
-            inset 0 4px 12px rgba(0, 0, 0, 0.6),
-            0 0 30px rgba(139, 92, 246, 0.2);
+            inset 0 4px 12px rgba(0, 0, 0, 0.75),
+            0 0 14px rgba(99, 102, 241, 0.35);
         }
 
         .key-char {
-          font-size: 20px;
-          font-weight: 700;
+          font-size: clamp(17px, 1.5vw, 20px);
+          font-weight: 650;
           font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-          color: #e8e8f0;
+          color: #e2e8f0;
           line-height: 1;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-          letter-spacing: 0.5px;
+          text-shadow: 0 2px 6px rgba(2, 6, 23, 0.5);
+          letter-spacing: 0.3px;
         }
 
         .key.black-key .key-char {
-          color: #b8b8c8;
+          color: #cbd5e1;
         }
 
         .note-name {
-          font-size: 11px;
-          color: #6b7280;
+          font-size: clamp(9px, 0.95vw, 11px);
+          color: #94a3b8;
           font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
           margin-top: 4px;
           font-weight: 500;
-          letter-spacing: 1px;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+          letter-spacing: 0.8px;
+          text-shadow: 0 1px 3px rgba(2, 6, 23, 0.5);
         }
 
         .key.black-key .note-name {
-          color: #555;
+          color: #64748b;
         }
 
         .key:hover .note-name {
-          color: #9ca3af;
+          color: #cbd5e1;
+        }
+
+        @media (max-width: 860px) {
+          .keyboard-wrapper {
+            padding: 16px;
+            border-radius: 18px;
+          }
+
+          .keyboard-row {
+            gap: 6px;
+            margin-bottom: 8px;
+            justify-content: flex-start;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .key {
+            transition: none;
+          }
         }
       `}</style>
     </div>
