@@ -3,6 +3,7 @@
  * 虚拟键盘（QWERTY 布局 + 音阶显示）
  */
 
+import { useRef, useEffect } from "react";
 import {
   KEYBOARD_ROWS,
   getNoteName,
@@ -61,11 +62,24 @@ export function Keyboard({
     );
   };
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const prevent = (e: Event) => e.preventDefault();
+    el.addEventListener("selectstart", prevent);
+    el.addEventListener("dragstart", prevent);
+    return () => {
+      el.removeEventListener("selectstart", prevent);
+      el.removeEventListener("dragstart", prevent);
+    };
+  }, []);
+
   return (
     <div
+      ref={wrapperRef}
       className="keyboard-wrapper"
-      onSelectStart={(e) => e.preventDefault()}
-      onDragStart={(e) => e.preventDefault()}
     >
       {/* 行 1：数字键 */}
       <div className="keyboard-row">
