@@ -30,131 +30,57 @@ export function Keyboard({
   // 获取按键对应的音符
   const getNoteForKey = (key: string) => keyboardMap[key];
 
+  // 渲染单个按键
+  const renderKey = (key: string, isBaseKey = false) => {
+    const note = getNoteForKey(key);
+    const noteName = note ? getNoteName(note) : "";
+    const isActive = note ? activeNotes.has(note) : false;
+    const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
+
+    return (
+      <button
+        key={key}
+        className={`key ${isActive ? "active" : ""} ${isBaseKey ? "base-key" : ""} ${
+          isBlackKeyNote ? "black-key" : ""
+        }`}
+        data-key={key}
+        onMouseDown={() => note && onNoteOn?.(note, 100)}
+        onMouseUp={() => note && onNoteOff?.(note)}
+        onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          note && onNoteOn?.(note, 100);
+        }}
+        onTouchEnd={() => note && onNoteOff?.(note)}
+        onTouchCancel={() => note && onNoteOff?.(note)}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <span className="key-char">{key}</span>
+        <span className="note-name">{noteName}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="keyboard-wrapper">
       {/* 行 1：数字键 */}
       <div className="keyboard-row">
-        {KEYBOARD_ROWS.row1.map((key) => {
-          const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : "";
-          const isActive = note ? activeNotes.has(note) : false;
-          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
-
-          return (
-            <button
-              key={key}
-              className={`key ${isActive ? "active" : ""} ${
-                isBlackKeyNote ? "black-key" : ""
-              }`}
-              data-key={key}
-              onMouseDown={() => note && onNoteOn?.(note, 100)}
-              onMouseUp={() => note && onNoteOff?.(note)}
-              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                note && onNoteOn?.(note, 100);
-              }}
-              onTouchEnd={() => note && onNoteOff?.(note)}
-            >
-              <span className="key-char">{key}</span>
-              <span className="note-name">{noteName}</span>
-            </button>
-          );
-        })}
+        {KEYBOARD_ROWS.row1.map((key) => renderKey(key))}
       </div>
 
       {/* 行 2：Q-P */}
       <div className="keyboard-row">
-        {KEYBOARD_ROWS.row2.map((key) => {
-          const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : "";
-          const isActive = note ? activeNotes.has(note) : false;
-          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
-
-          return (
-            <button
-              key={key}
-              className={`key ${isActive ? "active" : ""} ${
-                isBlackKeyNote ? "black-key" : ""
-              }`}
-              data-key={key}
-              onMouseDown={() => note && onNoteOn?.(note, 100)}
-              onMouseUp={() => note && onNoteOff?.(note)}
-              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                note && onNoteOn?.(note, 100);
-              }}
-              onTouchEnd={() => note && onNoteOff?.(note)}
-            >
-              <span className="key-char">{key}</span>
-              <span className="note-name">{noteName}</span>
-            </button>
-          );
-        })}
+        {KEYBOARD_ROWS.row2.map((key) => renderKey(key))}
       </div>
 
       {/* 行 3：A-L（基准区） */}
       <div className="keyboard-row">
-        {KEYBOARD_ROWS.row3.map((key) => {
-          const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : "";
-          const isActive = note ? activeNotes.has(note) : false;
-          const isBaseKey = key === "A"; // A 键是基准
-          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
-
-          return (
-            <button
-              key={key}
-              className={`key ${isActive ? "active" : ""} ${
-                isBaseKey ? "base-key" : ""
-              } ${isBlackKeyNote ? "black-key" : ""}`}
-              data-key={key}
-              onMouseDown={() => note && onNoteOn?.(note, 100)}
-              onMouseUp={() => note && onNoteOff?.(note)}
-              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                note && onNoteOn?.(note, 100);
-              }}
-              onTouchEnd={() => note && onNoteOff?.(note)}
-            >
-              <span className="key-char">{key}</span>
-              <span className="note-name">{noteName}</span>
-            </button>
-          );
-        })}
+        {KEYBOARD_ROWS.row3.map((key) => renderKey(key, key === "A"))}
       </div>
 
       {/* 行 4：Z-/ */}
       <div className="keyboard-row">
-        {KEYBOARD_ROWS.row4.map((key) => {
-          const note = getNoteForKey(key);
-          const noteName = note ? getNoteName(note) : "";
-          const isActive = note ? activeNotes.has(note) : false;
-          const isBlackKeyNote = note ? isBlackKey(note.toString()) : false;
-
-          return (
-            <button
-              key={key}
-              className={`key ${isActive ? "active" : ""} ${
-                isBlackKeyNote ? "black-key" : ""
-              }`}
-              data-key={key}
-              onMouseDown={() => note && onNoteOn?.(note, 100)}
-              onMouseUp={() => note && onNoteOff?.(note)}
-              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                note && onNoteOn?.(note, 100);
-              }}
-              onTouchEnd={() => note && onNoteOff?.(note)}
-            >
-              <span className="key-char">{key}</span>
-              <span className="note-name">{noteName}</span>
-            </button>
-          );
-        })}
+        {KEYBOARD_ROWS.row4.map((key) => renderKey(key))}
       </div>
 
       <style>{`
@@ -232,6 +158,9 @@ export function Keyboard({
           padding: 5px 4px 4px;
           overflow: hidden;
           backdrop-filter: blur(3px);
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
         }
 
         .key::before {
@@ -371,6 +300,21 @@ export function Keyboard({
             gap: 6px;
             margin-bottom: 8px;
             justify-content: flex-start;
+          }
+
+          .key {
+            width: 32px;
+            height: 38px;
+            border-radius: 8px;
+          }
+
+          .key-char {
+            font-size: 14px;
+          }
+
+          .note-name {
+            font-size: 8px;
+            margin-top: 2px;
           }
         }
 
