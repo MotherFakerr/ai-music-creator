@@ -136,7 +136,7 @@ function App() {
     setBaseNote(note);
   }, []);
 
-  const { activeNotes } = useKeyboard({
+  const { activeNotes, noteOn, noteOff } = useKeyboard({
     baseNote,
     onNoteOn: handleNoteOn,
     onNoteOff: handleNoteOff,
@@ -182,8 +182,8 @@ function App() {
           "radial-gradient(circle at 10% 10%, #1f245f 0%, transparent 38%), radial-gradient(circle at 88% 90%, #0d4f5f 0%, transparent 35%), #090b12",
       }}
     >
-      <Container size="xl" py={36}>
-        <Stack gap={24}>
+      <Container size="xl" py={20}>
+        <Stack gap={16}>
           <AppHeader
             isInitialized={isInitialized}
             isInstrumentLoading={isInstrumentLoading}
@@ -228,23 +228,12 @@ function App() {
             />
           </Card>
 
-          <Card
-            radius="xl"
-            padding="lg"
-            style={{
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(8, 10, 20, 0.85)",
-            }}
-          >
-            <Box style={{ paddingBottom: 8 }}>
-              <Keyboard 
-              activeNotes={activeNotes} 
-              baseNote={baseNote}
-              onNoteOn={handleNoteOn}
-              onNoteOff={handleNoteOff}
-            />
-            </Box>
-          </Card>
+          <Keyboard
+            activeNotes={activeNotes}
+            baseNote={baseNote}
+            onNoteOn={noteOn}
+            onNoteOff={noteOff}
+          />
         </Stack>
       </Container>
     </Box>

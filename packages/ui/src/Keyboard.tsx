@@ -62,7 +62,11 @@ export function Keyboard({
   };
 
   return (
-    <div className="keyboard-wrapper">
+    <div
+      className="keyboard-wrapper"
+      onSelectStart={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
+    >
       {/* 行 1：数字键 */}
       <div className="keyboard-row">
         {KEYBOARD_ROWS.row1.map((key) => renderKey(key))}
@@ -95,6 +99,9 @@ export function Keyboard({
             0 16px 45px rgba(0, 0, 0, 0.45),
             inset 0 1px 0 rgba(255, 255, 255, 0.04);
           overflow: hidden;
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
         }
 
         .keyboard-wrapper::before {

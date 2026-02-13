@@ -22,6 +22,33 @@ export function useKeyboard({
   const [activeNotes, setActiveNotes] = useState<Set<number>>(new Set());
   const keyboardMap = useKeyboardMap(baseNote);
 
+  // 通用的 noteOn / noteOff，供物理键盘和虚拟键盘共用
+  const noteOn = useCallback(
+    (note: number, velocity: number) => {
+      if (disabled) return;
+      setActiveNotes((prev) => {
+        if (prev.has(note)) return prev;
+        return new Set([...prev, note]);
+      });
+      onNoteOn?.(note, velocity);
+    },
+    [disabled, onNoteOn]
+  );
+
+  const noteOff = useCallback(
+    (note: number) => {
+      if (disabled) return;
+      setActiveNotes((prev) => {
+        if (!prev.has(note)) return prev;
+        const next = new Set(prev);
+        next.delete(note);
+        return next;
+      });
+      onNoteOff?.(note);
+    },
+    [disabled, onNoteOff]
+  );
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (disabled) return;
@@ -32,12 +59,11 @@ export function useKeyboard({
       const key = event.key.toUpperCase();
       const note = keyboardMap[key];
 
-      if (note !== undefined && !activeNotes.has(note)) {
-        setActiveNotes((prev: Set<number>) => new Set([...prev, note]));
-        onNoteOn?.(note, 100); // 默认力度 100
+      if (note !== undefined) {
+        noteOn(note, 100); // 默认力度 100
       }
     },
-    [activeNotes, disabled, onNoteOn, keyboardMap]
+    [disabled, keyboardMap, noteOn]
   );
 
   const handleKeyUp = useCallback(
@@ -48,15 +74,10 @@ export function useKeyboard({
       const note = keyboardMap[key];
 
       if (note !== undefined) {
-        setActiveNotes((prev) => {
-          const next = new Set(prev);
-          next.delete(note);
-          return next;
-        });
-        onNoteOff?.(note);
+        noteOff(note);
       }
     },
-    [disabled, onNoteOff, keyboardMap]
+    [disabled, keyboardMap, noteOff]
   );
 
   useEffect(() => {
@@ -76,5 +97,5 @@ export function useKeyboard({
     setActiveNotes(new Set());
   }, [activeNotes, disabled, onNoteOff]);
 
-  return { activeNotes };
+  return { activeNotes, noteOn, noteOff };
 }
