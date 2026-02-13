@@ -5,6 +5,8 @@
 
 // 导出所有 UI 组件
 export * from './Keyboard';
+export * from './PianoKeyboard';
+export * from './KeyboardModeSwitch';
 export * from './useKeyboard';
 export * from './useKeyboardMap';
 export * from './Timeline';

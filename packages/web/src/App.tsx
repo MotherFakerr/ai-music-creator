@@ -3,6 +3,9 @@ import { Box, Card, Container, Grid, Stack } from "@mantine/core";
 import {
   InstrumentSelector,
   Keyboard,
+  PianoKeyboard,
+  KeyboardModeSwitch,
+  type KeyboardMode,
   PerformancePreviewPanel,
   type PerformanceTrace,
   useKeyboard,
@@ -33,6 +36,7 @@ function App() {
     EN_INSTRUMENT_TYPE.PIANO
   );
   const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
+  const [keyboardMode, setKeyboardMode] = useState<KeyboardMode>("qwerty");
   const [audioEngine] = useState(() => getAudioEngine());
   const traceIdRef = useRef(0);
   const mapNoteToLane = useNoteLaneMapper(baseNote, TRACK_EDGE_PADDING);
@@ -228,12 +232,32 @@ function App() {
             />
           </Card>
 
-          <Keyboard
-            activeNotes={activeNotes}
-            baseNote={baseNote}
-            onNoteOn={noteOn}
-            onNoteOff={noteOff}
-          />
+          <Stack gap={6}>
+            <Box style={{ display: "flex", justifyContent: "flex-end" }}>
+              <KeyboardModeSwitch
+                value={keyboardMode}
+                onChange={setKeyboardMode}
+              />
+            </Box>
+
+            <Box style={{ height: 300 }}>
+              {keyboardMode === "qwerty" ? (
+                <Keyboard
+                  activeNotes={activeNotes}
+                  baseNote={baseNote}
+                  onNoteOn={noteOn}
+                  onNoteOff={noteOff}
+                />
+              ) : (
+                <PianoKeyboard
+                  activeNotes={activeNotes}
+                  baseNote={baseNote}
+                  onNoteOn={noteOn}
+                  onNoteOff={noteOff}
+                />
+              )}
+            </Box>
+          </Stack>
         </Stack>
       </Container>
     </Box>

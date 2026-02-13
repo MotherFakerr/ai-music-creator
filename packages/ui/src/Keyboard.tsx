@@ -102,6 +102,11 @@ export function Keyboard({
           user-select: none;
           -webkit-user-select: none;
           -webkit-touch-callout: none;
+          height: 100%;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
 
         .keyboard-wrapper::before {
