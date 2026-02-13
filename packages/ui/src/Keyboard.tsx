@@ -218,7 +218,6 @@ export function Keyboard({
           justify-content: center;
           width: clamp(44px, 4vw, 54px);
           height: clamp(46px, 4.2vw, 56px);
-          min-width: 44px;
           background:
             linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 35%),
             linear-gradient(180deg, rgba(42, 48, 73, 0.92) 0%, rgba(24, 29, 48, 0.95) 100%);
@@ -364,63 +363,14 @@ export function Keyboard({
 
         @media (max-width: 860px) {
           .keyboard-wrapper {
-            padding: 12px;
-            border-radius: 14px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+            padding: 16px;
+            border-radius: 18px;
           }
 
           .keyboard-row {
-            gap: 4px;
-            margin-bottom: 6px;
+            gap: 6px;
+            margin-bottom: 8px;
             justify-content: flex-start;
-          }
-
-          .key {
-            width: 32px;
-            height: 38px;
-            min-width: 32px;
-            border-radius: 8px;
-          }
-
-          .key-char {
-            font-size: 14px;
-          }
-
-          .note-name {
-            font-size: 8px;
-            margin-top: 2px;
-          }
-        }
-
-        /* 竖屏手机专门优化 */
-        @media (max-width: 480px) and (orientation: portrait) {
-          .keyboard-wrapper {
-            padding: 10px 8px;
-            border-radius: 12px;
-          }
-
-          .keyboard-row {
-            gap: 3px;
-            margin-bottom: 5px;
-          }
-
-          .key {
-            width: 26px;
-            height: 32px;
-            min-width: 26px;
-            border-radius: 6px;
-            padding: 3px 2px 2px;
-          }
-
-          .key-char {
-            font-size: 12px;
-          }
-
-          .note-name {
-            font-size: 7px;
-            margin-top: 1px;
-            letter-spacing: 0.3px;
           }
         }
 
