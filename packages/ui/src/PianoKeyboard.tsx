@@ -1,6 +1,7 @@
 /**
  * PianoKeyboard Component
  * 虚拟钢琴键盘（真实钢琴布局 + QWERTY 键位映射）
+ * 桌面端：连续钢琴  |  移动端：拆分为两行八度组
  */
 
 import { useCallback, useMemo, useRef } from "react";
@@ -17,7 +18,7 @@ export interface PianoKeyboardProps {
 /** 12音中白键的索引 */
 const WHITE_KEY_INDICES = [0, 2, 4, 5, 7, 9, 11];
 
-/** 黑键在一个八度内相对于白键的偏移位置（0~7之间） */
+/** 黑键在一个八度内相对于白键的偏移位置 */
 const BLACK_KEY_POSITIONS: Record<number, number> = {
   1: 0.93, // C#
   3: 1.93, // D#
@@ -30,49 +31,71 @@ function isWhiteKey(note: number): boolean {
   return WHITE_KEY_INDICES.includes(note % 12);
 }
 
-/**
- * 根据 baseNote 计算钢琴范围内的所有音符
- * 与 QWERTY 键盘一致: baseNote-12 ~ baseNote+35
- */
-function getPianoNotes(baseNote: number) {
-  const minNote = baseNote - 12;
-  const maxNote = baseNote + 35;
-  const whiteKeys: number[] = [];
-  const blackKeys: number[] = [];
-
-  for (let note = minNote; note <= maxNote; note++) {
-    if (isWhiteKey(note)) {
-      whiteKeys.push(note);
-    } else {
-      blackKeys.push(note);
-    }
-  }
-
-  return { whiteKeys, blackKeys, minNote, maxNote };
+interface NoteGroup {
+  minNote: number;
+  maxNote: number;
+  whiteKeys: number[];
+  blackKeys: number[];
 }
 
 /**
- * 计算白键的位置索引（从范围内的第一个白键开始计数）
+ * 将音符范围拆分为两个八度组（各 2 个八度）
  */
-function getWhiteKeyIndex(note: number, minNote: number): number {
+function getPianoGroups(baseNote: number): NoteGroup[] {
+  const minNote = baseNote - 12;
+  const maxNote = baseNote + 35;
+  const splitNote = baseNote + 12; // 中间分割点
+
+  const groups: NoteGroup[] = [];
+  const ranges = [
+    { min: minNote, max: splitNote - 1 },
+    { min: splitNote, max: maxNote },
+  ];
+
+  for (let r = 0; r < ranges.length; r++) {
+    const range = ranges[r];
+    const whiteKeys: number[] = [];
+    const blackKeys: number[] = [];
+    for (let note = range.min; note <= range.max; note++) {
+      if (isWhiteKey(note)) {
+        whiteKeys.push(note);
+      } else {
+        blackKeys.push(note);
+      }
+    }
+    groups.push({
+      minNote: range.min,
+      maxNote: range.max,
+      whiteKeys,
+      blackKeys,
+    });
+  }
+
+  return groups;
+}
+
+/**
+ * 计算白键位置索引（从 groupMin 开始计数）
+ */
+function getWhiteKeyIndex(note: number, groupMin: number): number {
   let count = 0;
-  for (let n = minNote; n < note; n++) {
+  for (let n = groupMin; n < note; n++) {
     if (isWhiteKey(n)) count++;
   }
   return count;
 }
 
 /**
- * 计算黑键的 left 位置
+ * 计算黑键的 left 偏移（相对于所在 group）
  */
-function getBlackKeyLeft(note: number, minNote: number): number {
+function getBlackKeyLeft(note: number, groupMin: number): number {
   const octave = Math.floor(note / 12);
   const semitone = note % 12;
   const posInOctave = BLACK_KEY_POSITIONS[semitone];
   if (posInOctave === undefined) return 0;
 
   const octaveC = octave * 12;
-  const whiteKeysBeforeOctaveC = getWhiteKeyIndex(octaveC, minNote);
+  const whiteKeysBeforeOctaveC = getWhiteKeyIndex(octaveC, groupMin);
 
   return whiteKeysBeforeOctaveC + posInOctave;
 }
@@ -83,11 +106,11 @@ export function PianoKeyboard({
   onNoteOn,
   onNoteOff,
 }: PianoKeyboardProps) {
-  const { whiteKeys, blackKeys, minNote } = getPianoNotes(baseNote);
-  const totalWhiteKeys = whiteKeys.length;
   const pressedNotesRef = useRef<Set<number>>(new Set());
 
-  // 获取 QWERTY 键位映射，并构建反向映射 note → key
+  const groups = useMemo(() => getPianoGroups(baseNote), [baseNote]);
+
+  // QWERTY 反向映射 note → key
   const keyboardMap = useKeyboardMap(baseNote);
   const noteToKeyMap = useMemo(() => {
     const reverseMap: Record<number, string> = {};
@@ -135,74 +158,83 @@ export function PianoKeyboard({
       onDragStart={(e) => e.preventDefault()}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <div className="piano-keys">
-        {/* 白键 */}
-        {whiteKeys.map((note, i) => {
-          const isActive = activeNotes.has(note);
-          const isBase = isBaseNote(note);
-          const noteName = getNoteName(note);
-          const keyChar = noteToKeyMap[note] || "";
+      <div className="piano-groups">
+        {groups.map((group, gi) => {
+          const whiteCount = group.whiteKeys.length;
           return (
-            <button
-              key={note}
-              className={`piano-white ${isActive ? "active" : ""} ${
-                isBase ? "base" : ""
-              }`}
-              style={{
-                position: "absolute",
-                left: `${(i / totalWhiteKeys) * 100}%`,
-                width: `${(1 / totalWhiteKeys) * 100}%`,
-                height: "100%",
-                zIndex: isActive ? 1 : 0,
-              }}
-              onMouseDown={() => handlePointerDown(note)}
-              onMouseUp={() => handlePointerUp(note)}
-              onMouseLeave={() => handlePointerLeave(note)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handlePointerDown(note);
-              }}
-              onTouchEnd={() => handlePointerUp(note)}
-              onTouchCancel={() => handlePointerLeave(note)}
-            >
-              {keyChar && <span className="piano-key-char">{keyChar}</span>}
-              <span className="piano-note-name">{noteName}</span>
-            </button>
-          );
-        })}
+            <div className="piano-keys" key={gi}>
+              {/* 白键 */}
+              {group.whiteKeys.map((note, i) => {
+                const isActive = activeNotes.has(note);
+                const isBase = isBaseNote(note);
+                const noteName = getNoteName(note);
+                const keyChar = noteToKeyMap[note] || "";
+                return (
+                  <button
+                    key={note}
+                    className={`piano-white ${isActive ? "active" : ""} ${
+                      isBase ? "base" : ""
+                    }`}
+                    style={{
+                      position: "absolute",
+                      left: `${(i / whiteCount) * 100}%`,
+                      width: `${(1 / whiteCount) * 100}%`,
+                      height: "100%",
+                      zIndex: isActive ? 1 : 0,
+                    }}
+                    onMouseDown={() => handlePointerDown(note)}
+                    onMouseUp={() => handlePointerUp(note)}
+                    onMouseLeave={() => handlePointerLeave(note)}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      handlePointerDown(note);
+                    }}
+                    onTouchEnd={() => handlePointerUp(note)}
+                    onTouchCancel={() => handlePointerLeave(note)}
+                  >
+                    {keyChar && (
+                      <span className="piano-key-char">{keyChar}</span>
+                    )}
+                    <span className="piano-note-name">{noteName}</span>
+                  </button>
+                );
+              })}
 
-        {/* 黑键 */}
-        {blackKeys.map((note) => {
-          const isActive = activeNotes.has(note);
-          const leftPos = getBlackKeyLeft(note, minNote);
-          const noteName = getNoteName(note);
-          const keyChar = noteToKeyMap[note] || "";
-          return (
-            <button
-              key={note}
-              className={`piano-black ${isActive ? "active" : ""}`}
-              style={{
-                position: "absolute",
-                left: `${(leftPos / totalWhiteKeys) * 100}%`,
-                width: `${(0.62 / totalWhiteKeys) * 100}%`,
-                height: "58%",
-                zIndex: isActive ? 3 : 2,
-              }}
-              onMouseDown={() => handlePointerDown(note)}
-              onMouseUp={() => handlePointerUp(note)}
-              onMouseLeave={() => handlePointerLeave(note)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handlePointerDown(note);
-              }}
-              onTouchEnd={() => handlePointerUp(note)}
-              onTouchCancel={() => handlePointerLeave(note)}
-            >
-              {keyChar && (
-                <span className="piano-key-char black">{keyChar}</span>
-              )}
-              <span className="piano-note-name black">{noteName}</span>
-            </button>
+              {/* 黑键 */}
+              {group.blackKeys.map((note) => {
+                const isActive = activeNotes.has(note);
+                const leftPos = getBlackKeyLeft(note, group.minNote);
+                const noteName = getNoteName(note);
+                const keyChar = noteToKeyMap[note] || "";
+                return (
+                  <button
+                    key={note}
+                    className={`piano-black ${isActive ? "active" : ""}`}
+                    style={{
+                      position: "absolute",
+                      left: `${(leftPos / whiteCount) * 100}%`,
+                      width: `${(0.62 / whiteCount) * 100}%`,
+                      height: "58%",
+                      zIndex: isActive ? 3 : 2,
+                    }}
+                    onMouseDown={() => handlePointerDown(note)}
+                    onMouseUp={() => handlePointerUp(note)}
+                    onMouseLeave={() => handlePointerLeave(note)}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      handlePointerDown(note);
+                    }}
+                    onTouchEnd={() => handlePointerUp(note)}
+                    onTouchCancel={() => handlePointerLeave(note)}
+                  >
+                    {keyChar && (
+                      <span className="piano-key-char black">{keyChar}</span>
+                    )}
+                    <span className="piano-note-name black">{noteName}</span>
+                  </button>
+                );
+              })}
+            </div>
           );
         })}
       </div>
@@ -254,10 +286,18 @@ export function PianoKeyboard({
           pointer-events: none;
         }
 
+        /* 桌面端：两组并排（无间隙 = 一体钢琴） */
+        .piano-groups {
+          display: flex;
+          flex-direction: row;
+          gap: 0;
+          flex: 1;
+          z-index: 1;
+        }
+
         .piano-keys {
           position: relative;
-          z-index: 1;
-          border-radius: 8px;
+          border-radius: 4px;
           overflow: hidden;
           flex: 1;
         }
@@ -445,30 +485,38 @@ export function PianoKeyboard({
           color: rgba(255, 255, 255, 0.7);
         }
 
+        /* ── 移动端：两组上下堆叠 ── */
         @media (max-width: 860px) {
           .piano-wrapper {
-            padding: 16px;
+            padding: 14px;
             border-radius: 18px;
+            height: auto;
+          }
+
+          .piano-groups {
+            flex-direction: column;
+            gap: 8px;
           }
 
           .piano-keys {
-            flex: 1;
+            flex: none;
+            height: 130px;
           }
 
           .piano-key-char {
-            font-size: 9px;
+            font-size: 10px;
           }
 
           .piano-key-char.black {
-            font-size: 7px;
+            font-size: 8px;
           }
 
           .piano-note-name {
-            font-size: 7px;
+            font-size: 8px;
           }
 
           .piano-note-name.black {
-            font-size: 6px;
+            font-size: 7px;
           }
         }
 

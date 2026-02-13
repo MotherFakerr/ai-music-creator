@@ -240,7 +240,7 @@ function App() {
               />
             </Box>
 
-            <Box style={{ height: 300 }}>
+            <Box className="keyboard-area">
               {keyboardMode === "qwerty" ? (
                 <Keyboard
                   activeNotes={activeNotes}
@@ -258,6 +258,17 @@ function App() {
               )}
             </Box>
           </Stack>
+
+          <style>{`
+            .keyboard-area {
+              height: 300px;
+            }
+            @media (max-width: 860px) {
+              .keyboard-area {
+                height: auto;
+              }
+            }
+          `}</style>
         </Stack>
       </Container>
     </Box>

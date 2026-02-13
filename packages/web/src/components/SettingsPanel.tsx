@@ -28,7 +28,7 @@ export function SettingsPanel({
         <BaseNoteSelector value={baseNote} onChange={onBaseNoteChange} />
         <Box>
           <Group justify="space-between" mb={4}>
-            <Text size="sm" fw={600} c="gray.2">
+            <Text size="sm" fw={600} c="gray.4">
               音量
             </Text>
             <Badge size="md" variant="light" color="blue">

@@ -65,7 +65,7 @@ export function BaseNoteSelector({
         }
 
         .selector-label {
-          color: #9ca3af;
+          color: #ced4da;
           font-size: 13px;
           font-weight: 600;
           letter-spacing: 0.8px;

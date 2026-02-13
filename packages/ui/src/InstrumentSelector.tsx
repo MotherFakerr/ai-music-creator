@@ -53,7 +53,7 @@ export function InstrumentSelector({
         }
 
         .selector-label {
-          color: #9ca3af;
+          color: #ced4da;
           font-size: 13px;
           font-weight: 600;
           letter-spacing: 0.8px;
@@ -128,6 +128,22 @@ export function InstrumentSelector({
           100% {
             transform: scale(0.9);
             box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+          }
+        }
+
+        @media (max-width: 860px) {
+          .instrument-buttons {
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+
+          .instrument-btn {
+            padding: 10px 0;
+            font-size: 13px;
+            flex: 1 1 calc(33.333% - 6px);
+            min-width: 0;
+            text-align: center;
+            white-space: nowrap;
           }
         }
       `}</style>

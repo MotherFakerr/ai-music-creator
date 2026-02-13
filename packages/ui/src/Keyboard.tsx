@@ -304,24 +304,28 @@ export function Keyboard({
 
         @media (max-width: 860px) {
           .keyboard-wrapper {
-            padding: 16px;
+            padding: 14px;
             border-radius: 18px;
-          }
-
-          .keyboard-row {
-            gap: 6px;
-            margin-bottom: 8px;
+            height: auto;
             justify-content: flex-start;
           }
 
+          .keyboard-row {
+            flex-wrap: wrap;
+            column-gap: 5px;
+            row-gap: 5px;
+            margin-bottom: 8px;
+            justify-content: center;
+          }
+
           .key {
-            width: 32px;
-            height: 38px;
+            width: calc((100% - 5 * 5px) / 6);
+            height: 42px;
             border-radius: 8px;
           }
 
           .key-char {
-            font-size: 14px;
+            font-size: 15px;
           }
 
           .note-name {
