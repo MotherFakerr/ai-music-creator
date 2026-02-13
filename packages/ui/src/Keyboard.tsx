@@ -14,11 +14,15 @@ import { useKeyboardMap } from "./useKeyboardMap";
 export interface KeyboardProps {
   activeNotes?: Set<number>;
   baseNote?: number;
+  onNoteOn?: (pitch: number, velocity: number) => void;
+  onNoteOff?: (pitch: number) => void;
 }
 
 export function Keyboard({
   activeNotes = new Set<number>(),
   baseNote = DEFAULT_BASE_NOTE,
+  onNoteOn,
+  onNoteOff,
 }: KeyboardProps) {
   // 使用 hook 响应基准音变化
   const keyboardMap = useKeyboardMap(baseNote);
@@ -43,6 +47,14 @@ export function Keyboard({
                 isBlackKeyNote ? "black-key" : ""
               }`}
               data-key={key}
+              onMouseDown={() => note && onNoteOn?.(note, 100)}
+              onMouseUp={() => note && onNoteOff?.(note)}
+              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                note && onNoteOn?.(note, 100);
+              }}
+              onTouchEnd={() => note && onNoteOff?.(note)}
             >
               <span className="key-char">{key}</span>
               <span className="note-name">{noteName}</span>
@@ -66,6 +78,14 @@ export function Keyboard({
                 isBlackKeyNote ? "black-key" : ""
               }`}
               data-key={key}
+              onMouseDown={() => note && onNoteOn?.(note, 100)}
+              onMouseUp={() => note && onNoteOff?.(note)}
+              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                note && onNoteOn?.(note, 100);
+              }}
+              onTouchEnd={() => note && onNoteOff?.(note)}
             >
               <span className="key-char">{key}</span>
               <span className="note-name">{noteName}</span>
@@ -90,6 +110,14 @@ export function Keyboard({
                 isBaseKey ? "base-key" : ""
               } ${isBlackKeyNote ? "black-key" : ""}`}
               data-key={key}
+              onMouseDown={() => note && onNoteOn?.(note, 100)}
+              onMouseUp={() => note && onNoteOff?.(note)}
+              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                note && onNoteOn?.(note, 100);
+              }}
+              onTouchEnd={() => note && onNoteOff?.(note)}
             >
               <span className="key-char">{key}</span>
               <span className="note-name">{noteName}</span>
@@ -113,6 +141,14 @@ export function Keyboard({
                 isBlackKeyNote ? "black-key" : ""
               }`}
               data-key={key}
+              onMouseDown={() => note && onNoteOn?.(note, 100)}
+              onMouseUp={() => note && onNoteOff?.(note)}
+              onMouseLeave={() => note && activeNotes.has(note) && onNoteOff?.(note)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                note && onNoteOn?.(note, 100);
+              }}
+              onTouchEnd={() => note && onNoteOff?.(note)}
             >
               <span className="key-char">{key}</span>
               <span className="note-name">{noteName}</span>

@@ -210,7 +210,12 @@ function App() {
             }}
           >
             <Box style={{ paddingBottom: 8 }}>
-              <Keyboard activeNotes={activeNotes} baseNote={baseNote} />
+              <Keyboard 
+              activeNotes={activeNotes} 
+              baseNote={baseNote}
+              onNoteOn={handleNoteOn}
+              onNoteOff={handleNoteOff}
+            />
             </Box>
           </Card>
         </Stack>
