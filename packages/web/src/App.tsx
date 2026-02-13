@@ -36,8 +36,26 @@ function App() {
   const [audioEngine] = useState(() => getAudioEngine());
   const traceIdRef = useRef(0);
   const mapNoteToLane = useNoteLaneMapper(baseNote, TRACK_EDGE_PADDING);
+  const initPromiseRef = useRef<Promise<void> | null>(null);
+
+  // 确保音频引擎初始化（移动端需要在用户交互时调用）
+  const ensureInitialized = useCallback(async () => {
+    if (isInitialized) return;
+
+    if (!initPromiseRef.current) {
+      initPromiseRef.current = audioEngine.init();
+    }
+
+    try {
+      await initPromiseRef.current;
+      setIsInitialized(true);
+    } catch (err) {
+      console.error("[App] 音频引擎初始化失败:", err);
+    }
+  }, [audioEngine, isInitialized]);
 
   useEffect(() => {
+    // PC端可以自动初始化
     const init = async () => {
       try {
         await audioEngine.init();
@@ -47,9 +65,13 @@ function App() {
       }
     };
 
-    void init();
+    // 延迟初始化，给移动端用户交互的机会
+    const timer = setTimeout(() => {
+      void init();
+    }, 1000);
 
     return () => {
+      clearTimeout(timer);
       audioEngine.dispose();
     };
   }, [audioEngine]);
@@ -57,7 +79,12 @@ function App() {
   const canPlay = isInitialized && !isInstrumentLoading;
 
   const handleNoteOn = useCallback(
-    (note: number, velocity: number) => {
+    async (note: number, velocity: number) => {
+      // 移动端首次点击时初始化
+      if (!isInitialized) {
+        await ensureInitialized();
+      }
+
       if (!canPlay) return;
       audioEngine.playNote(note, velocity);
 
@@ -76,7 +103,7 @@ function App() {
 
       setTraces((prev) => [...prev, nextTrace].slice(-TRACE_MAX_ITEMS));
     },
-    [audioEngine, canPlay, mapNoteToLane]
+    [audioEngine, canPlay, mapNoteToLane, isInitialized, ensureInitialized]
   );
 
   const handleNoteOff = useCallback(
