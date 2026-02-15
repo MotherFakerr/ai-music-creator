@@ -313,17 +313,27 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
         {/* A 点拖动柄 - 橙色 */}
         {fileName && loopEnabled && isReady && (
-          <Box style={{ position: "absolute", top: 0, left: `${timeToPercent(loopStart)}%`, transform: "translateX(-50%)", pointerEvents: "none", zIndex: 5 }}>
-            <Box style={{ width: "4px", height: "60px", background: "#ff9800", borderRadius: "2px" }} />
-            <Box style={{ position: "absolute", top: -4, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
+          <Box 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              dragRef.current = "start";
+            }}
+            style={{ position: "absolute", top: -10, left: `${timeToPercent(loopStart)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
+            <Box style={{ width: "4px", height: "80px", background: "#ff9800", borderRadius: "2px" }} />
+            <Box style={{ position: "absolute", top: 0, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
           </Box>
         )}
 
         {/* B 点拖动柄 - 橙色 */}
         {fileName && loopEnabled && isReady && (
-          <Box style={{ position: "absolute", top: 0, left: `${timeToPercent(loopEnd)}%`, transform: "translateX(-50%)", pointerEvents: "none", zIndex: 5 }}>
-            <Box style={{ width: "4px", height: "60px", background: "#ff9800", borderRadius: "2px" }} />
-            <Box style={{ position: "absolute", top: -4, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
+          <Box 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              dragRef.current = "end";
+            }}
+            style={{ position: "absolute", top: -10, left: `${timeToPercent(loopEnd)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
+            <Box style={{ width: "4px", height: "80px", background: "#ff9800", borderRadius: "2px" }} />
+            <Box style={{ position: "absolute", top: 0, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
           </Box>
         )}
       </Box>
