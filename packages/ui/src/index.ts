@@ -13,3 +13,6 @@ export * from "./Timeline";
 export * from "./Controls";
 export * from "./InstrumentSelector";
 export * from "./BaseNoteSelector";
+export * from "./PerformancePreviewPanel";
+export * from "./performancePreview.config";
+export * from "./AudioPlayer";

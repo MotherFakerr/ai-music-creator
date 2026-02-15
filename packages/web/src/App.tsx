@@ -5,8 +5,11 @@ import {
   Keyboard,
   PianoKeyboard,
   KeyboardModeSwitch,
-  type KeyboardMode,
+  PerformancePreviewPanel,
   useKeyboard,
+  AudioPlayer,
+  type KeyboardMode,
+  type PerformanceTrace,
 } from "@ai-music-creator/ui";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import {
@@ -217,6 +220,17 @@ function App() {
               />
             </Grid.Col>
           </Grid>
+
+          <Card
+            radius="lg"
+            padding="lg"
+            style={{
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(15, 19, 32, 0.7)",
+            }}
+          >
+            <AudioPlayer />
+          </Card>
 
           <Card
             radius="lg"

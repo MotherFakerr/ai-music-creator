@@ -7,6 +7,11 @@ import { Soundfont } from "smplr";
 import { EN_INSTRUMENT_TYPE, INSTRUMENT_MAP } from "./interface";
 
 /**
+ * 音频播放状态
+ */
+export type AudioPlaybackState = "stopped" | "playing" | "paused";
+
+/**
  * 音频引擎类
  */
 export class AudioEngine {
@@ -15,11 +20,31 @@ export class AudioEngine {
     new Map();
   private masterGain: GainNode | null = null;
   private currentInstrument: EN_INSTRUMENT_TYPE = EN_INSTRUMENT_TYPE.PIANO;
-  private volume: number = 1.0; // 默认音量提高到 1.0
+  private volume: number = 1.0;
   private instrumentPlayer: Soundfont | null = null;
   private instrumentPlayers: Map<EN_INSTRUMENT_TYPE, Soundfont> = new Map();
   private instrumentLoadings: Map<EN_INSTRUMENT_TYPE, Promise<Soundfont>> =
     new Map();
+
+  // 伴奏相关
+  private backingAudioBuffer: AudioBuffer | null = null;
+  private backingSource: AudioBufferSourceNode | null = null;
+  private backingGain: GainNode | null = null;
+  private backingVolume: number = 0.8;
+  private backingPlaybackRate: number = 1.0;
+  private backingLoopStart: number = 0;
+  private backingLoopEnd: number = 0;
+  private backingLoopEnabled: boolean = false;
+  private backingStartTime: number = 0;
+  private backingPauseTime: number = 0;
+  private backingState: AudioPlaybackState = "stopped";
+  private backingOnEnd: (() => void) | null = null;
+
+  // 录音相关
+  private mediaRecorder: MediaRecorder | null = null;
+  private recordedChunks: Blob[] = [];
+  private isRecording: boolean = false;
+  private recordingDestination: MediaStreamAudioDestinationNode | null = null;
 
   constructor() {
     // 延迟初始化，直到用户交互
@@ -190,8 +215,7 @@ export class AudioEngine {
     osc.type = "triangle";
     osc.frequency.value = 440 * Math.pow(2, (note - 69) / 12);
 
-    // 与 SoundFont 播放使用相同的音量计算方式
-    const velocityGain = 0.5 + (velocity / 127) * 1.0; // 0.5 到 1.5
+    const velocityGain = 0.5 + (velocity / 127) * 1.0;
     const finalGain = velocityGain * this.volume;
     const now = ctx.currentTime;
 
@@ -215,17 +239,14 @@ export class AudioEngine {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    // 简化处理：不同 note 对应不同打击乐器
     if (note >= 60) {
-      // 底鼓 (C4 以上)
       osc.type = "sine";
-      osc.frequency.value = 60; // 低频率
+      osc.frequency.value = 60;
       gain.gain.setValueAtTime(this.volume, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
     } else {
-      // 军鼓/踩镲
       osc.type = "triangle";
-      osc.frequency.value = 200; // 高频率
+      osc.frequency.value = 200;
       gain.gain.setValueAtTime(this.volume * 0.5, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     }
@@ -235,7 +256,6 @@ export class AudioEngine {
     osc.start(now);
     osc.stop(now + 0.5);
 
-    // 保存引用（虽然会自动停止，但保持一致性）
     this.activeNotes.set(note, { stop: () => osc.stop() });
   }
 
@@ -264,11 +284,291 @@ export class AudioEngine {
     }
   }
 
+  // ==================== 伴奏相关 ====================
+
+  /**
+   * 加载音频文件
+   */
+  async loadAudioFile(file: File): Promise<number> {
+    const ctx = this.ensureContext();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    this.backingAudioBuffer = audioBuffer;
+    this.backingPauseTime = 0;
+    this.backingLoopStart = 0;
+    this.backingLoopEnd = audioBuffer.duration;
+    console.log(`[AudioEngine] 已加载音频: ${file.name}, 时长: ${audioBuffer.duration}s`);
+    return audioBuffer.duration;
+  }
+
+  /**
+   * 获取伴奏时长
+   */
+  getAudioDuration(): number {
+    return this.backingAudioBuffer?.duration ?? 0;
+  }
+
+  /**
+   * 获取伴奏当前播放位置
+   */
+  getAudioCurrentTime(): number {
+    if (!this.backingAudioBuffer || this.backingState === "stopped") {
+      return 0;
+    }
+    if (this.backingState === "paused") {
+      return this.backingPauseTime;
+    }
+    const ctx = this.ensureContext();
+    return (ctx.currentTime - this.backingStartTime) * this.backingPlaybackRate + this.backingPauseTime;
+  }
+
+  /**
+   * 获取伴奏播放状态
+   */
+  getAudioState(): AudioPlaybackState {
+    return this.backingState;
+  }
+
+  /**
+   * 播放伴奏
+   */
+  playAudio(): void {
+    if (!this.backingAudioBuffer) {
+      console.warn("[AudioEngine] 没有加载音频");
+      return;
+    }
+
+    const ctx = this.ensureContext();
+
+    if (this.backingSource) {
+      this.backingSource.stop();
+      this.backingSource.disconnect();
+    }
+
+    this.backingSource = ctx.createBufferSource();
+    this.backingSource.buffer = this.backingAudioBuffer;
+    this.backingSource.playbackRate.value = this.backingPlaybackRate;
+
+    if (this.backingLoopEnabled && this.backingLoopEnd > this.backingLoopStart) {
+      this.backingSource.loop = true;
+      this.backingSource.loopStart = this.backingLoopStart;
+      this.backingSource.loopEnd = this.backingLoopEnd;
+    }
+
+    this.backingGain = ctx.createGain();
+    this.backingGain.gain.value = this.backingVolume;
+
+    if (this.recordingDestination) {
+      this.backingSource.connect(this.backingGain);
+      this.backingGain.connect(this.recordingDestination);
+      this.recordingDestination.connect(ctx.destination);
+    } else {
+      this.backingSource.connect(this.backingGain);
+      this.backingGain.connect(this.masterGain!);
+    }
+
+    const offset = this.backingPauseTime;
+    this.backingStartTime = ctx.currentTime;
+    this.backingSource.start(0, offset);
+    this.backingState = "playing";
+
+    this.backingSource.onended = () => {
+      if (this.backingState === "playing" && !this.backingLoopEnabled) {
+        this.backingState = "stopped";
+        this.backingPauseTime = 0;
+        this.backingOnEnd?.();
+      }
+    };
+
+    console.log(`[AudioEngine] 开始播放伴奏 from ${offset}s`);
+  }
+
+  /**
+   * 暂停伴奏
+   */
+  pauseAudio(): void {
+    if (this.backingState !== "playing" || !this.backingSource) return;
+
+    const ctx = this.ensureContext();
+    this.backingPauseTime = this.getAudioCurrentTime();
+    this.backingSource.stop();
+    this.backingSource.disconnect();
+    this.backingSource = null;
+    this.backingState = "paused";
+
+    console.log(`[AudioEngine] 暂停伴奏 at ${this.backingPauseTime}s`);
+  }
+
+  /**
+   * 停止伴奏
+   */
+  stopAudio(): void {
+    if (this.backingSource) {
+      this.backingSource.stop();
+      this.backingSource.disconnect();
+      this.backingSource = null;
+    }
+    this.backingPauseTime = 0;
+    this.backingState = "stopped";
+
+    console.log("[AudioEngine] 停止伴奏");
+  }
+
+  /**
+   * 设置伴奏音量
+   */
+  setAudioVolume(volume: number): void {
+    this.backingVolume = Math.max(0, Math.min(1, volume));
+    if (this.backingGain) {
+      this.backingGain.gain.value = this.backingVolume;
+    }
+  }
+
+  /**
+   * 获取伴奏音量
+   */
+  getAudioVolume(): number {
+    return this.backingVolume;
+  }
+
+  /**
+   * 设置播放速度
+   */
+  setPlaybackRate(rate: number): void {
+    this.backingPlaybackRate = Math.max(0.5, Math.min(2, rate));
+    if (this.backingSource) {
+      this.backingSource.playbackRate.value = this.backingPlaybackRate;
+    }
+  }
+
+  /**
+   * 获取播放速度
+   */
+  getPlaybackRate(): number {
+    return this.backingPlaybackRate;
+  }
+
+  /**
+   * 设置循环点
+   */
+  setLoopPoints(start: number, end: number): void {
+    this.backingLoopStart = Math.max(0, start);
+    this.backingLoopEnd = Math.min(this.backingAudioBuffer?.duration ?? 0, end);
+  }
+
+  /**
+   * 启用/禁用循环
+   */
+  setLoopEnabled(enabled: boolean): void {
+    this.backingLoopEnabled = enabled;
+    if (this.backingSource) {
+      this.backingSource.loop = enabled;
+    }
+  }
+
+  /**
+   * 跳转到指定时间
+   */
+  seekAudio(time: number): void {
+    if (!this.backingAudioBuffer) return;
+    const wasPlaying = this.backingState === "playing";
+    this.stopAudio();
+    this.backingPauseTime = Math.max(0, Math.min(time, this.backingAudioBuffer.duration));
+    if (wasPlaying) {
+      this.playAudio();
+    }
+  }
+
+  /**
+   * 设置播放结束回调
+   */
+  setAudioEndCallback(callback: () => void): void {
+    this.backingOnEnd = callback;
+  }
+
+  // ==================== 录音相关 ====================
+
+  /**
+   * 开始录音
+   */
+  async startRecording(): Promise<void> {
+    if (this.isRecording) return;
+
+    const ctx = this.ensureContext();
+
+    this.recordingDestination = ctx.createMediaStreamDestination();
+
+    if (this.masterGain) {
+      this.masterGain.connect(this.recordingDestination);
+    }
+
+    if (this.backingSource && this.backingGain) {
+      this.backingSource.disconnect();
+      this.backingGain.disconnect();
+      this.backingSource.connect(this.backingGain);
+      this.backingGain.connect(this.recordingDestination);
+      this.recordingDestination.connect(ctx.destination);
+    }
+
+    const stream = this.recordingDestination.stream;
+    this.mediaRecorder = new MediaRecorder(stream, {
+      mimeType: "audio/webm;codecs=opus",
+    });
+
+    this.recordedChunks = [];
+
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.recordedChunks.push(event.data);
+      }
+    };
+
+    this.mediaRecorder.start(100);
+    this.isRecording = true;
+
+    console.log("[AudioEngine] 开始录音");
+  }
+
+  /**
+   * 停止录音并返回 Blob
+   */
+  async stopRecording(): Promise<Blob> {
+    return new Promise((resolve) => {
+      if (!this.mediaRecorder || !this.isRecording) {
+        resolve(new Blob([], { type: "audio/webm" }));
+        return;
+      }
+
+      this.mediaRecorder.onstop = () => {
+        const blob = new Blob(this.recordedChunks, { type: "audio/webm" });
+        this.recordedChunks = [];
+        this.isRecording = false;
+
+        if (this.recordingDestination && this.masterGain) {
+          this.masterGain.disconnect(this.recordingDestination);
+        }
+
+        console.log("[AudioEngine] 录音结束");
+        resolve(blob);
+      };
+
+      this.mediaRecorder.stop();
+    });
+  }
+
+  /**
+   * 获取录音状态
+   */
+  getRecordingState(): boolean {
+    return this.isRecording;
+  }
+
   /**
    * 清理资源
    */
   dispose(): void {
     this.stopAllNotes();
+    this.stopAudio();
     this.instrumentPlayer = null;
     this.instrumentPlayers.clear();
     this.instrumentLoadings.clear();
