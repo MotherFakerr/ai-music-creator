@@ -106,13 +106,17 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const handleSeekStart = useCallback(() => {
     isSeekingRef.current = true;
     isSyncingRef.current = true;
+    // 保持当前播放状态，避免被覆盖
   }, []);
 
   const handleSeekEnd = useCallback(
     (value: number) => {
       audioEngine.seekAudio(value);
+      // seek 完成后立即同步状态
+      const state = audioEngine.getAudioState();
+      setIsPlaying(state === "playing");
       isSeekingRef.current = false;
-      setTimeout(() => { isSyncingRef.current = false; }, 300);
+      isSyncingRef.current = false;
     },
     [audioEngine]
   );
