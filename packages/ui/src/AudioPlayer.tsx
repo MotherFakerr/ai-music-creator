@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, Checkbox, Group, Slider, Stack, Text } from "@mantine/core";
+import { Box, Button, Checkbox, Group, Stack, Text } from "@mantine/core";
 import WaveSurfer from "wavesurfer.js";
 
 interface AudioPlayerProps {
@@ -15,6 +15,8 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const loopRef = useRef({ enabled: false, start: 0, end: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<"start" | "end" | "cursor" | null>(null);
 
   const [fileName, setFileName] = useState<string>("");
   const [duration, setDuration] = useState(0);
@@ -26,6 +28,79 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [loopStart, setLoopStart] = useState(0);
   const [loopEnd, setLoopEnd] = useState(0);
 
+  // 将时间转换为百分比
+  const timeToPercent = (time: number) => (duration > 0 ? (time / duration) * 100 : 0);
+  const percentToTime = (percent: number) => (percent / 100) * duration;
+
+  // 处理波形上的拖动
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!containerRef.current || !isReady) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = (x / rect.width) * 100;
+    const time = percentToTime(percent);
+
+    // 判断点击位置靠近哪个点
+    const cursorPercent = timeToPercent(currentTime);
+    const loopStartPercent = timeToPercent(loopStart);
+    const loopEndPercent = timeToPercent(loopEnd);
+
+    if (loopEnabled) {
+      const distToStart = Math.abs(percent - loopStartPercent);
+      const distToEnd = Math.abs(percent - loopEndPercent);
+      const distToCursor = Math.abs(percent - cursorPercent);
+
+      const minDist = Math.min(distToStart, distToEnd, distToCursor);
+      
+      if (minDist === distToStart) {
+        dragRef.current = "start";
+      } else if (minDist === distToEnd) {
+        dragRef.current = "end";
+      } else {
+        dragRef.current = "cursor";
+      }
+    } else {
+      dragRef.current = "cursor";
+    }
+  }, [isReady, currentTime, loopStart, loopEnd, loopEnabled, duration]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragRef.current || !containerRef.current || !isReady) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const percent = (x / rect.width) * 100;
+    const time = Math.max(0, Math.min(percentToTime(percent), duration));
+
+    if (dragRef.current === "start") {
+      const newStart = Math.min(time, loopRef.current.end - 0.1);
+      loopRef.current.start = newStart;
+      setLoopStart(newStart);
+    } else if (dragRef.current === "end") {
+      const newEnd = Math.max(time, loopRef.current.start + 0.1);
+      loopRef.current.end = newEnd;
+      setLoopEnd(newEnd);
+    } else if (dragRef.current === "cursor") {
+      wavesurferRef.current?.setTime(time);
+      setCurrentTime(time);
+    }
+  }, [isReady, duration]);
+
+  const handleMouseUp = useCallback(() => {
+    dragRef.current = null;
+  }, []);
+
+  // 添加全局 mouse 事件监听
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
   // 初始化 wavesurfer
   useEffect(() => {
     if (!waveformRef.current) return;
@@ -34,7 +109,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       container: waveformRef.current,
       waveColor: "#5c6bc0",
       progressColor: "#3949ab",
-      cursorColor: "#fff",
+      cursorColor: "transparent",
       barWidth: 2,
       barGap: 1,
       height: 60,
@@ -54,15 +129,13 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       const time = wavesurfer.getCurrentTime();
       setCurrentTime(time);
       
-      // 循环播放检测
       if (loopRef.current.enabled && time >= loopRef.current.end) {
         wavesurfer.setTime(loopRef.current.start);
       }
     });
 
     wavesurfer.on("seeking", () => {
-      const time = wavesurfer.getCurrentTime();
-      setCurrentTime(time);
+      setCurrentTime(wavesurfer.getCurrentTime());
     });
 
     wavesurfer.on("play", () => setIsPlaying(true));
@@ -79,18 +152,15 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       const time = wavesurfer.getCurrentTime();
       const { start, end } = loopRef.current;
       
-      // 判断点击位置靠近哪一边
       const distToStart = Math.abs(time - start);
       const distToEnd = Math.abs(time - end);
       
       if (distToStart < distToEnd) {
-        // 设置新的起点
         if (time < end) {
           loopRef.current.start = time;
           setLoopStart(time);
         }
       } else {
-        // 设置新的终点
         if (time > start) {
           loopRef.current.end = time;
           setLoopEnd(time);
@@ -137,14 +207,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     setIsPlaying(false);
   }, []);
 
-  const handleSeek = useCallback(
-    (value: number) => {
-      wavesurferRef.current?.setTime(value);
-      setCurrentTime(value);
-    },
-    []
-  );
-
   const handleVolumeChange = useCallback((value: number) => {
     setVolume(value);
     wavesurferRef.current?.setVolume(value);
@@ -159,16 +221,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         wavesurferRef.current.setTime(loopRef.current.start);
       }
     }
-  }, []);
-
-  const handleLoopStartChange = useCallback((value: number) => {
-    setLoopStart(value);
-    loopRef.current.start = value;
-  }, []);
-
-  const handleLoopEndChange = useCallback((value: number) => {
-    setLoopEnd(value);
-    loopRef.current.end = value;
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -202,140 +254,145 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         </Text>
       </Group>
 
-      {/* 波形显示 */}
-      <Box style={{ position: "relative" }}>
+      {/* 波形显示 + 拖动控制 */}
+      <Box 
+        ref={containerRef}
+        style={{ 
+          position: "relative", 
+          cursor: dragRef.current ? "ew-resize" : "pointer",
+          userSelect: "none",
+        }}
+        onMouseDown={handleMouseDown}
+      >
         <Box
           ref={waveformRef}
           style={{
-            cursor: "pointer",
             opacity: fileName ? (isReady ? 1 : 0.5) : 0.3,
             minHeight: 60,
           }}
         />
-        {/* 循环区域指示器 */}
+
+        {/* 当前播放位置指示器 */}
+        {fileName && isReady && (
+          <Box
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `${timeToPercent(currentTime)}%`,
+              width: "2px",
+              height: "60px",
+              background: "#fff",
+              pointerEvents: "none",
+              transform: "translateX(-50%)",
+            }}
+          />
+        )}
+
+        {/* 循环区域 */}
         {fileName && loopEnabled && duration > 0 && (
           <Box
             style={{
               position: "absolute",
               top: 0,
-              left: `${(loopStart / duration) * 100}%`,
-              width: `${((loopEnd - loopStart) / duration) * 100}%`,
+              left: `${timeToPercent(loopStart)}%`,
+              width: `${timeToPercent(loopEnd) - timeToPercent(loopStart)}%`,
               height: "60px",
               background: "rgba(255, 193, 7, 0.3)",
-              borderLeft: "2px solid #ffc107",
-              borderRight: "2px solid #ffc107",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
+        {/* A 点拖动柄 */}
+        {fileName && loopEnabled && isReady && (
+          <Box
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `${timeToPercent(loopStart)}%`,
+              width: "12px",
+              height: "60px",
+              background: "#ffc107",
+              cursor: "ew-resize",
+              transform: "translateX(-50%)",
+              borderRadius: "2px",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
+        {/* B 点拖动柄 */}
+        {fileName && loopEnabled && isReady && (
+          <Box
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `${timeToPercent(loopEnd)}%`,
+              width: "12px",
+              height: "60px",
+              background: "#ffc107",
+              cursor: "ew-resize",
+              transform: "translateX(-50%)",
+              borderRadius: "2px",
               pointerEvents: "none",
             }}
           />
         )}
       </Box>
 
+      {/* 时间显示 */}
+      {fileName && isReady && (
+        <Group justify="space-between" px="xs">
+          <Text size="xs" c="dimmed">{formatTime(currentTime)}</Text>
+          <Text size="xs" c="dimmed">{formatTime(duration)}</Text>
+        </Group>
+      )}
+
       {fileName && (
         <>
-          {/* 播放控制 */}
-          <Group justify="center" gap="md">
-            <Button
-              variant={isPlaying ? "filled" : "light"}
-              color={isPlaying ? "red" : "blue"}
-              onClick={handlePlayPause}
-              disabled={!isReady}
-            >
-              {isPlaying ? "暂停" : "播放"}
-            </Button>
+          {/* 播放控制 + 音量 */}
+          <Group justify="space-between">
+            <Group gap="md">
+              <Button
+                variant={isPlaying ? "filled" : "light"}
+                color={isPlaying ? "red" : "blue"}
+                onClick={handlePlayPause}
+                disabled={!isReady}
+                size="xs"
+              >
+                {isPlaying ? "暂停" : "播放"}
+              </Button>
 
-            <Button variant="light" onClick={handleStop} disabled={!isReady}>
-              停止
-            </Button>
-          </Group>
-
-          {/* 进度条 */}
-          <Box px="xs">
-            <Slider
-              value={currentTime}
-              onChange={handleSeek}
-              min={0}
-              max={duration || 100}
-              step={0.1}
-              label={formatTime(currentTime)}
-              disabled={!isReady}
-              marks={
-                loopEnabled
-                  ? [
-                      { value: loopStart, label: "A" },
-                      { value: loopEnd, label: "B" },
-                    ]
-                  : undefined
-              }
-            />
-            <Group justify="space-between">
-              <Text size="xs" c="dimmed">
-                {formatTime(currentTime)}
-              </Text>
-              <Text size="xs" c="dimmed">
-                {formatTime(duration)}
-              </Text>
+              <Button variant="light" onClick={handleStop} disabled={!isReady} size="xs">
+                停止
+              </Button>
             </Group>
-          </Box>
 
-          {/* 音量 */}
-          <Group gap="sm" justify="space-between">
-            <Text size="xs" c="dimmed">音量</Text>
-            <Slider
-              value={volume}
-              onChange={handleVolumeChange}
-              min={0}
-              max={1}
-              step={0.01}
-              w={120}
-              size="xs"
-              disabled={!isReady}
-            />
-          </Group>
-
-          {/* 循环控制 */}
-          <Group gap="sm">
-            <Checkbox
-              checked={loopEnabled}
-              onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
-              label="循环播放"
-              size="xs"
-              disabled={!isReady}
-            />
-            {loopEnabled && (
-              <Text size="xs" c="dimmed">（点击波形调整区域）</Text>
-            )}
-          </Group>
-
-          {loopEnabled && (
-            <Stack gap="xs">
-              <Group gap="sm" justify="space-between">
-                <Text size="xs" c="dimmed">A点: {formatTime(loopStart)}</Text>
-                <Slider
-                  value={loopStart}
-                  onChange={handleLoopStartChange}
+            <Group gap="xs">
+              <Text size="xs" c="dimmed">音量</Text>
+              <Box w={80}>
+                <input
+                  type="range"
                   min={0}
-                  max={loopEnd}
-                  step={0.1}
-                  w={150}
-                  size="xs"
+                  max={1}
+                  step={0.01}
+                  value={volume}
+                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                   disabled={!isReady}
+                  style={{ width: "100%" }}
                 />
-              </Group>
-              <Group gap="sm" justify="space-between">
-                <Text size="xs" c="dimmed">B点: {formatTime(loopEnd)}</Text>
-                <Slider
-                  value={loopEnd}
-                  onChange={handleLoopEndChange}
-                  min={loopStart}
-                  max={duration}
-                  step={0.1}
-                  w={150}
-                  size="xs"
-                  disabled={!isReady}
-                />
-              </Group>
-            </Stack>
-          )}
+              </Box>
+            </Group>
+          </Group>
+
+          {/* 循环开关 */}
+          <Checkbox
+            checked={loopEnabled}
+            onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
+            label="循环播放"
+            size="xs"
+            disabled={!isReady}
+          />
         </>
       )}
     </Stack>
