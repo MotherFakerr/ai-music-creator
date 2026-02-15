@@ -26,13 +26,12 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [loopEnd, setLoopEnd] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
 
-  const isSeekingRef = useRef(false);
   const isSyncingRef = useRef(false);
 
   // 同步音频状态
   useEffect(() => {
     const syncState = () => {
-      if (isSyncingRef.current || isSeekingRef.current) return;
+      if (isSyncingRef.current) return;
       
       const state = audioEngine.getAudioState();
       const time = audioEngine.getAudioCurrentTime();
@@ -103,19 +102,13 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     []
   );
 
-  const handleSeekStart = useCallback(() => {
-    isSeekingRef.current = true;
-    isSyncingRef.current = true;
-    // 保持当前播放状态，避免被覆盖
-  }, []);
-
   const handleSeekEnd = useCallback(
     (value: number) => {
+      isSyncingRef.current = true;
       audioEngine.seekAudio(value);
       // seek 完成后立即同步状态
       const state = audioEngine.getAudioState();
       setIsPlaying(state === "playing");
-      isSeekingRef.current = false;
       isSyncingRef.current = false;
     },
     [audioEngine]
@@ -237,7 +230,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               value={currentTime}
               onChange={handleSeek}
               onChangeEnd={handleSeekEnd}
-              onMouseDown={handleSeekStart}
               min={0}
               max={duration || 100}
               step={0.1}
