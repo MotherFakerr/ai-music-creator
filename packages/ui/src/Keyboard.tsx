@@ -64,7 +64,7 @@ export function Keyboard({
   return (
     <div
       className="keyboard-wrapper"
-      onSelectStart={(e) => e.preventDefault()}
+      onMouseDown={(e) => e.preventDefault()}
       onDragStart={(e) => e.preventDefault()}
     >
       {/* 行 1：数字键 */}

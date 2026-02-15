@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "MIDI parsing and generation",
   "main": "src/index.ts",
-  "types": "dist/index.d.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
