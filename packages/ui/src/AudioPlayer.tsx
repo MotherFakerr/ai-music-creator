@@ -46,9 +46,9 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     const loopStartPercent = timeToPercent(loopStart);
     const loopEndPercent = timeToPercent(loopEnd);
 
-    // 光标检测区域（较大）
+    // 光标检测区域（较大，方便选中）
     const cursorDist = Math.abs(percent - cursorPercent);
-    const cursorZone = 3; // 3% 范围
+    const cursorZone = 5; // 5% 范围
     
     // 循环点检测区域
     const loopPointZone = 2; // 2% 范围
@@ -277,11 +277,11 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
         {/* 当前播放位置指示器 - 更明显 */}
         {fileName && isReady && (
-          <Box style={{ position: "absolute", top: 0, left: `${timeToPercent(currentTime)}%`, pointerEvents: "none", transform: "translateX(-50%)", zIndex: 10 }}>
-            {/* 光标线 */}
-            <Box style={{ width: "3px", height: "60px", background: "#fff", borderRadius: "2px" }} />
+          <Box style={{ position: "absolute", top: -10, left: `${timeToPercent(currentTime)}%`, pointerEvents: "none", transform: "translateX(-50%)", zIndex: 10 }}>
+            {/* 光标线 - 超出波形区域 */}
+            <Box style={{ width: "3px", height: "80px", background: "#fff", borderRadius: "2px" }} />
             {/* 光标顶部圆点 */}
-            <Box style={{ position: "absolute", top: -4, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#fff", border: "2px solid #1976d2" }} />
+            <Box style={{ position: "absolute", top: 0, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#fff", border: "2px solid #1976d2" }} />
           </Box>
         )}
 
