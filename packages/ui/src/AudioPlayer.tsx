@@ -41,26 +41,29 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     const percent = (x / rect.width) * 100;
     const time = percentToTime(percent);
 
-    // 判断点击位置靠近哪个点
+    // 判断点击位置 - 光标有独立区域，循环点有独立区域
     const cursorPercent = timeToPercent(currentTime);
     const loopStartPercent = timeToPercent(loopStart);
     const loopEndPercent = timeToPercent(loopEnd);
 
-    if (loopEnabled) {
-      const distToStart = Math.abs(percent - loopStartPercent);
-      const distToEnd = Math.abs(percent - loopEndPercent);
-      const distToCursor = Math.abs(percent - cursorPercent);
+    // 光标检测区域（较大）
+    const cursorDist = Math.abs(percent - cursorPercent);
+    const cursorZone = 3; // 3% 范围
+    
+    // 循环点检测区域
+    const loopPointZone = 2; // 2% 范围
+    const loopStartDist = Math.abs(percent - loopStartPercent);
+    const loopEndDist = Math.abs(percent - loopEndPercent);
 
-      const minDist = Math.min(distToStart, distToEnd, distToCursor);
-      
-      if (minDist === distToStart) {
+    if (loopEnabled && (loopStartDist < loopPointZone || loopEndDist < loopPointZone)) {
+      // 点击靠近循环点
+      if (loopStartDist < loopEndDist) {
         dragRef.current = "start";
-      } else if (minDist === distToEnd) {
-        dragRef.current = "end";
       } else {
-        dragRef.current = "cursor";
+        dragRef.current = "end";
       }
-    } else {
+    } else if (cursorDist < cursorZone || !loopEnabled) {
+      // 点击靠近光标 或者 循环未启用
       dragRef.current = "cursor";
     }
   }, [isReady, currentTime, loopStart, loopEnd, loopEnabled, duration]);
@@ -272,20 +275,14 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           }}
         />
 
-        {/* 当前播放位置指示器 */}
+        {/* 当前播放位置指示器 - 更明显 */}
         {fileName && isReady && (
-          <Box
-            style={{
-              position: "absolute",
-              top: 0,
-              left: `${timeToPercent(currentTime)}%`,
-              width: "2px",
-              height: "60px",
-              background: "#fff",
-              pointerEvents: "none",
-              transform: "translateX(-50%)",
-            }}
-          />
+          <Box style={{ position: "absolute", top: 0, left: `${timeToPercent(currentTime)}%`, pointerEvents: "none", transform: "translateX(-50%)", zIndex: 10 }}>
+            {/* 光标线 */}
+            <Box style={{ width: "3px", height: "60px", background: "#fff", borderRadius: "2px" }} />
+            {/* 光标顶部圆点 */}
+            <Box style={{ position: "absolute", top: -4, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#fff", border: "2px solid #1976d2" }} />
+          </Box>
         )}
 
         {/* 循环区域 */}
@@ -303,40 +300,20 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           />
         )}
 
-        {/* A 点拖动柄 */}
+        {/* A 点拖动柄 - 橙色 */}
         {fileName && loopEnabled && isReady && (
-          <Box
-            style={{
-              position: "absolute",
-              top: 0,
-              left: `${timeToPercent(loopStart)}%`,
-              width: "12px",
-              height: "60px",
-              background: "#ffc107",
-              cursor: "ew-resize",
-              transform: "translateX(-50%)",
-              borderRadius: "2px",
-              pointerEvents: "none",
-            }}
-          />
+          <Box style={{ position: "absolute", top: 0, left: `${timeToPercent(loopStart)}%`, transform: "translateX(-50%)", pointerEvents: "none", zIndex: 5 }}>
+            <Box style={{ width: "4px", height: "60px", background: "#ff9800", borderRadius: "2px" }} />
+            <Box style={{ position: "absolute", top: -4, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
+          </Box>
         )}
 
-        {/* B 点拖动柄 */}
+        {/* B 点拖动柄 - 橙色 */}
         {fileName && loopEnabled && isReady && (
-          <Box
-            style={{
-              position: "absolute",
-              top: 0,
-              left: `${timeToPercent(loopEnd)}%`,
-              width: "12px",
-              height: "60px",
-              background: "#ffc107",
-              cursor: "ew-resize",
-              transform: "translateX(-50%)",
-              borderRadius: "2px",
-              pointerEvents: "none",
-            }}
-          />
+          <Box style={{ position: "absolute", top: 0, left: `${timeToPercent(loopEnd)}%`, transform: "translateX(-50%)", pointerEvents: "none", zIndex: 5 }}>
+            <Box style={{ width: "4px", height: "60px", background: "#ff9800", borderRadius: "2px" }} />
+            <Box style={{ position: "absolute", top: -4, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
+          </Box>
         )}
       </Box>
 
