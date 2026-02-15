@@ -26,20 +26,19 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [loopEnd, setLoopEnd] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
 
-  const progressRef = useRef<number | null>(null);
   const isSeekingRef = useRef(false);
+  const isSyncingRef = useRef(false);
 
   // 同步音频状态
   useEffect(() => {
     const syncState = () => {
+      if (isSyncingRef.current || isSeekingRef.current) return;
+      
       const state = audioEngine.getAudioState();
       const time = audioEngine.getAudioCurrentTime();
       
-      // 只在非 seek 操作时更新状态
-      if (!isSeekingRef.current) {
-        setCurrentTime(time);
-        setIsPlaying(state === "playing");
-      }
+      setCurrentTime(time);
+      setIsPlaying(state === "playing");
     };
 
     const interval = setInterval(syncState, 100);
@@ -52,12 +51,9 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       if (!file) return;
 
       // 先停止当前播放
+      isSyncingRef.current = true;
       audioEngine.stopAudio();
-      if (progressRef.current) {
-        clearInterval(progressRef.current);
-        progressRef.current = null;
-      }
-
+      
       try {
         const dur = await audioEngine.loadAudioFile(file);
         setFileName(file.name);
@@ -72,48 +68,54 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         console.error("[AudioPlayer] 加载失败:", err);
       }
 
-      // 清空 input 以便再次选择同一文件
+      isSyncingRef.current = false;
       event.target.value = "";
     },
     [audioEngine, onReady]
   );
 
   const handlePlay = useCallback(() => {
+    isSyncingRef.current = true;
     audioEngine.playAudio();
     setIsPlaying(true);
+    setTimeout(() => { isSyncingRef.current = false; }, 200);
   }, [audioEngine]);
 
   const handlePause = useCallback(() => {
+    isSyncingRef.current = true;
     audioEngine.pauseAudio();
     setIsPlaying(false);
+    setTimeout(() => { isSyncingRef.current = false; }, 200);
   }, [audioEngine]);
 
   const handleStop = useCallback(() => {
+    isSyncingRef.current = true;
     audioEngine.stopAudio();
     setIsPlaying(false);
     setCurrentTime(0);
+    setTimeout(() => { isSyncingRef.current = false; }, 200);
   }, [audioEngine]);
 
   const handleSeek = useCallback(
     (value: number) => {
-      isSeekingRef.current = true;
-      audioEngine.seekAudio(value);
       setCurrentTime(value);
-      // 短暂延迟后恢复状态同步
-      setTimeout(() => {
-        isSeekingRef.current = false;
-      }, 200);
     },
-    [audioEngine]
+    []
   );
 
   const handleSeekStart = useCallback(() => {
     isSeekingRef.current = true;
+    isSyncingRef.current = true;
   }, []);
 
-  const handleSeekEnd = useCallback(() => {
-    isSeekingRef.current = false;
-  }, []);
+  const handleSeekEnd = useCallback(
+    (value: number) => {
+      audioEngine.seekAudio(value);
+      isSeekingRef.current = false;
+      setTimeout(() => { isSyncingRef.current = false; }, 300);
+    },
+    [audioEngine]
+  );
 
   const handleVolumeChange = useCallback(
     (value: number) => {
@@ -231,7 +233,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               value={currentTime}
               onChange={handleSeek}
               onMouseDown={handleSeekStart}
-              onMouseUp={handleSeekEnd}
+              onMouseUp={() => handleSeekEnd(currentTime)}
               min={0}
               max={duration || 100}
               step={0.1}
