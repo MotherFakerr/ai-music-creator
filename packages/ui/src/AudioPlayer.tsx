@@ -3,7 +3,7 @@
  * 支持上传、播放、暂停、进度控制、循环播放、速度控制、录音
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Button, Checkbox, Group, Slider, Stack, Text } from "@mantine/core";
 import { getAudioEngine } from "@ai-music-creator/audio";
 
@@ -27,19 +27,23 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [isRecording, setIsRecording] = useState(false);
 
   const progressRef = useRef<number | null>(null);
+  const isSeekingRef = useRef(false);
 
-  const updateProgress = useCallback(() => {
-    progressRef.current = window.setInterval(() => {
+  // 同步音频状态
+  useEffect(() => {
+    const syncState = () => {
+      const state = audioEngine.getAudioState();
       const time = audioEngine.getAudioCurrentTime();
-      setCurrentTime(time);
-      if (audioEngine.getAudioState() === "stopped") {
-        setIsPlaying(false);
-        if (progressRef.current) {
-          clearInterval(progressRef.current);
-          progressRef.current = null;
-        }
+      
+      // 只在非 seek 操作时更新状态
+      if (!isSeekingRef.current) {
+        setCurrentTime(time);
+        setIsPlaying(state === "playing");
       }
-    }, 100);
+    };
+
+    const interval = setInterval(syncState, 100);
+    return () => clearInterval(interval);
   }, [audioEngine]);
 
   const handleFileSelect = useCallback(
@@ -47,17 +51,29 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       const file = event.target.files?.[0];
       if (!file) return;
 
+      // 先停止当前播放
+      audioEngine.stopAudio();
+      if (progressRef.current) {
+        clearInterval(progressRef.current);
+        progressRef.current = null;
+      }
+
       try {
         const dur = await audioEngine.loadAudioFile(file);
         setFileName(file.name);
         setDuration(dur);
         setCurrentTime(0);
         setLoopEnd(dur);
+        setLoopStart(0);
+        setIsPlaying(false);
         onReady?.(dur);
         console.log("[AudioPlayer] 已加载:", file.name);
       } catch (err) {
         console.error("[AudioPlayer] 加载失败:", err);
       }
+
+      // 清空 input 以便再次选择同一文件
+      event.target.value = "";
     },
     [audioEngine, onReady]
   );
@@ -65,35 +81,39 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const handlePlay = useCallback(() => {
     audioEngine.playAudio();
     setIsPlaying(true);
-    updateProgress();
-  }, [audioEngine, updateProgress]);
+  }, [audioEngine]);
 
   const handlePause = useCallback(() => {
     audioEngine.pauseAudio();
     setIsPlaying(false);
-    if (progressRef.current) {
-      clearInterval(progressRef.current);
-      progressRef.current = null;
-    }
   }, [audioEngine]);
 
   const handleStop = useCallback(() => {
     audioEngine.stopAudio();
     setIsPlaying(false);
     setCurrentTime(0);
-    if (progressRef.current) {
-      clearInterval(progressRef.current);
-      progressRef.current = null;
-    }
   }, [audioEngine]);
 
   const handleSeek = useCallback(
     (value: number) => {
+      isSeekingRef.current = true;
       audioEngine.seekAudio(value);
       setCurrentTime(value);
+      // 短暂延迟后恢复状态同步
+      setTimeout(() => {
+        isSeekingRef.current = false;
+      }, 200);
     },
     [audioEngine]
   );
+
+  const handleSeekStart = useCallback(() => {
+    isSeekingRef.current = true;
+  }, []);
+
+  const handleSeekEnd = useCallback(() => {
+    isSeekingRef.current = false;
+  }, []);
 
   const handleVolumeChange = useCallback(
     (value: number) => {
@@ -139,7 +159,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     if (isRecording) {
       const blob = await audioEngine.stopRecording();
       setIsRecording(false);
-      // 下载录音
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -174,7 +193,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           variant="light"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isPlaying}
         >
           上传音频
         </Button>
@@ -195,11 +213,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               {isPlaying ? "暂停" : "播放"}
             </Button>
 
-            <Button
-              variant="light"
-              onClick={handleStop}
-              disabled={!isPlaying && currentTime === 0}
-            >
+            <Button variant="light" onClick={handleStop}>
               停止
             </Button>
 
@@ -216,8 +230,10 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             <Slider
               value={currentTime}
               onChange={handleSeek}
+              onMouseDown={handleSeekStart}
+              onMouseUp={handleSeekEnd}
               min={0}
-              max={duration}
+              max={duration || 100}
               step={0.1}
               label={formatTime(currentTime)}
             />
@@ -231,7 +247,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             </Group>
           </Box>
 
-          {/* 音量 */}
           <Group gap="sm" justify="space-between">
             <Text size="xs" c="dimmed">音量</Text>
             <Slider
@@ -245,7 +260,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             />
           </Group>
 
-          {/* 速度 */}
           <Group gap="sm" justify="space-between">
             <Text size="xs" c="dimmed">速度 {playbackRate}x</Text>
             <Slider
@@ -264,7 +278,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             />
           </Group>
 
-          {/* 循环 */}
           <Group gap="sm">
             <Checkbox
               checked={loopEnabled}
