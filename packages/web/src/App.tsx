@@ -6,8 +6,6 @@ import {
   PianoKeyboard,
   KeyboardModeSwitch,
   type KeyboardMode,
-  PerformancePreviewPanel,
-  type PerformanceTrace,
   useKeyboard,
 } from "@ai-music-creator/ui";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
@@ -22,6 +20,10 @@ import {
   useActiveNoteLayout,
   useNoteLaneMapper,
 } from "./hooks/usePerformanceLayout";
+import {
+  PerformanceTrace,
+  PerformancePreviewPanel,
+} from "./components/PerformancePreviewPanel";
 
 const TRACE_LIFETIME_MS = 1650;
 const TRACE_MAX_ITEMS = 48;
@@ -33,7 +35,7 @@ function App() {
   const [traces, setTraces] = useState<PerformanceTrace[]>([]);
   const [volume, setVolume] = useState(0.9);
   const [instrument, setInstrument] = useState<EN_INSTRUMENT_TYPE>(
-    EN_INSTRUMENT_TYPE.PIANO
+    EN_INSTRUMENT_TYPE.PIANO,
   );
   const [baseNote, setBaseNoteState] = useState(DEFAULT_BASE_NOTE);
   const [keyboardMode, setKeyboardMode] = useState<KeyboardMode>("qwerty");
@@ -107,7 +109,7 @@ function App() {
 
       setTraces((prev) => [...prev, nextTrace].slice(-TRACE_MAX_ITEMS));
     },
-    [audioEngine, canPlay, mapNoteToLane, isInitialized, ensureInitialized]
+    [audioEngine, canPlay, mapNoteToLane, isInitialized, ensureInitialized],
   );
 
   const handleNoteOff = useCallback(
@@ -115,7 +117,7 @@ function App() {
       if (!isInitialized) return;
       audioEngine.stopNote(note);
     },
-    [isInitialized, audioEngine]
+    [isInitialized, audioEngine],
   );
 
   const handleInstrumentChange = useCallback(
@@ -132,7 +134,7 @@ function App() {
         setIsInstrumentLoading(false);
       }
     },
-    [audioEngine, instrument]
+    [audioEngine, instrument],
   );
 
   const handleBaseNoteChange = useCallback((note: number) => {
@@ -163,7 +165,7 @@ function App() {
       const now = Date.now();
       setTraces((prev) => {
         const next = prev.filter(
-          (item) => now - item.bornAt < TRACE_LIFETIME_MS
+          (item) => now - item.bornAt < TRACE_LIFETIME_MS,
         );
         return next.length === prev.length ? prev : next;
       });

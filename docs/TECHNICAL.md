@@ -47,15 +47,15 @@
 
 ## 技术栈选择
 
-| 层级      | 选择                        | 状态      | 备注                    |
-| --------- | --------------------------- | --------- | ----------------------- |
+| 层级      | 选择                        | 状态      | 备注                   |
+| --------- | --------------------------- | --------- | ---------------------- |
 | 语言      | TypeScript                  | ✅ 已确认 |                        |
 | 架构      | Monorepo (PNPM + Turborepo) | ✅ 已确认 |                        |
-| 前端框架  | React + Vite               | ✅ 已确认 |                        |
-| UI 组件库 | Mantine Core               | ✅ 已确认 | 现代化 React UI 组件库     |
-| 音频引擎  | smplr (SoundFont Player)   | ✅ 已确认 | 真实乐器采样              |
-| MIDI 处理 | @tonejs/midi               | ✅ 已确认 | MIDI 文件解析             |
-| 状态管理  | React Hooks               | ✅ 已确认 | useState / useCallback   |
+| 前端框架  | React + Vite                | ✅ 已确认 |                        |
+| UI 组件库 | Mantine Core                | ✅ 已确认 | 现代化 React UI 组件库 |
+| 音频引擎  | smplr (SoundFont Player)    | ✅ 已确认 | 真实乐器采样           |
+| MIDI 处理 | @tonejs/midi                | ✅ 已确认 | MIDI 文件解析          |
+| 状态管理  | React Hooks                 | ✅ 已确认 | useState / useCallback |
 
 ---
 
@@ -92,7 +92,6 @@ ai-music-creator/
     │   │   ├── Keyboard.tsx              # 虚拟键盘组件
     │   │   ├── InstrumentSelector.tsx     # 音色选择器
     │   │   ├── BaseNoteSelector.tsx       # 基准音选择器
-    │   │   ├── PerformancePreviewPanel.tsx # 演奏预览面板
     │   │   ├── useKeyboard.ts            # 键盘事件 Hook
     │   │   └── index.ts                 # 导出
     │   └── package.json
@@ -111,6 +110,7 @@ ai-music-creator/
         │   ├── components/      # 页面级组件
         │   │   ├── AppHeader.tsx       # 应用头部
         │   │   └── SettingsPanel.tsx   # 设置面板
+    │   │   ├── PerformancePreviewPanel.tsx # 演奏预览面板
         │   └── hooks/            # 应用级 Hooks
         │       └── usePerformanceLayout.ts
         └── package.json
@@ -123,44 +123,52 @@ ai-music-creator/
 ### Audio Engine (`packages/audio`)
 
 **做什么**：
+
 - 管理 Web Audio API 上下文
 - 使用 smplr 加载 SoundFont 采样
 - 提供音符播放、音色切换、混音能力
 - 鼓组使用 Oscillator 模拟
 
 **不做什么**：
+
 - 不处理 MIDI 解析
 - 不处理 UI
 
 ### MIDI Parser/Generator (`packages/midi`)
 
 **做什么**：
+
 - MIDI 文件与内部数据结构的相互转换
 - @tonejs/midi 封装
 
 **不做什么**：
+
 - 不播放音频
 - 不做音乐创作决策
 
 ### UI Components (`packages/ui`)
 
 **做什么**：
+
 - 可复用、与页面业务解耦的基础组件
 - 纯 props 驱动，无页面副作用
 - 可在不同页面复用
 
 **不做什么**：
+
 - 不直接依赖 audioEngine、路由、接口请求等业务侧对象
 - 不包含应用特有文案、布局策略
 
 ### Web Application (`packages/web`)
 
 **做什么**：
+
 - 页面级编排、业务状态流
 - 应用特有体验逻辑
 - 组合多个基础组件
 
 **不做什么**：
+
 - 不包含可直接复用的基础组件
 
 ### 组件归属规则
@@ -182,12 +190,14 @@ ai-music-creator/
 ### 当前项目示例
 
 **适合 `packages/ui`**：
+
 - `Keyboard` - 虚拟键盘组件
 - `InstrumentSelector` - 音色选择器
 - `BaseNoteSelector` - 基准音选择器
 - `PerformancePreviewPanel` - 演奏预览面板
 
 **适合 `packages/web`**：
+
 - `AppHeader` - 应用头部（组合标题 + 状态）
 - `SettingsPanel` - 设置面板（组合基准音 + 音量）
 
@@ -223,10 +233,10 @@ KEYBOARD_ROWS.row4.forEach((key, index) => {
 
 ```typescript
 export const KEYBOARD_ROWS = {
-  row1: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
-  row2: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']'],
-  row3: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'"],
-  row4: ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'],
+  row1: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],
+  row2: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"],
+  row3: ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"],
+  row4: ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"],
 } as const;
 ```
 
@@ -238,16 +248,17 @@ export const KEYBOARD_ROWS = {
 
 ```typescript
 const INSTRUMENTS = {
-  piano: 'acoustic_grand_piano',
-  synth: 'synth_brass_1',
-  guitar: 'electric_guitar_clean',
-  drum: 'drum_kit',
+  piano: "acoustic_grand_piano",
+  synth: "synth_brass_1",
+  guitar: "electric_guitar_clean",
+  drum: "drum_kit",
 };
 ```
 
 ### 音色回退机制
 
 当 SoundFont 加载失败时，使用 Web Audio API Oscillator 作为备选：
+
 - **钢琴**: triangle 波形
 - **合成器**: sawtooth 波形
 - **电吉他**: triangle 波形 + 弦乐质感
@@ -264,10 +275,10 @@ interface PerformanceTrace {
   id: number;
   note: number;
   noteName: string;
-  x: number;        // 横向位置 (0-1)
-  hue: number;     // 颜色色相 (0-360)
-  bornAt: number;    // 创建时间戳
-  strength: number;  // 力度 (0-1)
+  x: number; // 横向位置 (0-1)
+  hue: number; // 颜色色相 (0-360)
+  bornAt: number; // 创建时间戳
+  strength: number; // 力度 (0-1)
 }
 ```
 

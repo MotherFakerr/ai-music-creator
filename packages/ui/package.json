@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "React UI components for music creation",
   "main": "src/index.ts",
-  "types": "dist/index.d.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"

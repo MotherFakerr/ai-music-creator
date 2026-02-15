@@ -99,7 +99,6 @@ function getBlackKeyLeft(note: number, groupMin: number): number {
 
   return whiteKeysBeforeOctaveC + posInOctave;
 }
-
 export function PianoKeyboard({
   activeNotes = new Set<number>(),
   baseNote = DEFAULT_BASE_NOTE,
@@ -128,7 +127,7 @@ export function PianoKeyboard({
       pressedNotesRef.current.add(note);
       onNoteOn?.(note, 100);
     },
-    [onNoteOn]
+    [onNoteOn],
   );
 
   const handlePointerUp = useCallback(
@@ -136,7 +135,7 @@ export function PianoKeyboard({
       pressedNotesRef.current.delete(note);
       onNoteOff?.(note);
     },
-    [onNoteOff]
+    [onNoteOff],
   );
 
   const handlePointerLeave = useCallback(
@@ -146,7 +145,7 @@ export function PianoKeyboard({
         onNoteOff?.(note);
       }
     },
-    [onNoteOff]
+    [onNoteOff],
   );
 
   const isBaseNote = (note: number) => note === baseNote;
