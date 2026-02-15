@@ -24,7 +24,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
   // 初始化 wavesurfer
   useEffect(() => {
-    if (!waveformRef.current) return;
+    if (!waveformRef.current || wavesurferRef.current) return;
 
     const wavesurfer = WaveSurfer.create({
       container: waveformRef.current,
@@ -59,7 +59,10 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     wavesurferRef.current = wavesurfer;
 
     return () => {
-      wavesurfer.destroy();
+      if (wavesurferRef.current) {
+        wavesurferRef.current.destroy();
+        wavesurferRef.current = null;
+      }
     };
   }, [onReady]);
 
