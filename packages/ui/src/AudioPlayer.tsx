@@ -1,10 +1,10 @@
 /**
  * 音频播放器组件
- * 支持上传、播放、暂停、进度控制
+ * 支持上传、播放、暂停、进度控制、循环播放、速度控制、录音
  */
 
 import { useCallback, useRef, useState } from "react";
-import { Box, Button, Group, Slider, Stack, Text, rem } from "@mantine/core";
+import { Box, Button, Checkbox, Group, Slider, Stack, Text } from "@mantine/core";
 import { getAudioEngine } from "@ai-music-creator/audio";
 
 interface AudioPlayerProps {
@@ -20,6 +20,11 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [loopEnabled, setLoopEnabled] = useState(false);
+  const [loopStart, setLoopStart] = useState(0);
+  const [loopEnd, setLoopEnd] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
 
   const progressRef = useRef<number | null>(null);
 
@@ -47,6 +52,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         setFileName(file.name);
         setDuration(dur);
         setCurrentTime(0);
+        setLoopEnd(dur);
         onReady?.(dur);
         console.log("[AudioPlayer] 已加载:", file.name);
       } catch (err) {
@@ -97,6 +103,56 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     [audioEngine]
   );
 
+  const handleRateChange = useCallback(
+    (value: number) => {
+      setPlaybackRate(value);
+      audioEngine.setPlaybackRate(value);
+    },
+    [audioEngine]
+  );
+
+  const handleLoopToggle = useCallback(
+    (checked: boolean) => {
+      setLoopEnabled(checked);
+      audioEngine.setLoopEnabled(checked);
+    },
+    [audioEngine]
+  );
+
+  const handleLoopStartChange = useCallback(
+    (value: number) => {
+      setLoopStart(value);
+      audioEngine.setLoopPoints(value, loopEnd);
+    },
+    [audioEngine, loopEnd]
+  );
+
+  const handleLoopEndChange = useCallback(
+    (value: number) => {
+      setLoopEnd(value);
+      audioEngine.setLoopPoints(loopStart, value);
+    },
+    [audioEngine, loopStart]
+  );
+
+  const handleRecord = useCallback(async () => {
+    if (isRecording) {
+      const blob = await audioEngine.stopRecording();
+      setIsRecording(false);
+      // 下载录音
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "recording.webm";
+      a.click();
+      URL.revokeObjectURL(url);
+      console.log("[AudioPlayer] 录音已下载");
+    } else {
+      await audioEngine.startRecording();
+      setIsRecording(true);
+    }
+  }, [audioEngine, isRecording]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -146,6 +202,14 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             >
               停止
             </Button>
+
+            <Button
+              variant={isRecording ? "filled" : "light"}
+              color={isRecording ? "red" : "gray"}
+              onClick={handleRecord}
+            >
+              {isRecording ? "录音中..." : "录音"}
+            </Button>
           </Group>
 
           <Box px="xs">
@@ -167,7 +231,8 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             </Group>
           </Box>
 
-          <Group gap="sm" justify="flex-end">
+          {/* 音量 */}
+          <Group gap="sm" justify="space-between">
             <Text size="xs" c="dimmed">音量</Text>
             <Slider
               value={volume}
@@ -175,10 +240,68 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               min={0}
               max={1}
               step={0.01}
-              w={100}
+              w={120}
               size="xs"
             />
           </Group>
+
+          {/* 速度 */}
+          <Group gap="sm" justify="space-between">
+            <Text size="xs" c="dimmed">速度 {playbackRate}x</Text>
+            <Slider
+              value={playbackRate}
+              onChange={handleRateChange}
+              min={0.5}
+              max={2}
+              step={0.1}
+              w={120}
+              size="xs"
+              marks={[
+                { value: 0.5, label: "0.5x" },
+                { value: 1, label: "1x" },
+                { value: 2, label: "2x" },
+              ]}
+            />
+          </Group>
+
+          {/* 循环 */}
+          <Group gap="sm">
+            <Checkbox
+              checked={loopEnabled}
+              onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
+              label="循环播放"
+              size="xs"
+            />
+          </Group>
+
+          {loopEnabled && (
+            <Stack gap="xs">
+              <Group gap="sm" justify="space-between">
+                <Text size="xs" c="dimmed">A点: {formatTime(loopStart)}</Text>
+                <Slider
+                  value={loopStart}
+                  onChange={handleLoopStartChange}
+                  min={0}
+                  max={loopEnd}
+                  step={0.1}
+                  w={150}
+                  size="xs"
+                />
+              </Group>
+              <Group gap="sm" justify="space-between">
+                <Text size="xs" c="dimmed">B点: {formatTime(loopEnd)}</Text>
+                <Slider
+                  value={loopEnd}
+                  onChange={handleLoopEndChange}
+                  min={loopStart}
+                  max={duration}
+                  step={0.1}
+                  w={150}
+                  size="xs"
+                />
+              </Group>
+            </Stack>
+          )}
         </>
       )}
     </Stack>
