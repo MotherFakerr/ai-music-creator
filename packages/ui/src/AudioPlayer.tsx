@@ -26,13 +26,9 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [loopEnd, setLoopEnd] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
 
-  const isSyncingRef = useRef(false);
-
   // 同步音频状态
   useEffect(() => {
     const syncState = () => {
-      if (isSyncingRef.current) return;
-      
       const state = audioEngine.getAudioState();
       const time = audioEngine.getAudioCurrentTime();
       
@@ -49,8 +45,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      // 先停止当前播放
-      isSyncingRef.current = true;
       audioEngine.stopAudio();
       
       try {
@@ -67,32 +61,25 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         console.error("[AudioPlayer] 加载失败:", err);
       }
 
-      isSyncingRef.current = false;
       event.target.value = "";
     },
     [audioEngine, onReady]
   );
 
   const handlePlay = useCallback(() => {
-    isSyncingRef.current = true;
     audioEngine.playAudio();
     setIsPlaying(true);
-    setTimeout(() => { isSyncingRef.current = false; }, 200);
   }, [audioEngine]);
 
   const handlePause = useCallback(() => {
-    isSyncingRef.current = true;
     audioEngine.pauseAudio();
     setIsPlaying(false);
-    setTimeout(() => { isSyncingRef.current = false; }, 200);
   }, [audioEngine]);
 
   const handleStop = useCallback(() => {
-    isSyncingRef.current = true;
     audioEngine.stopAudio();
     setIsPlaying(false);
     setCurrentTime(0);
-    setTimeout(() => { isSyncingRef.current = false; }, 200);
   }, [audioEngine]);
 
   const handleSeek = useCallback(
@@ -104,12 +91,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
   const handleSeekEnd = useCallback(
     (value: number) => {
-      isSyncingRef.current = true;
       audioEngine.seekAudio(value);
-      // seek 完成后立即同步状态
-      const state = audioEngine.getAudioState();
-      setIsPlaying(state === "playing");
-      isSyncingRef.current = false;
     },
     [audioEngine]
   );
