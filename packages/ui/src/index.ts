@@ -13,6 +13,7 @@ export * from "./Timeline";
 export * from "./Controls";
 export * from "./InstrumentSelector";
 export * from "./BaseNoteSelector";
-export * from "./PerformancePreviewPanel";
-export * from "./performancePreview.config";
 export * from "./AudioPlayer";
+
+// 导出类型
+export type { KeyboardMode } from "./KeyboardModeSwitch";

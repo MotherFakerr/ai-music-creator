@@ -5,11 +5,9 @@ import {
   Keyboard,
   PianoKeyboard,
   KeyboardModeSwitch,
-  PerformancePreviewPanel,
   useKeyboard,
   AudioPlayer,
   type KeyboardMode,
-  type PerformanceTrace,
 } from "@ai-music-creator/ui";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import {
@@ -20,13 +18,13 @@ import {
 import { AppHeader } from "./components/AppHeader";
 import { SettingsPanel } from "./components/SettingsPanel";
 import {
+  PerformancePreviewPanel,
+  type PerformanceTrace,
+} from "./components/PerformancePreviewPanel";
+import {
   useActiveNoteLayout,
   useNoteLaneMapper,
 } from "./hooks/usePerformanceLayout";
-import {
-  PerformanceTrace,
-  PerformancePreviewPanel,
-} from "./components/PerformancePreviewPanel";
 
 const TRACE_LIFETIME_MS = 1650;
 const TRACE_MAX_ITEMS = 48;
