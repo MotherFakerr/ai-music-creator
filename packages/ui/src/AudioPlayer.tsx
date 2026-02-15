@@ -236,8 +236,8 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             <Slider
               value={currentTime}
               onChange={handleSeek}
+              onChangeEnd={handleSeekEnd}
               onMouseDown={handleSeekStart}
-              onMouseUp={() => handleSeekEnd(currentTime)}
               min={0}
               max={duration || 100}
               step={0.1}
