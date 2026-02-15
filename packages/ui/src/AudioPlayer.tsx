@@ -1,174 +1,108 @@
 /**
  * 音频播放器组件
- * 支持上传、播放、暂停、进度控制、循环播放、速度控制、录音
+ * 基于 wavesurfer.js 实现
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, Checkbox, Group, Slider, Stack, Text } from "@mantine/core";
-import { getAudioEngine } from "@ai-music-creator/audio";
+import { Box, Button, Group, Slider, Stack, Text } from "@mantine/core";
+import WaveSurfer from "wavesurfer.js";
 
 interface AudioPlayerProps {
   onReady?: (duration: number) => void;
 }
 
 export function AudioPlayer({ onReady }: AudioPlayerProps) {
-  const audioEngine = getAudioEngine();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const waveformRef = useRef<HTMLDivElement>(null);
+  const wavesurferRef = useRef<WaveSurfer | null>(null);
 
   const [fileName, setFileName] = useState<string>("");
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
-  const [playbackRate, setPlaybackRate] = useState(1.0);
-  const [loopEnabled, setLoopEnabled] = useState(false);
-  const [loopStart, setLoopStart] = useState(0);
-  const [loopEnd, setLoopEnd] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // 同步音频状态
+  // 初始化 wavesurfer
   useEffect(() => {
-    const syncState = () => {
-      if (isDragging) return; // 拖动时不同步，避免闪烁
-      
-      const state = audioEngine.getAudioState();
-      const time = audioEngine.getAudioCurrentTime();
-      
-      setCurrentTime(time);
-      setIsPlaying(state === "playing");
-    };
+    if (!waveformRef.current) return;
 
-    const interval = setInterval(syncState, 100);
-    return () => clearInterval(interval);
-  }, [audioEngine, isDragging]);
+    const wavesurfer = WaveSurfer.create({
+      container: waveformRef.current,
+      waveColor: "#5c6bc0",
+      progressColor: "#3949ab",
+      cursorColor: "#fff",
+      barWidth: 2,
+      barGap: 1,
+      height: 60,
+      normalize: true,
+    });
+
+    wavesurfer.on("ready", () => {
+      setIsReady(true);
+      const dur = wavesurfer.getDuration();
+      setDuration(dur);
+      onReady?.(dur);
+    });
+
+    wavesurfer.on("audioprocess", () => {
+      setCurrentTime(wavesurfer.getCurrentTime());
+    });
+
+    wavesurfer.on("seeking", () => {
+      setCurrentTime(wavesurfer.getCurrentTime());
+    });
+
+    wavesurfer.on("play", () => setIsPlaying(true));
+    wavesurfer.on("pause", () => setIsPlaying(false));
+    wavesurfer.on("finish", () => setIsPlaying(false));
+
+    wavesurferRef.current = wavesurfer;
+
+    return () => {
+      wavesurfer.destroy();
+    };
+  }, [onReady]);
 
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (!file) return;
+      if (!file || !wavesurferRef.current) return;
 
-      audioEngine.stopAudio();
+      wavesurferRef.current.stop();
+      setIsPlaying(false);
+
+      const url = URL.createObjectURL(file);
+      await wavesurferRef.current.load(url);
+      setFileName(file.name);
+      setCurrentTime(0);
       
-      try {
-        const dur = await audioEngine.loadAudioFile(file);
-        setFileName(file.name);
-        setDuration(dur);
-        setCurrentTime(0);
-        setLoopEnd(dur);
-        setLoopStart(0);
-        setIsPlaying(false);
-        onReady?.(dur);
-        console.log("[AudioPlayer] 已加载:", file.name);
-      } catch (err) {
-        console.error("[AudioPlayer] 加载失败:", err);
-      }
-
       event.target.value = "";
     },
-    [audioEngine, onReady]
+    []
   );
 
-  const handlePlay = useCallback(() => {
-    audioEngine.playAudio();
-    setIsPlaying(true);
-  }, [audioEngine]);
-
-  const handlePause = useCallback(() => {
-    audioEngine.pauseAudio();
-    setIsPlaying(false);
-  }, [audioEngine]);
+  const handlePlayPause = useCallback(() => {
+    wavesurferRef.current?.playPause();
+  }, []);
 
   const handleStop = useCallback(() => {
-    audioEngine.stopAudio();
-    setIsPlaying(false);
+    wavesurferRef.current?.stop();
     setCurrentTime(0);
-  }, [audioEngine]);
+    setIsPlaying(false);
+  }, []);
 
   const handleSeek = useCallback(
     (value: number) => {
-      setIsDragging(true);
+      wavesurferRef.current?.setTime(value);
       setCurrentTime(value);
     },
     []
   );
 
-  const handleSeekEnd = useCallback(
-    (value: number) => {
-      audioEngine.seekAudio(value);
-      setIsDragging(false);
-    },
-    [audioEngine]
-  );
-
-  const handleVolumeChange = useCallback(
-    (value: number) => {
-      setVolume(value);
-      audioEngine.setAudioVolume(value);
-    },
-    [audioEngine]
-  );
-
-  const handleRateChange = useCallback(
-    (value: number) => {
-      setPlaybackRate(value);
-      audioEngine.setPlaybackRate(value);
-    },
-    [audioEngine]
-  );
-
-  const handleLoopToggle = useCallback(
-    (checked: boolean) => {
-      setLoopEnabled(checked);
-      audioEngine.setLoopEnabled(checked);
-      // 如果正在播放，需要重启才能生效
-      if (audioEngine.getAudioState() === "playing") {
-        audioEngine.seekAudio(audioEngine.getAudioCurrentTime());
-      }
-    },
-    [audioEngine]
-  );
-
-  const handleLoopStartChange = useCallback(
-    (value: number) => {
-      setLoopStart(value);
-      audioEngine.setLoopPoints(value, loopEnd);
-      // 如果正在播放，需要重启才能生效
-      if (audioEngine.getAudioState() === "playing") {
-        audioEngine.seekAudio(audioEngine.getAudioCurrentTime());
-      }
-    },
-    [audioEngine, loopEnd]
-  );
-
-  const handleLoopEndChange = useCallback(
-    (value: number) => {
-      setLoopEnd(value);
-      audioEngine.setLoopPoints(loopStart, value);
-      // 如果正在播放，需要重启才能生效
-      if (audioEngine.getAudioState() === "playing") {
-        audioEngine.seekAudio(audioEngine.getAudioCurrentTime());
-      }
-    },
-    [audioEngine, loopStart]
-  );
-
-  const handleRecord = useCallback(async () => {
-    if (isRecording) {
-      const blob = await audioEngine.stopRecording();
-      setIsRecording(false);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "recording.webm";
-      a.click();
-      URL.revokeObjectURL(url);
-      console.log("[AudioPlayer] 录音已下载");
-    } else {
-      await audioEngine.startRecording();
-      setIsRecording(true);
-    }
-  }, [audioEngine, isRecording]);
+  const handleVolumeChange = useCallback((value: number) => {
+    setVolume(value);
+    wavesurferRef.current?.setVolume(value);
+  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -179,18 +113,19 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   return (
     <Stack gap="sm">
       <input
-        ref={fileInputRef}
         type="file"
         accept="audio/*"
         onChange={handleFileSelect}
         style={{ display: "none" }}
+        id="audio-file-input"
       />
 
       <Group justify="space-between">
         <Button
           variant="light"
           size="sm"
-          onClick={() => fileInputRef.current?.click()}
+          component="label"
+          htmlFor="audio-file-input"
         >
           上传音频
         </Button>
@@ -202,45 +137,41 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
       {fileName && (
         <>
+          {/* 波形显示 */}
+          <Box
+            ref={waveformRef}
+            style={{
+              cursor: "pointer",
+              opacity: isReady ? 1 : 0.5,
+            }}
+          />
+
+          {/* 播放控制 */}
           <Group justify="center" gap="md">
             <Button
               variant={isPlaying ? "filled" : "light"}
               color={isPlaying ? "red" : "blue"}
-              onClick={isPlaying ? handlePause : handlePlay}
+              onClick={handlePlayPause}
+              disabled={!isReady}
             >
               {isPlaying ? "暂停" : "播放"}
             </Button>
 
-            <Button variant="light" onClick={handleStop}>
+            <Button variant="light" onClick={handleStop} disabled={!isReady}>
               停止
-            </Button>
-
-            <Button
-              variant={isRecording ? "filled" : "light"}
-              color={isRecording ? "red" : "gray"}
-              onClick={handleRecord}
-            >
-              {isRecording ? "录音中..." : "录音"}
             </Button>
           </Group>
 
+          {/* 进度条 */}
           <Box px="xs">
             <Slider
               value={currentTime}
               onChange={handleSeek}
-              onChangeEnd={handleSeekEnd}
               min={0}
               max={duration || 100}
               step={0.1}
               label={formatTime(currentTime)}
-              marks={
-                loopEnabled
-                  ? [
-                      { value: loopStart, label: "A" },
-                      { value: loopEnd, label: "B" },
-                    ]
-                  : []
-              }
+              disabled={!isReady}
             />
             <Group justify="space-between">
               <Text size="xs" c="dimmed">
@@ -252,6 +183,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
             </Group>
           </Box>
 
+          {/* 音量 */}
           <Group gap="sm" justify="space-between">
             <Text size="xs" c="dimmed">音量</Text>
             <Slider
@@ -262,64 +194,9 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               step={0.01}
               w={120}
               size="xs"
+              disabled={!isReady}
             />
           </Group>
-
-          <Group gap="sm" justify="space-between">
-            <Text size="xs" c="dimmed">速度 {playbackRate}x</Text>
-            <Slider
-              value={playbackRate}
-              onChange={handleRateChange}
-              min={0.5}
-              max={2}
-              step={0.1}
-              w={120}
-              size="xs"
-              marks={[
-                { value: 0.5, label: "0.5x" },
-                { value: 1, label: "1x" },
-                { value: 2, label: "2x" },
-              ]}
-            />
-          </Group>
-
-          <Group gap="sm">
-            <Checkbox
-              checked={loopEnabled}
-              onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
-              label="循环播放"
-              size="xs"
-            />
-          </Group>
-
-          {loopEnabled && (
-            <Stack gap="xs">
-              <Group gap="sm" justify="space-between">
-                <Text size="xs" c="dimmed">A点: {formatTime(loopStart)}</Text>
-                <Slider
-                  value={loopStart}
-                  onChange={handleLoopStartChange}
-                  min={0}
-                  max={loopEnd}
-                  step={0.1}
-                  w={150}
-                  size="xs"
-                />
-              </Group>
-              <Group gap="sm" justify="space-between">
-                <Text size="xs" c="dimmed">B点: {formatTime(loopEnd)}</Text>
-                <Slider
-                  value={loopEnd}
-                  onChange={handleLoopEndChange}
-                  min={loopStart}
-                  max={duration}
-                  step={0.1}
-                  w={150}
-                  size="xs"
-                />
-              </Group>
-            </Stack>
-          )}
         </>
       )}
     </Stack>
