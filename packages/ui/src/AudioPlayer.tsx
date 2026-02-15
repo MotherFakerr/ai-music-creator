@@ -121,6 +121,10 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     (checked: boolean) => {
       setLoopEnabled(checked);
       audioEngine.setLoopEnabled(checked);
+      // 如果正在播放，需要重启才能生效
+      if (audioEngine.getAudioState() === "playing") {
+        audioEngine.seekAudio(audioEngine.getAudioCurrentTime());
+      }
     },
     [audioEngine]
   );
@@ -129,6 +133,10 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     (value: number) => {
       setLoopStart(value);
       audioEngine.setLoopPoints(value, loopEnd);
+      // 如果正在播放，需要重启才能生效
+      if (audioEngine.getAudioState() === "playing") {
+        audioEngine.seekAudio(audioEngine.getAudioCurrentTime());
+      }
     },
     [audioEngine, loopEnd]
   );
@@ -137,6 +145,10 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     (value: number) => {
       setLoopEnd(value);
       audioEngine.setLoopPoints(loopStart, value);
+      // 如果正在播放，需要重启才能生效
+      if (audioEngine.getAudioState() === "playing") {
+        audioEngine.seekAudio(audioEngine.getAudioCurrentTime());
+      }
     },
     [audioEngine, loopStart]
   );
@@ -221,6 +233,14 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               max={duration || 100}
               step={0.1}
               label={formatTime(currentTime)}
+              marks={
+                loopEnabled
+                  ? [
+                      { value: loopStart, label: "A" },
+                      { value: loopEnd, label: "B" },
+                    ]
+                  : []
+              }
             />
             <Group justify="space-between">
               <Text size="xs" c="dimmed">
