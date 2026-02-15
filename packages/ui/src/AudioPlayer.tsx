@@ -17,6 +17,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const loopRef = useRef({ enabled: false, start: 0, end: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<"start" | "end" | "cursor" | null>(null);
+  const isDraggingLoopRef = useRef(false);
 
   const [fileName, setFileName] = useState<string>("");
   const [duration, setDuration] = useState(0);
@@ -92,6 +93,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
   const handleMouseUp = useCallback(() => {
     dragRef.current = null;
+    isDraggingLoopRef.current = false;
   }, []);
 
   // 添加全局 mouse 事件监听
@@ -151,7 +153,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
     // 点击波形设置循环区域
     wavesurfer.on("click", () => {
-      if (!loopRef.current.enabled) return;
+      if (!loopRef.current.enabled || isDraggingLoopRef.current) return;
       const time = wavesurfer.getCurrentTime();
       const { start, end } = loopRef.current;
       
@@ -316,6 +318,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           <Box 
             onMouseDown={(e) => {
               e.stopPropagation();
+              isDraggingLoopRef.current = true;
               dragRef.current = "start";
             }}
             style={{ position: "absolute", top: 0, left: `${timeToPercent(loopStart)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
@@ -329,6 +332,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           <Box 
             onMouseDown={(e) => {
               e.stopPropagation();
+              isDraggingLoopRef.current = true;
               dragRef.current = "end";
             }}
             style={{ position: "absolute", top: 0, left: `${timeToPercent(loopEnd)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
