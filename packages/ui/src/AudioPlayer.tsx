@@ -136,17 +136,18 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         </Text>
       </Group>
 
+      {/* 波形显示 - 放在条件渲染外面，确保 ref 始终存在 */}
+      <Box
+        ref={waveformRef}
+        style={{
+          cursor: "pointer",
+          opacity: fileName ? (isReady ? 1 : 0.5) : 0.3,
+          minHeight: 60,
+        }}
+      />
+
       {fileName && (
         <>
-          {/* 波形显示 */}
-          <Box
-            ref={waveformRef}
-            style={{
-              cursor: "pointer",
-              opacity: isReady ? 1 : 0.5,
-            }}
-          />
-
           {/* 播放控制 */}
           <Group justify="center" gap="md">
             <Button
