@@ -472,6 +472,12 @@ export class AudioEngine {
   seekAudio(time: number): void {
     if (!this.backingAudioBuffer) return;
     const wasPlaying = this.backingState === "playing";
+    
+    // 先清空 onended 回调，避免 stop 触发回调导致状态错误
+    if (this.backingSource) {
+      this.backingSource.onended = null;
+    }
+    
     this.stopAudio();
     this.backingPauseTime = Math.max(0, Math.min(time, this.backingAudioBuffer.duration));
     if (wasPlaying) {
