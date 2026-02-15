@@ -25,10 +25,13 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [loopStart, setLoopStart] = useState(0);
   const [loopEnd, setLoopEnd] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // 同步音频状态
   useEffect(() => {
     const syncState = () => {
+      if (isDragging) return; // 拖动时不同步，避免闪烁
+      
       const state = audioEngine.getAudioState();
       const time = audioEngine.getAudioCurrentTime();
       
@@ -38,7 +41,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
     const interval = setInterval(syncState, 100);
     return () => clearInterval(interval);
-  }, [audioEngine]);
+  }, [audioEngine, isDragging]);
 
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +87,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
   const handleSeek = useCallback(
     (value: number) => {
+      setIsDragging(true);
       setCurrentTime(value);
     },
     []
@@ -92,6 +96,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const handleSeekEnd = useCallback(
     (value: number) => {
       audioEngine.seekAudio(value);
+      setIsDragging(false);
     },
     [audioEngine]
   );
