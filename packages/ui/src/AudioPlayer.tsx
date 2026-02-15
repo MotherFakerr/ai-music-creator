@@ -275,13 +275,24 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           }}
         />
 
-        {/* 当前播放位置指示器 - 更明显 */}
+        {/* 当前播放位置指示器 - 可拖动 */}
         {fileName && isReady && (
-          <Box style={{ position: "absolute", top: -10, left: `${timeToPercent(currentTime)}%`, pointerEvents: "none", transform: "translateX(-50%)", zIndex: 10 }}>
+          <Box 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              dragRef.current = "cursor";
+            }}
+            style={{ 
+              position: "absolute", 
+              top: -10, 
+              left: `${timeToPercent(currentTime)}%`, 
+              transform: "translateX(-50%)", 
+              zIndex: 10,
+              cursor: "ew-resize",
+            }}
+          >
             {/* 光标线 - 超出波形区域 */}
             <Box style={{ width: "3px", height: "80px", background: "#fff", borderRadius: "2px" }} />
-            {/* 光标顶部圆点 */}
-            <Box style={{ position: "absolute", top: 0, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#fff", border: "2px solid #1976d2" }} />
           </Box>
         )}
 
