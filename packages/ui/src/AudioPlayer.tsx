@@ -280,7 +280,10 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           cursor: dragRef.current ? "ew-resize" : "pointer",
           userSelect: "none",
         }}
-        onMouseDown={handleMouseDown}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          handleMouseDown(e);
+        }}
       >
         <Box
           ref={waveformRef}
