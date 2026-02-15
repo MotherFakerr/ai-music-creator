@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, Group, Slider, Stack, Text } from "@mantine/core";
+import { Box, Button, Checkbox, Group, Slider, Stack, Text } from "@mantine/core";
 import WaveSurfer from "wavesurfer.js";
 
 interface AudioPlayerProps {
@@ -21,6 +21,9 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
   const [isReady, setIsReady] = useState(false);
+  const [loopEnabled, setLoopEnabled] = useState(false);
+  const [loopStart, setLoopStart] = useState(0);
+  const [loopEnd, setLoopEnd] = useState(0);
 
   // 初始化 wavesurfer
   useEffect(() => {
@@ -41,28 +44,39 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       setIsReady(true);
       const dur = wavesurfer.getDuration();
       setDuration(dur);
+      setLoopEnd(dur);
       onReady?.(dur);
     });
 
     wavesurfer.on("audioprocess", () => {
-      setCurrentTime(wavesurfer.getCurrentTime());
+      const time = wavesurfer.getCurrentTime();
+      setCurrentTime(time);
+      
+      // 循环播放检测
+      if (loopEnabled && time >= loopEnd) {
+        wavesurfer.setTime(loopStart);
+      }
     });
 
     wavesurfer.on("seeking", () => {
-      setCurrentTime(wavesurfer.getCurrentTime());
+      const time = wavesurfer.getCurrentTime();
+      setCurrentTime(time);
     });
 
     wavesurfer.on("play", () => setIsPlaying(true));
     wavesurfer.on("pause", () => setIsPlaying(false));
-    wavesurfer.on("finish", () => setIsPlaying(false));
+    wavesurfer.on("finish", () => {
+      if (!loopEnabled) {
+        setIsPlaying(false);
+      }
+    });
 
     wavesurferRef.current = wavesurfer;
 
     return () => {
       wavesurfer.destroy();
-      wavesurferRef.current = null;
     };
-  }, [onReady]);
+  }, [onReady, loopEnabled, loopStart, loopEnd]);
 
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +85,8 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
       wavesurferRef.current.stop();
       setIsPlaying(false);
+      setLoopEnabled(false);
+      setLoopStart(0);
 
       const url = URL.createObjectURL(file);
       await wavesurferRef.current.load(url);
@@ -105,6 +121,25 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     wavesurferRef.current?.setVolume(value);
   }, []);
 
+  const handleLoopToggle = useCallback((checked: boolean) => {
+    setLoopEnabled(checked);
+    // 启用循环时，如果当前不在循环区间内，跳到起点
+    if (checked && wavesurferRef.current) {
+      const currentTime = wavesurferRef.current.getCurrentTime();
+      if (currentTime < loopStart || currentTime > loopEnd) {
+        wavesurferRef.current.setTime(loopStart);
+      }
+    }
+  }, [loopStart, loopEnd]);
+
+  const handleLoopStartChange = useCallback((value: number) => {
+    setLoopStart(value);
+  }, []);
+
+  const handleLoopEndChange = useCallback((value: number) => {
+    setLoopEnd(value);
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -136,7 +171,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
         </Text>
       </Group>
 
-      {/* 波形显示 - 放在条件渲染外面，确保 ref 始终存在 */}
+      {/* 波形显示 */}
       <Box
         ref={waveformRef}
         style={{
@@ -174,6 +209,14 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               step={0.1}
               label={formatTime(currentTime)}
               disabled={!isReady}
+              marks={
+                loopEnabled
+                  ? [
+                      { value: loopStart, label: "A" },
+                      { value: loopEnd, label: "B" },
+                    ]
+                  : undefined
+              }
             />
             <Group justify="space-between">
               <Text size="xs" c="dimmed">
@@ -199,6 +242,48 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               disabled={!isReady}
             />
           </Group>
+
+          {/* 循环控制 */}
+          <Group gap="sm">
+            <Checkbox
+              checked={loopEnabled}
+              onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
+              label="循环播放"
+              size="xs"
+              disabled={!isReady}
+            />
+          </Group>
+
+          {loopEnabled && (
+            <Stack gap="xs">
+              <Group gap="sm" justify="space-between">
+                <Text size="xs" c="dimmed">A点: {formatTime(loopStart)}</Text>
+                <Slider
+                  value={loopStart}
+                  onChange={handleLoopStartChange}
+                  min={0}
+                  max={loopEnd}
+                  step={0.1}
+                  w={150}
+                  size="xs"
+                  disabled={!isReady}
+                />
+              </Group>
+              <Group gap="sm" justify="space-between">
+                <Text size="xs" c="dimmed">B点: {formatTime(loopEnd)}</Text>
+                <Slider
+                  value={loopEnd}
+                  onChange={handleLoopEndChange}
+                  min={loopStart}
+                  max={duration}
+                  step={0.1}
+                  w={150}
+                  size="xs"
+                  disabled={!isReady}
+                />
+              </Group>
+            </Stack>
+          )}
         </>
       )}
     </Stack>
