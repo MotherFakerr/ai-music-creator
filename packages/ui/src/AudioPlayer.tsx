@@ -14,6 +14,7 @@ interface AudioPlayerProps {
 export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
+  const loopRef = useRef({ enabled: false, start: 0, end: 0 });
 
   const [fileName, setFileName] = useState<string>("");
   const [duration, setDuration] = useState(0);
@@ -45,6 +46,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       const dur = wavesurfer.getDuration();
       setDuration(dur);
       setLoopEnd(dur);
+      loopRef.current.end = dur;
       onReady?.(dur);
     });
 
@@ -53,8 +55,8 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       setCurrentTime(time);
       
       // 循环播放检测
-      if (loopEnabled && time >= loopEnd) {
-        wavesurfer.setTime(loopStart);
+      if (loopRef.current.enabled && time >= loopRef.current.end) {
+        wavesurfer.setTime(loopRef.current.start);
       }
     });
 
@@ -66,7 +68,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     wavesurfer.on("play", () => setIsPlaying(true));
     wavesurfer.on("pause", () => setIsPlaying(false));
     wavesurfer.on("finish", () => {
-      if (!loopEnabled) {
+      if (!loopRef.current.enabled) {
         setIsPlaying(false);
       }
     });
@@ -76,7 +78,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
     return () => {
       wavesurfer.destroy();
     };
-  }, [onReady, loopEnabled, loopStart, loopEnd]);
+  }, [onReady]);
 
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +89,8 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       setIsPlaying(false);
       setLoopEnabled(false);
       setLoopStart(0);
+      loopRef.current.enabled = false;
+      loopRef.current.start = 0;
 
       const url = URL.createObjectURL(file);
       await wavesurferRef.current.load(url);
@@ -123,21 +127,23 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
 
   const handleLoopToggle = useCallback((checked: boolean) => {
     setLoopEnabled(checked);
-    // 启用循环时，如果当前不在循环区间内，跳到起点
+    loopRef.current.enabled = checked;
     if (checked && wavesurferRef.current) {
       const currentTime = wavesurferRef.current.getCurrentTime();
-      if (currentTime < loopStart || currentTime > loopEnd) {
-        wavesurferRef.current.setTime(loopStart);
+      if (currentTime < loopRef.current.start || currentTime > loopRef.current.end) {
+        wavesurferRef.current.setTime(loopRef.current.start);
       }
     }
-  }, [loopStart, loopEnd]);
+  }, []);
 
   const handleLoopStartChange = useCallback((value: number) => {
     setLoopStart(value);
+    loopRef.current.start = value;
   }, []);
 
   const handleLoopEndChange = useCallback((value: number) => {
     setLoopEnd(value);
+    loopRef.current.end = value;
   }, []);
 
   const formatTime = (seconds: number) => {
