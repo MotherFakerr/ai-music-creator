@@ -73,6 +73,31 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       }
     });
 
+    // 点击波形设置循环区域
+    wavesurfer.on("click", () => {
+      if (!loopRef.current.enabled) return;
+      const time = wavesurfer.getCurrentTime();
+      const { start, end } = loopRef.current;
+      
+      // 判断点击位置靠近哪一边
+      const distToStart = Math.abs(time - start);
+      const distToEnd = Math.abs(time - end);
+      
+      if (distToStart < distToEnd) {
+        // 设置新的起点
+        if (time < end) {
+          loopRef.current.start = time;
+          setLoopStart(time);
+        }
+      } else {
+        // 设置新的终点
+        if (time > start) {
+          loopRef.current.end = time;
+          setLoopEnd(time);
+        }
+      }
+    });
+
     wavesurferRef.current = wavesurfer;
 
     return () => {
@@ -178,14 +203,32 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       </Group>
 
       {/* 波形显示 */}
-      <Box
-        ref={waveformRef}
-        style={{
-          cursor: "pointer",
-          opacity: fileName ? (isReady ? 1 : 0.5) : 0.3,
-          minHeight: 60,
-        }}
-      />
+      <Box style={{ position: "relative" }}>
+        <Box
+          ref={waveformRef}
+          style={{
+            cursor: "pointer",
+            opacity: fileName ? (isReady ? 1 : 0.5) : 0.3,
+            minHeight: 60,
+          }}
+        />
+        {/* 循环区域指示器 */}
+        {fileName && loopEnabled && duration > 0 && (
+          <Box
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `${(loopStart / duration) * 100}%`,
+              width: `${((loopEnd - loopStart) / duration) * 100}%`,
+              height: "60px",
+              background: "rgba(255, 193, 7, 0.3)",
+              borderLeft: "2px solid #ffc107",
+              borderRight: "2px solid #ffc107",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+      </Box>
 
       {fileName && (
         <>
@@ -258,6 +301,9 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
               size="xs"
               disabled={!isReady}
             />
+            {loopEnabled && (
+              <Text size="xs" c="dimmed">（点击波形调整区域）</Text>
+            )}
           </Group>
 
           {loopEnabled && (
