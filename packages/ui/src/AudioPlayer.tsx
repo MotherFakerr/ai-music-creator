@@ -311,29 +311,29 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
           />
         )}
 
-        {/* A 点拖动柄 - 橙色 */}
+        {/* A 点拖动柄 - 左右箭头 */}
         {fileName && loopEnabled && isReady && (
           <Box 
             onMouseDown={(e) => {
               e.stopPropagation();
               dragRef.current = "start";
             }}
-            style={{ position: "absolute", top: -10, left: `${timeToPercent(loopStart)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
-            <Box style={{ width: "4px", height: "80px", background: "#ff9800", borderRadius: "2px" }} />
-            <Box style={{ position: "absolute", top: 0, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
+            style={{ position: "absolute", top: 0, left: `${timeToPercent(loopStart)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
+            <Box style={{ width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderRight: "8px solid #ff9800" }} />
+            <Box style={{ width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "8px solid #ff9800", position: "absolute", left: 8, top: -8 }} />
           </Box>
         )}
 
-        {/* B 点拖动柄 - 橙色 */}
+        {/* B 点拖动柄 - 左右箭头 */}
         {fileName && loopEnabled && isReady && (
           <Box 
             onMouseDown={(e) => {
               e.stopPropagation();
               dragRef.current = "end";
             }}
-            style={{ position: "absolute", top: -10, left: `${timeToPercent(loopEnd)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
-            <Box style={{ width: "4px", height: "80px", background: "#ff9800", borderRadius: "2px" }} />
-            <Box style={{ position: "absolute", top: 0, left: -4, width: 10, height: 10, borderRadius: "50%", background: "#ff9800", border: "2px solid #fff" }} />
+            style={{ position: "absolute", top: 0, left: `${timeToPercent(loopEnd)}%`, transform: "translateX(-50%)", zIndex: 5, cursor: "ew-resize" }}>
+            <Box style={{ width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderLeft: "8px solid #ff9800" }} />
+            <Box style={{ width: 0, height: 0, borderTop: "8px solid transparent", borderBottom: "8px solid transparent", borderRight: "8px solid #ff9800", position: "absolute", right: 8, top: -8 }} />
           </Box>
         )}
       </Box>
