@@ -5,8 +5,9 @@ import {
   Keyboard,
   PianoKeyboard,
   KeyboardModeSwitch,
-  type KeyboardMode,
   useKeyboard,
+  AudioPlayer,
+  type KeyboardMode,
 } from "@ai-music-creator/ui";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import {
@@ -17,13 +18,13 @@ import {
 import { AppHeader } from "./components/AppHeader";
 import { SettingsPanel } from "./components/SettingsPanel";
 import {
+  PerformancePreviewPanel,
+  type PerformanceTrace,
+} from "./components/PerformancePreviewPanel";
+import {
   useActiveNoteLayout,
   useNoteLaneMapper,
 } from "./hooks/usePerformanceLayout";
-import {
-  PerformanceTrace,
-  PerformancePreviewPanel,
-} from "./components/PerformancePreviewPanel";
 
 const TRACE_LIFETIME_MS = 1650;
 const TRACE_MAX_ITEMS = 48;
@@ -217,6 +218,17 @@ function App() {
               />
             </Grid.Col>
           </Grid>
+
+          <Card
+            radius="lg"
+            padding="lg"
+            style={{
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(15, 19, 32, 0.7)",
+            }}
+          >
+            <AudioPlayer />
+          </Card>
 
           <Card
             radius="lg"

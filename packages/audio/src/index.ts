@@ -5,3 +5,4 @@
 
 export { AudioEngine, getAudioEngine, initAudioEngine } from "./engine";
 export { EN_INSTRUMENT_TYPE } from "./interface";
+export type { AudioPlaybackState } from "./engine";
