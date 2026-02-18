@@ -1,3 +1,5 @@
+import type { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
+
 export interface ChannelStep {
   step: number;
   enabled: boolean;
@@ -8,6 +10,9 @@ export interface SequencerChannel {
   name: string;
   color: string;
   muted: boolean;
+  solo: boolean;
+  volume: number; // 0-100
+  instrument: EN_INSTRUMENT_TYPE;
   steps: ChannelStep[];
 }
 

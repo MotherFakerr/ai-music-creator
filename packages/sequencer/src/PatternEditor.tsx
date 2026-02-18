@@ -18,6 +18,13 @@ export function PatternEditor() {
     canRedo,
     toggleChannelStep,
     toggleChannelMute,
+    toggleChannelSolo,
+    setChannelVolume,
+    setChannelInstrument,
+    addChannel,
+    removeChannel,
+    renameChannel,
+    moveChannel,
     selectChannel,
     addPianoRollNote,
     insertPianoRollNotes,
@@ -105,31 +112,46 @@ export function PatternEditor() {
 
   const playStep = (absoluteStep: number) => {
     const stepInBar = absoluteStep % state.stepsPerBar;
-    const unmutedChannelIds = new Set(
-      state.channels.filter((channel) => !channel.muted).map((channel) => channel.id),
+    const hasSolo = state.channels.some((channel) => channel.solo);
+    const activeChannels = state.channels.filter((channel) =>
+      hasSolo ? channel.solo && !channel.muted : !channel.muted,
     );
+    const activeChannelMap = new Map(activeChannels.map((channel) => [channel.id, channel]));
 
-    state.channels.forEach((channel, index) => {
-      if (channel.muted) {
-        return;
-      }
+    activeChannels.forEach((channel, index) => {
       if (channel.steps[stepInBar]?.enabled) {
         const triggerNote = CHANNEL_DEFAULT_NOTE[channel.id] ?? 48 + index * 2;
-        audioEngineRef.current.playNote(triggerNote, 108);
-        scheduleStop(triggerNote, Math.max(70, Math.round(msPerStep * 0.9)));
+        const velocity = Math.max(1, Math.round(108 * (channel.volume / 100)));
+        if (velocity <= 0) {
+          return;
+        }
+        audioEngineRef.current.triggerNoteWithInstrument(
+          triggerNote,
+          velocity,
+          channel.instrument,
+          Math.max(0.06, (msPerStep * 0.9) / 1000),
+        );
       }
     });
 
     state.notes.forEach((note) => {
-      if (!unmutedChannelIds.has(note.channelId)) {
+      const channel = activeChannelMap.get(note.channelId);
+      if (!channel) {
         return;
       }
       if (note.startStep !== absoluteStep) {
         return;
       }
-      audioEngineRef.current.playNote(note.pitch, note.velocity);
-      const durationMs = Math.max(90, Math.round(msPerStep * Math.max(1, note.length) * 0.95));
-      scheduleStop(note.pitch, durationMs);
+      const velocity = Math.max(1, Math.round(note.velocity * (channel.volume / 100)));
+      if (velocity <= 0) {
+        return;
+      }
+      audioEngineRef.current.triggerNoteWithInstrument(
+        note.pitch,
+        velocity,
+        channel.instrument,
+        Math.max(0.09, (msPerStep * Math.max(1, note.length) * 0.95) / 1000),
+      );
     });
   };
 
@@ -214,8 +236,13 @@ export function PatternEditor() {
     if (!ready) {
       return;
     }
-    audioEngineRef.current.playNote(pitch, 104);
-    scheduleStop(pitch, 170);
+    const selectedChannel = state.channels.find((channel) => channel.id === state.selectedChannelId);
+    audioEngineRef.current.triggerNoteWithInstrument(
+      pitch,
+      104,
+      selectedChannel?.instrument ?? EN_INSTRUMENT_TYPE.PIANO,
+      0.17,
+    );
   };
 
   const previewMovedNote = async (pitch: number) => {
@@ -223,8 +250,13 @@ export function PatternEditor() {
     if (!ready) {
       return;
     }
-    audioEngineRef.current.playNote(pitch, 98);
-    scheduleStop(pitch, 140);
+    const selectedChannel = state.channels.find((channel) => channel.id === state.selectedChannelId);
+    audioEngineRef.current.triggerNoteWithInstrument(
+      pitch,
+      98,
+      selectedChannel?.instrument ?? EN_INSTRUMENT_TYPE.PIANO,
+      0.14,
+    );
   };
 
   useEffect(() => {
@@ -497,6 +529,13 @@ export function PatternEditor() {
         selectedChannelId={state.selectedChannelId}
         onSelectChannel={selectChannel}
         onToggleMute={toggleChannelMute}
+        onToggleSolo={toggleChannelSolo}
+        onSetVolume={setChannelVolume}
+        onSetInstrument={setChannelInstrument}
+        onAddChannel={addChannel}
+        onRemoveChannel={removeChannel}
+        onRenameChannel={renameChannel}
+        onMoveChannel={moveChannel}
         onToggleStep={toggleChannelStep}
       />
       <PianoRoll

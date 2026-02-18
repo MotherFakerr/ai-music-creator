@@ -64,14 +64,16 @@
 
 **当前已完成（里程碑 2.5）**：
 - ✅ 在 monorepo 新增独立包：`packages/sequencer`
-- ✅ Channel Rack：通道选择、Step 开关、Mute
+- ✅ Channel Rack：通道选择、Step 开关、Mute/Solo、Volume
+- ✅ 通道管理：新增/删除、重命名（确认提交）、上下排序
+- ✅ 通道音色：每通道可切换音色（Drum/Piano/Synth/Guitar/Dist Guitar）
 - ✅ Piano Roll：新增/删除音符、拖拽移动、拉长时值、预听、Zoom
 - ✅ 多选编辑：框选、Ctrl/Cmd 多选、批量删除、批量参数
 - ✅ 编辑效率：Undo/Redo、复制粘贴、粘贴后自动选中
 - ✅ 可扩展范围：时间轴自动扩容、全 MIDI 音高滚动
 - ✅ 批量参数区：Velocity、Length、Transpose、Nudge
 - ✅ 播放与循环：Play/Stop、BPM、Loop In/Out、播放头
-- ✅ 基础音频联动：按步触发通道与音符，依据力度和时值发声
+- ✅ 基础音频联动：按步触发通道与音符，依据力度、通道音量与通道音色发声
 
 **待选（暂不优先）**：
 - ⏳ Quantize（量化）：按 Snap 粒度对齐选中音符

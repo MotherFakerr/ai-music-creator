@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
 import type { PatternState, PianoRollNote, PitchRow, SequencerChannel } from "./types";
 
 const DEFAULT_STEPS_PER_BAR = 16;
@@ -10,6 +11,9 @@ const DEFAULT_CHANNELS: SequencerChannel[] = [
     name: "Kick",
     color: "#f97316",
     muted: false,
+    solo: false,
+    volume: 100,
+    instrument: EN_INSTRUMENT_TYPE.DRUM,
     steps: Array.from({ length: DEFAULT_STEPS_PER_BAR }, (_, step) => ({
       step,
       enabled: step % 4 === 0,
@@ -20,6 +24,9 @@ const DEFAULT_CHANNELS: SequencerChannel[] = [
     name: "Snare",
     color: "#22c55e",
     muted: false,
+    solo: false,
+    volume: 100,
+    instrument: EN_INSTRUMENT_TYPE.DRUM,
     steps: Array.from({ length: DEFAULT_STEPS_PER_BAR }, (_, step) => ({
       step,
       enabled: step % 8 === 4,
@@ -30,11 +37,25 @@ const DEFAULT_CHANNELS: SequencerChannel[] = [
     name: "Hat",
     color: "#60a5fa",
     muted: false,
+    solo: false,
+    volume: 100,
+    instrument: EN_INSTRUMENT_TYPE.DRUM,
     steps: Array.from({ length: DEFAULT_STEPS_PER_BAR }, (_, step) => ({
       step,
       enabled: step % 2 === 0,
     })),
   },
+];
+
+const CHANNEL_COLOR_POOL = [
+  "#f97316",
+  "#22c55e",
+  "#60a5fa",
+  "#e879f9",
+  "#facc15",
+  "#14b8a6",
+  "#f43f5e",
+  "#a78bfa",
 ];
 
 const DEFAULT_NOTES: PianoRollNote[] = [
@@ -70,6 +91,13 @@ export interface UsePatternEditorResult {
   canRedo: boolean;
   toggleChannelStep: (channelId: string, step: number) => void;
   toggleChannelMute: (channelId: string) => void;
+  toggleChannelSolo: (channelId: string) => void;
+  setChannelVolume: (channelId: string, volume: number) => void;
+  setChannelInstrument: (channelId: string, instrument: EN_INSTRUMENT_TYPE) => void;
+  addChannel: () => void;
+  removeChannel: (channelId: string) => void;
+  renameChannel: (channelId: string, name: string) => void;
+  moveChannel: (channelId: string, direction: "up" | "down") => void;
   selectChannel: (channelId: string) => void;
   addPianoRollNote: (pitch: number, step: number) => void;
   insertPianoRollNotes: (notes: Array<Omit<PianoRollNote, "id">>) => string[];
@@ -186,6 +214,117 @@ export function usePatternEditor(): UsePatternEditorResult {
         channel.id === channelId ? { ...channel, muted: !channel.muted } : channel,
       ),
     }));
+  };
+
+  const toggleChannelSolo = (channelId: string) => {
+    applyWithHistory((prev) => ({
+      ...prev,
+      channels: prev.channels.map((channel) =>
+        channel.id === channelId ? { ...channel, solo: !channel.solo } : channel,
+      ),
+    }));
+  };
+
+  const setChannelVolume = (channelId: string, volume: number) => {
+    const safeVolume = Math.max(0, Math.min(100, Math.round(volume)));
+    applyWithHistory((prev) => ({
+      ...prev,
+      channels: prev.channels.map((channel) =>
+        channel.id === channelId ? { ...channel, volume: safeVolume } : channel,
+      ),
+    }));
+  };
+
+  const setChannelInstrument = (channelId: string, instrument: EN_INSTRUMENT_TYPE) => {
+    applyWithHistory((prev) => ({
+      ...prev,
+      channels: prev.channels.map((channel) =>
+        channel.id === channelId ? { ...channel, instrument } : channel,
+      ),
+    }));
+  };
+
+  const addChannel = () => {
+    applyWithHistory((prev) => {
+      const index = prev.channels.length;
+      const id = `channel-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newChannel: SequencerChannel = {
+        id,
+        name: `Channel ${index + 1}`,
+        color: CHANNEL_COLOR_POOL[index % CHANNEL_COLOR_POOL.length],
+        muted: false,
+        solo: false,
+        volume: 100,
+        instrument: EN_INSTRUMENT_TYPE.PIANO,
+        steps: Array.from({ length: prev.stepsPerBar }, (_, step) => ({
+          step,
+          enabled: false,
+        })),
+      };
+      return {
+        ...prev,
+        channels: [...prev.channels, newChannel],
+        selectedChannelId: id,
+      };
+    });
+  };
+
+  const removeChannel = (channelId: string) => {
+    applyWithHistory((prev) => {
+      const nextChannels = prev.channels.filter((channel) => channel.id !== channelId);
+      if (nextChannels.length === prev.channels.length) {
+        return prev;
+      }
+      const nextSelected =
+        prev.selectedChannelId === channelId
+          ? (nextChannels[0]?.id ?? null)
+          : prev.selectedChannelId;
+      return {
+        ...prev,
+        channels: nextChannels,
+        notes: prev.notes.filter((note) => note.channelId !== channelId),
+        selectedChannelId: nextSelected,
+      };
+    });
+  };
+
+  const renameChannel = (channelId: string, name: string) => {
+    const normalized = name.trim();
+    if (!normalized) {
+      return;
+    }
+    applyWithHistory((prev) => {
+      const target = prev.channels.find((channel) => channel.id === channelId);
+      if (!target || target.name === normalized) {
+        return prev;
+      }
+      return {
+        ...prev,
+        channels: prev.channels.map((channel) =>
+          channel.id === channelId ? { ...channel, name: normalized } : channel,
+        ),
+      };
+    });
+  };
+
+  const moveChannel = (channelId: string, direction: "up" | "down") => {
+    applyWithHistory((prev) => {
+      const index = prev.channels.findIndex((channel) => channel.id === channelId);
+      if (index < 0) {
+        return prev;
+      }
+      const nextIndex = direction === "up" ? index - 1 : index + 1;
+      if (nextIndex < 0 || nextIndex >= prev.channels.length) {
+        return prev;
+      }
+      const nextChannels = [...prev.channels];
+      const [moved] = nextChannels.splice(index, 1);
+      nextChannels.splice(nextIndex, 0, moved);
+      return {
+        ...prev,
+        channels: nextChannels,
+      };
+    });
   };
 
   const selectChannel = (channelId: string) => {
@@ -409,6 +548,13 @@ export function usePatternEditor(): UsePatternEditorResult {
     canRedo: redoStack.length > 0,
     toggleChannelStep,
     toggleChannelMute,
+    toggleChannelSolo,
+    setChannelVolume,
+    setChannelInstrument,
+    addChannel,
+    removeChannel,
+    renameChannel,
+    moveChannel,
     selectChannel,
     addPianoRollNote,
     insertPianoRollNotes,

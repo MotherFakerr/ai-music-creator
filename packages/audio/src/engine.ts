@@ -205,6 +205,41 @@ export class AudioEngine {
   }
 
   /**
+   * 以指定乐器触发短音（不占用 activeNotes，适合编曲器并发触发）
+   */
+  triggerNoteWithInstrument(
+    note: number,
+    velocity: number = 100,
+    instrument: EN_INSTRUMENT_TYPE = EN_INSTRUMENT_TYPE.PIANO,
+    durationSeconds: number = 0.2
+  ): void {
+    const ctx = this.ensureContext();
+    const safeDuration = Math.max(0.03, durationSeconds);
+
+    if (instrument === EN_INSTRUMENT_TYPE.DRUM) {
+      this.playDrumTransient(note);
+      return;
+    }
+
+    const cachedPlayer = this.instrumentPlayers.get(instrument);
+    if (cachedPlayer) {
+      const stop = cachedPlayer.start({
+        note,
+        velocity,
+        time: ctx.currentTime,
+      });
+      stop(ctx.currentTime + safeDuration);
+      return;
+    }
+
+    // 先用 fallback 兜底触发当前音，再异步加载目标音色供后续使用
+    this.playNoteFallbackTransient(note, velocity, safeDuration);
+    void this.getOrLoadInstrument(instrument).catch((error) => {
+      console.error(`[AudioEngine] 预加载音色失败: ${instrument}`, error);
+    });
+  }
+
+  /**
    * 备用播放方法（当 smplr 音色加载失败时使用）
    */
   private playNoteFallback(note: number, velocity: number): void {
@@ -228,6 +263,33 @@ export class AudioEngine {
     osc.start(now);
 
     this.activeNotes.set(note, { stop: () => osc.stop() });
+  }
+
+  private playNoteFallbackTransient(
+    note: number,
+    velocity: number,
+    durationSeconds: number
+  ): void {
+    const ctx = this.ensureContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.value = 440 * Math.pow(2, (note - 69) / 12);
+
+    const velocityGain = 0.5 + (velocity / 127) * 1.0;
+    const finalGain = velocityGain * this.volume;
+    const now = ctx.currentTime;
+    const endAt = now + Math.max(0.03, durationSeconds);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(finalGain * 0.8, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, endAt);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain!);
+    osc.start(now);
+    osc.stop(endAt);
   }
 
   /**
@@ -257,6 +319,30 @@ export class AudioEngine {
     osc.stop(now + 0.5);
 
     this.activeNotes.set(note, { stop: () => osc.stop() });
+  }
+
+  private playDrumTransient(note: number): void {
+    const ctx = this.ensureContext();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    if (note >= 60) {
+      osc.type = "sine";
+      osc.frequency.value = 60;
+      gain.gain.setValueAtTime(this.volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    } else {
+      osc.type = "triangle";
+      osc.frequency.value = 200;
+      gain.gain.setValueAtTime(this.volume * 0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    }
+
+    osc.connect(gain);
+    gain.connect(this.masterGain!);
+    osc.start(now);
+    osc.stop(now + 0.5);
   }
 
   /**
