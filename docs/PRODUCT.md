@@ -32,7 +32,7 @@
 |-------|------|------|
 | 🎹 音乐演奏 | `milestones/01-音乐演奏.md` | ✅ 已完成 |
 | 🎵 音乐跟奏 | `milestones/02-音乐跟奏.md` | ✅ 已完成 |
-| 🎛️ 编曲工作台 | `milestones/02.5-编曲工作台.md` | ⏳ 待创建 |
+| 🎛️ 编曲工作台 | `milestones/02.5-编曲工作台.md` | 🚧 开发中（基础能力已实现） |
 | 🎼 MIDI记录 | `milestones/03-MIDI记录.md` | ⏳ 待创建 |
 | 🤖 AI共创 | `milestones/04-AI共创.md` | ⏳ 待创建 |
 
@@ -60,6 +60,21 @@
 - 通道机架：多音轨排列，每行一个乐器通道
 - 钢琴卷帘：音符编辑器，横向时间轴 + 纵向钢琴键
 - 基础编曲能力（类似 FL Studio）
+- 支持独立调试页：`/sequencer-debug`
+
+**当前已完成（里程碑 2.5）**：
+- ✅ 在 monorepo 新增独立包：`packages/sequencer`
+- ✅ Channel Rack：通道选择、Step 开关、Mute
+- ✅ Piano Roll：新增/删除音符、拖拽移动、拉长时值、预听、Zoom
+- ✅ 多选编辑：框选、Ctrl/Cmd 多选、批量删除、批量参数
+- ✅ 编辑效率：Undo/Redo、复制粘贴、粘贴后自动选中
+- ✅ 可扩展范围：时间轴自动扩容、全 MIDI 音高滚动
+- ✅ 批量参数区：Velocity、Length、Transpose、Nudge
+- ✅ 播放与循环：Play/Stop、BPM、Loop In/Out、播放头
+- ✅ 基础音频联动：按步触发通道与音符，依据力度和时值发声
+
+**待选（暂不优先）**：
+- ⏳ Quantize（量化）：按 Snap 粒度对齐选中音符
 
 **不做什么**：
 - ❌ 专业 DAW 完整功能

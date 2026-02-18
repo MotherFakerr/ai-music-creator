@@ -19,6 +19,7 @@
     "@ai-music-creator/audio": "workspace:*",
     "@ai-music-creator/core": "workspace:*",
     "@ai-music-creator/midi": "workspace:*",
+    "@ai-music-creator/sequencer": "workspace:*",
     "@ai-music-creator/ui": "workspace:*",
     "@types/node": "^25.2.3",
     "@types/react": "^18.2.0",

@@ -1,0 +1,22 @@
+{
+  "name": "@ai-music-creator/sequencer",
+  "version": "0.0.1",
+  "description": "Basic FL-style channel rack and piano roll editor",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
+  },
+  "dependencies": {
+    "@ai-music-creator/audio": "workspace:*"
+  }
+}

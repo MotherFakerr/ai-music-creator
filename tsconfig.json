@@ -14,6 +14,7 @@
     { "path": "./packages/midi" },
     { "path": "./packages/ui" },
     { "path": "./packages/ai" },
+    { "path": "./packages/sequencer" },
     { "path": "./packages/web" }
   ]
 }

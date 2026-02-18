@@ -102,10 +102,20 @@ ai-music-creator/
     │   │   └── service.ts         # AI 服务
     │   └── package.json
     │
+    ├── sequencer/        # 里程碑2.5 编曲编辑器
+    │   ├── src/
+    │   │   ├── PatternEditor.tsx      # 编曲主编辑器
+    │   │   ├── ChannelRack.tsx        # 通道机架
+    │   │   ├── PianoRoll.tsx          # 钢琴卷帘
+    │   │   ├── usePatternEditor.ts    # 状态管理与编辑操作
+    │   │   └── index.ts               # 导出
+    │   └── package.json
+    │
     └── web/              # React 应用入口 (Vite)
         ├── src/
         │   ├── App.tsx            # 主应用组件
         │   ├── main.tsx         # 入口文件
+        │   ├── SequencerDebugPage.tsx # 编曲调试页（/sequencer-debug）
         │   ├── theme.ts          # Mantine 主题配置
         │   ├── components/      # 页面级组件
         │   │   ├── AppHeader.tsx       # 应用头部
@@ -170,6 +180,20 @@ ai-music-creator/
 **不做什么**：
 
 - 不包含可直接复用的基础组件
+
+### Sequencer Editor (`packages/sequencer`)（里程碑 2.5）
+
+**做什么**：
+
+- 提供 FL 风格的基础编曲编辑能力（Channel Rack + Piano Roll）
+- 管理音符编辑交互（新增、移动、拉长、多选、批量参数调整）
+- 管理编曲播放控制（BPM、Loop、播放头）
+- 联动 `@ai-music-creator/audio` 进行实时试听
+
+**不做什么**：
+
+- 不承担工程级 MIDI 持久化
+- 不承担完整 DAW 混音与母带流程
 
 ### 组件归属规则
 

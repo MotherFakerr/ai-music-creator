@@ -25,6 +25,7 @@ import {
   useActiveNoteLayout,
   useNoteLaneMapper,
 } from "./hooks/usePerformanceLayout";
+import { PatternEditor } from "@ai-music-creator/sequencer";
 
 const TRACE_LIFETIME_MS = 1650;
 const TRACE_MAX_ITEMS = 48;
@@ -195,6 +196,18 @@ function App() {
             isInitialized={isInitialized}
             isInstrumentLoading={isInstrumentLoading}
           />
+          <Box style={{ display: "flex", justifyContent: "flex-end" }}>
+            <a
+              href="/sequencer-debug"
+              style={{
+                color: "#93c5fd",
+                fontSize: 13,
+                textDecoration: "none",
+              }}
+            >
+              Open Sequencer Debug Page
+            </a>
+          </Box>
 
           <Grid gutter="md" align="stretch">
             <Grid.Col span={{ base: 12, md: 4 }} style={{ display: "flex" }}>
@@ -272,6 +285,17 @@ function App() {
               )}
             </Box>
           </Stack>
+
+          <Card
+            radius="lg"
+            padding="lg"
+            style={{
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(15, 19, 32, 0.7)",
+            }}
+          >
+            <PatternEditor />
+          </Card>
 
           <style>{`
             .keyboard-area {
