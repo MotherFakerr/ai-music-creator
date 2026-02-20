@@ -31,12 +31,15 @@ export function KeyboardModeSwitch({
           root: {
             background: "rgba(255, 255, 255, 0.06)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
+            minHeight: 30,
           },
           label: {
             color: "rgba(255, 255, 255, 0.55)",
             fontWeight: 500,
             fontSize: 12,
-            padding: "4px 12px",
+            minHeight: 30,
+            lineHeight: "30px",
+            padding: "0 12px",
           },
           indicator: {
             background:

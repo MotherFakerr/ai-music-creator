@@ -4,12 +4,15 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, Checkbox, Group, Stack, Text } from "@mantine/core";
+import { Box, Button, Checkbox, FileButton, Group, Slider, Stack, Text } from "@mantine/core";
 import WaveSurfer from "wavesurfer.js";
 
 interface AudioPlayerProps {
   onReady?: (duration: number) => void;
 }
+
+const CONTROL_HEIGHT = 30;
+const SECTION_GAP = 6;
 
 export function AudioPlayer({ onReady }: AudioPlayerProps) {
   const waveformRef = useRef<HTMLDivElement>(null);
@@ -191,8 +194,7 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   }, [onReady]);
 
   const handleFileSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
+    async (file: File | null) => {
       if (!file || !wavesurferRef.current) return;
 
       wavesurferRef.current.stop();
@@ -206,8 +208,6 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       await wavesurferRef.current.load(url);
       setFileName(file.name);
       setCurrentTime(0);
-
-      event.target.value = "";
     },
     [],
   );
@@ -248,24 +248,29 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
   };
 
   return (
-    <Stack gap="sm">
-      <input
-        type="file"
-        accept="audio/*"
-        onChange={handleFileSelect}
-        style={{ display: "none" }}
-        id="audio-file-input"
-      />
-
+    <Stack gap={10}>
       <Group justify="space-between">
-        <Button
-          variant="light"
-          size="sm"
-          component="label"
-          htmlFor="audio-file-input"
-        >
-          上传音频
-        </Button>
+        <FileButton onChange={handleFileSelect} accept="audio/*">
+          {(props) => (
+            <Button
+              {...props}
+              variant="default"
+              size="xs"
+              styles={{
+                root: {
+                  height: CONTROL_HEIGHT,
+                  minHeight: CONTROL_HEIGHT,
+                  borderRadius: 6,
+                  borderColor: "#334155",
+                  background: "#0f172a",
+                  color: "#e2e8f0",
+                },
+              }}
+            >
+              上传音频
+            </Button>
+          )}
+        </FileButton>
 
         <Text size="sm" c="dimmed" lineClamp={1} style={{ flex: 1 }}>
           {fileName || "未选择文件"}
@@ -398,60 +403,109 @@ export function AudioPlayer({ onReady }: AudioPlayerProps) {
       )}
 
       {fileName && (
-        <>
+        <Stack gap={SECTION_GAP}>
           {/* 播放控制 + 音量 */}
           <Group justify="space-between">
-            <Group gap="md">
+            <Group gap={SECTION_GAP}>
               <Button
-                variant={isPlaying ? "filled" : "light"}
-                color={isPlaying ? "red" : "blue"}
+                variant="default"
                 onClick={handlePlayPause}
                 disabled={!isReady}
                 size="xs"
+                styles={{
+                  root: {
+                    height: CONTROL_HEIGHT,
+                    minHeight: CONTROL_HEIGHT,
+                    borderRadius: 6,
+                    borderColor: isPlaying ? "#7f1d1d" : "#334155",
+                    background: isPlaying ? "#3f0f12" : "#0f172a",
+                    color: isPlaying ? "#fecaca" : "#e2e8f0",
+                  },
+                }}
               >
                 {isPlaying ? "暂停" : "播放"}
               </Button>
 
               <Button
-                variant="light"
+                variant="default"
                 onClick={handleStop}
                 disabled={!isReady}
                 size="xs"
+                styles={{
+                  root: {
+                    height: CONTROL_HEIGHT,
+                    minHeight: CONTROL_HEIGHT,
+                    borderRadius: 6,
+                    borderColor: "#334155",
+                    background: "#0f172a",
+                    color: "#e2e8f0",
+                  },
+                }}
               >
                 停止
               </Button>
             </Group>
 
-            <Group gap="xs">
+            <Group gap={SECTION_GAP}>
               <Text size="xs" c="dimmed">
                 音量
               </Text>
-              <Box w={80}>
-                <input
-                  type="range"
+              <Box w={88}>
+                <Slider
                   min={0}
                   max={1}
                   step={0.01}
                   value={volume}
-                  onChange={(e) =>
-                    handleVolumeChange(parseFloat(e.target.value))
-                  }
+                  onChange={handleVolumeChange}
                   disabled={!isReady}
-                  style={{ width: "100%" }}
+                  size="sm"
+                  styles={{
+                    track: { height: 7 },
+                    bar: { height: 7 },
+                    thumb: { width: 14, height: 14, border: "2px solid #93c5fd" },
+                  }}
                 />
               </Box>
             </Group>
           </Group>
 
           {/* 循环开关 */}
-          <Checkbox
-            checked={loopEnabled}
-            onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
-            label="循环播放"
-            size="xs"
-            disabled={!isReady}
-          />
-        </>
+          <Box
+            style={{
+              minHeight: CONTROL_HEIGHT,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <Checkbox
+              checked={loopEnabled}
+              onChange={(e) => handleLoopToggle(e.currentTarget.checked)}
+              label="循环播放"
+              size="sm"
+              disabled={!isReady}
+              styles={{
+                root: {
+                  minHeight: CONTROL_HEIGHT,
+                  display: "flex",
+                  alignItems: "center",
+                },
+                body: {
+                  display: "flex",
+                  alignItems: "center",
+                },
+                input: {
+                  borderColor: "#334155",
+                  background: "#0f172a",
+                },
+                label: {
+                  color: "#cbd5e1",
+                  fontSize: 12,
+                  lineHeight: "16px",
+                },
+              }}
+            />
+          </Box>
+        </Stack>
       )}
     </Stack>
   );

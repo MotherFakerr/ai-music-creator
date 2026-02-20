@@ -19,16 +19,16 @@ export function AppHeader({
 }: AppHeaderProps) {
   return (
     <Paper
-      radius="xl"
-      p="lg"
+      radius="lg"
+      p="md"
       style={{
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: "1px solid rgba(148,163,184,0.2)",
         background: "rgba(10, 14, 24, 0.7)",
         backdropFilter: "blur(8px)",
       }}
     >
-      <Group justify="space-between" align="flex-start" wrap="wrap" gap={12}>
-        <Group gap={12}>
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap={10}>
+        <Group gap={10}>
           <ThemeIcon
             size={42}
             radius="md"
@@ -38,7 +38,7 @@ export function AppHeader({
             🎵
           </ThemeIcon>
           <Box>
-            <Title order={2} style={{ fontSize: "2.1rem", lineHeight: 1.1 }}>
+            <Title order={2} style={{ fontSize: "1.9rem", lineHeight: 1.1 }}>
               AI Music Co-Creator
             </Title>
             <Text c="dimmed" size="md">
@@ -47,20 +47,32 @@ export function AppHeader({
           </Box>
         </Group>
 
-        <Group gap={10}>
+        <Group gap={8}>
           <Badge
-            size="lg"
+            size="sm"
             color={isInitialized ? "teal" : "gray"}
             variant="light"
-            style={{ textTransform: "none" }}
+            styles={{
+              root: {
+                textTransform: "none",
+                height: 30,
+                borderRadius: 6,
+              },
+            }}
           >
             {isInitialized ? "音频引擎已就绪" : "音频引擎初始化中"}
           </Badge>
           <Badge
-            size="lg"
+            size="sm"
             color={isInstrumentLoading ? "yellow" : "grape"}
             variant="light"
-            style={{ textTransform: "none" }}
+            styles={{
+              root: {
+                textTransform: "none",
+                height: 30,
+                borderRadius: 6,
+              },
+            }}
           >
             {isInstrumentLoading ? "音色加载中" : "可演奏"}
           </Badge>

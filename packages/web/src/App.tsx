@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Card, Container, Grid, Stack } from "@mantine/core";
+import { Box, Button, Card, Container, Grid, Group, Stack } from "@mantine/core";
 import {
-  InstrumentSelector,
   Keyboard,
   PianoKeyboard,
   KeyboardModeSwitch,
@@ -29,12 +28,19 @@ import {
 const TRACE_LIFETIME_MS = 1650;
 const TRACE_MAX_ITEMS = 48;
 const TRACK_EDGE_PADDING = 0.02;
+const MODULE_PANEL_STYLE = {
+  border: "1px solid rgba(148,163,184,0.2)",
+  background:
+    "linear-gradient(180deg, rgba(7, 12, 22, 0.78) 0%, rgba(4, 8, 16, 0.72) 100%)",
+  boxShadow: "inset 0 1px 0 rgba(148,163,184,0.06)",
+};
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInstrumentLoading, setIsInstrumentLoading] = useState(false);
   const [traces, setTraces] = useState<PerformanceTrace[]>([]);
   const [volume, setVolume] = useState(0.9);
+  const [reverb, setReverb] = useState(0.18);
   const [instrument, setInstrument] = useState<EN_INSTRUMENT_TYPE>(
     EN_INSTRUMENT_TYPE.PIANO,
   );
@@ -181,6 +187,10 @@ function App() {
     audioEngine.setVolume(volume);
   }, [audioEngine, volume]);
 
+  useEffect(() => {
+    audioEngine.setReverb(reverb);
+  }, [audioEngine, reverb]);
+
   return (
     <Box
       style={{
@@ -189,52 +199,66 @@ function App() {
           "radial-gradient(circle at 10% 10%, #1f245f 0%, transparent 38%), radial-gradient(circle at 88% 90%, #0d4f5f 0%, transparent 35%), #090b12",
       }}
     >
-      <Container size="xl" py={20}>
-        <Stack gap={16}>
+      <Container size="xl" py={18}>
+        <Stack gap={12}>
           <AppHeader
             isInitialized={isInitialized}
             isInstrumentLoading={isInstrumentLoading}
           />
-          <Box style={{ display: "flex", justifyContent: "flex-end" }}>
-            <a
-              href="/sequencer"
-              style={{
-                color: "#93c5fd",
-                fontSize: 13,
-                textDecoration: "none",
-              }}
-            >
-              进入编曲工作台
-            </a>
-          </Box>
-
           <Card
-            radius="lg"
-            padding="lg"
+            radius="md"
+            padding="md"
             style={{
-              border: "1px solid rgba(255,255,255,0.08)",
+              border: "1px solid rgba(148,163,184,0.2)",
               background: "rgba(15, 19, 32, 0.7)",
             }}
           >
-            <Stack gap={14}>
-              <Box
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#dbeafe",
-                  letterSpacing: 0.3,
-                }}
-              >
-                演奏与跟奏
-              </Box>
+            <Stack gap={10}>
+              <Group justify="space-between" align="center" wrap="wrap" gap={8}>
+                <Box
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "#dbeafe",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  演奏与跟奏
+                </Box>
+                <Button
+                  component="a"
+                  href="/sequencer"
+                  variant="default"
+                  size="xs"
+                  styles={{
+                    root: {
+                      height: 30,
+                      minHeight: 30,
+                      borderRadius: 6,
+                      borderColor: "rgba(96,165,250,0.45)",
+                      background: "rgba(30, 58, 138, 0.22)",
+                      color: "#dbeafe",
+                      paddingInline: 12,
+                    },
+                  }}
+                >
+                  进入编曲工作台
+                </Button>
+              </Group>
 
-              <Grid gutter="md" align="stretch">
+              <Grid gutter="sm" align="stretch">
                 <Grid.Col span={{ base: 12, md: 4 }} style={{ display: "flex" }}>
                   <SettingsPanel
                     baseNote={baseNote}
                     volume={volume}
+                    reverb={reverb}
+                    instrument={instrument}
+                    isInstrumentLoading={isInstrumentLoading}
+                    disabled={!isInitialized}
                     onBaseNoteChange={handleBaseNoteChange}
                     onVolumeChange={setVolume}
+                    onReverbChange={setReverb}
+                    onInstrumentChange={handleInstrumentChange}
                   />
                 </Grid.Col>
 
@@ -251,15 +275,6 @@ function App() {
                 </Grid.Col>
               </Grid>
 
-              <AudioPlayer />
-
-              <InstrumentSelector
-                value={instrument}
-                onChange={handleInstrumentChange}
-                isLoading={isInstrumentLoading}
-                disabled={!isInitialized}
-              />
-
               <Stack gap={6}>
                 <Box style={{ display: "flex", justifyContent: "flex-end" }}>
                   <KeyboardModeSwitch
@@ -268,24 +283,34 @@ function App() {
                   />
                 </Box>
 
-                <Box className="keyboard-area">
-                  {keyboardMode === "qwerty" ? (
-                    <Keyboard
-                      activeNotes={activeNotes}
-                      baseNote={baseNote}
-                      onNoteOn={noteOn}
-                      onNoteOff={noteOff}
-                    />
-                  ) : (
-                    <PianoKeyboard
-                      activeNotes={activeNotes}
-                      baseNote={baseNote}
-                      onNoteOn={noteOn}
-                      onNoteOff={noteOff}
-                    />
-                  )}
-                </Box>
+                <Card radius="md" padding="sm" style={MODULE_PANEL_STYLE}>
+                  <Box className="keyboard-area">
+                    {keyboardMode === "qwerty" ? (
+                      <Keyboard
+                        activeNotes={activeNotes}
+                        baseNote={baseNote}
+                        onNoteOn={noteOn}
+                        onNoteOff={noteOff}
+                      />
+                    ) : (
+                      <PianoKeyboard
+                        activeNotes={activeNotes}
+                        baseNote={baseNote}
+                        onNoteOn={noteOn}
+                        onNoteOff={noteOff}
+                      />
+                    )}
+                  </Box>
+                </Card>
               </Stack>
+
+              <Card
+                radius="md"
+                padding="sm"
+                style={MODULE_PANEL_STYLE}
+              >
+                <AudioPlayer />
+              </Card>
             </Stack>
           </Card>
 

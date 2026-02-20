@@ -19,8 +19,12 @@ export class AudioEngine {
   private activeNotes: Map<number, { stop: (time?: number) => void }> =
     new Map();
   private masterGain: GainNode | null = null;
+  private dryGain: GainNode | null = null;
+  private wetGain: GainNode | null = null;
+  private convolver: ConvolverNode | null = null;
   private currentInstrument: EN_INSTRUMENT_TYPE = EN_INSTRUMENT_TYPE.PIANO;
   private volume: number = 1.0;
+  private reverb: number = 0.18;
   private instrumentPlayer: Soundfont | null = null;
   private instrumentPlayers: Map<EN_INSTRUMENT_TYPE, Soundfont> = new Map();
   private instrumentLoadings: Map<EN_INSTRUMENT_TYPE, Promise<Soundfont>> =
@@ -59,7 +63,17 @@ export class AudioEngine {
     this.context = new AudioContext();
     this.masterGain = this.context.createGain();
     this.masterGain.gain.value = this.volume;
-    this.masterGain.connect(this.context.destination);
+    this.dryGain = this.context.createGain();
+    this.wetGain = this.context.createGain();
+    this.convolver = this.context.createConvolver();
+    this.convolver.buffer = this.createImpulseResponse(this.context, 1.8, 2.6);
+
+    this.masterGain.connect(this.dryGain);
+    this.masterGain.connect(this.convolver);
+    this.convolver.connect(this.wetGain);
+
+    this.setReverb(this.reverb);
+    this.updateOutputRouting();
 
     // 加载默认乐器
     await this.loadInstrument(this.currentInstrument);
@@ -75,6 +89,47 @@ export class AudioEngine {
       throw new Error("AudioEngine 未初始化，请先调用 init()");
     }
     return this.context;
+  }
+
+  /**
+   * 生成一个简易脉冲响应，用于全局混响
+   */
+  private createImpulseResponse(
+    context: AudioContext,
+    seconds: number,
+    decay: number
+  ): AudioBuffer {
+    const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+    const impulse = context.createBuffer(2, length, context.sampleRate);
+    for (let channel = 0; channel < 2; channel += 1) {
+      const data = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i += 1) {
+        const t = i / length;
+        // 指数衰减噪声，构造“房间尾音”质感
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+      }
+    }
+    return impulse;
+  }
+
+  /**
+   * 根据当前录音状态更新最终输出路由
+   */
+  private updateOutputRouting(): void {
+    if (!this.context || !this.dryGain || !this.wetGain) {
+      return;
+    }
+
+    this.dryGain.disconnect();
+    this.wetGain.disconnect();
+
+    this.dryGain.connect(this.context.destination);
+    this.wetGain.connect(this.context.destination);
+
+    if (this.recordingDestination) {
+      this.dryGain.connect(this.recordingDestination);
+      this.wetGain.connect(this.recordingDestination);
+    }
   }
 
   /**
@@ -166,6 +221,23 @@ export class AudioEngine {
     if (this.masterGain) {
       this.masterGain.gain.value = this.volume;
     }
+  }
+
+  /**
+   * 设置混响强度（0~1）
+   */
+  setReverb(value: number): void {
+    this.reverb = Math.max(0, Math.min(1, value));
+    if (!this.dryGain || !this.wetGain || !this.context) {
+      return;
+    }
+
+    // 使用等功率交叉淡化，避免切换时响度明显跳变
+    const wet = Math.sin(this.reverb * Math.PI * 0.5);
+    const dry = Math.cos(this.reverb * Math.PI * 0.5);
+    const now = this.context.currentTime;
+    this.dryGain.gain.setTargetAtTime(dry, now, 0.015);
+    this.wetGain.gain.setTargetAtTime(wet, now, 0.015);
   }
 
   /**
@@ -589,17 +661,13 @@ export class AudioEngine {
     const ctx = this.ensureContext();
 
     this.recordingDestination = ctx.createMediaStreamDestination();
-
-    if (this.masterGain) {
-      this.masterGain.connect(this.recordingDestination);
-    }
+    this.updateOutputRouting();
 
     if (this.backingSource && this.backingGain) {
       this.backingSource.disconnect();
       this.backingGain.disconnect();
       this.backingSource.connect(this.backingGain);
       this.backingGain.connect(this.recordingDestination);
-      this.recordingDestination.connect(ctx.destination);
     }
 
     const stream = this.recordingDestination.stream;
@@ -636,9 +704,8 @@ export class AudioEngine {
         this.recordedChunks = [];
         this.isRecording = false;
 
-        if (this.recordingDestination && this.masterGain) {
-          this.masterGain.disconnect(this.recordingDestination);
-        }
+        this.recordingDestination = null;
+        this.updateOutputRouting();
 
         console.log("[AudioEngine] 录音结束");
         resolve(blob);
@@ -664,6 +731,9 @@ export class AudioEngine {
     this.instrumentPlayer = null;
     this.instrumentPlayers.clear();
     this.instrumentLoadings.clear();
+    this.dryGain = null;
+    this.wetGain = null;
+    this.convolver = null;
     if (this.context) {
       this.context.close();
       this.context = null;

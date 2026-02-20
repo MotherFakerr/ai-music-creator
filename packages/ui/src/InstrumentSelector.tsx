@@ -1,9 +1,5 @@
-/**
- * InstrumentSelector Component
- * 音色选择器
- */
-
 import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
+import { Badge, Button, Group, Stack, Text } from "@mantine/core";
 
 export interface InstrumentSelectorProps {
   value: EN_INSTRUMENT_TYPE;
@@ -27,126 +23,41 @@ export function InstrumentSelector({
   disabled = false,
 }: InstrumentSelectorProps) {
   return (
-    <div className="instrument-selector">
-      <span className="selector-label">音色</span>
-      <div className="instrument-buttons">
+    <Stack gap={6}>
+      <Group justify="space-between" align="center">
+        <Text size="xs" fw={600} c="#94a3b8">
+          音色
+        </Text>
+        {isLoading ? (
+          <Badge size="xs" variant="light" color="yellow" radius={6}>
+            切换中
+          </Badge>
+        ) : null}
+      </Group>
+      <Group gap={6}>
         {INSTRUMENTS.map((inst) => (
-          <button
+          <Button
             key={inst.id}
-            className={`instrument-btn ${value === inst.id ? "active" : ""}`}
+            size="xs"
+            radius={6}
+            variant={value === inst.id ? "filled" : "default"}
+            color={value === inst.id ? "blue" : "gray"}
             onClick={() => onChange(inst.id)}
             disabled={disabled || isLoading}
+            styles={{
+              root: {
+                height: 30,
+                paddingInline: 12,
+                borderColor: value === inst.id ? "rgba(96,165,250,0.55)" : "#334155",
+                background: value === inst.id ? "rgba(59,130,246,0.2)" : "#0f172a",
+                color: value === inst.id ? "#eaf2ff" : "#cbd5e1",
+              },
+            }}
           >
             {inst.label}
-            {isLoading && value === inst.id ? (
-              <span className="loading-dot" aria-hidden="true" />
-            ) : null}
-          </button>
+          </Button>
         ))}
-      </div>
-
-      <style>{`
-        .instrument-selector {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .selector-label {
-          color: #ced4da;
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.8px;
-        }
-
-        .instrument-buttons {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-        }
-
-        .instrument-btn {
-          position: relative;
-          padding: 12px 24px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
-          color: #9ca3af;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .instrument-btn:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.15);
-          color: #fff;
-        }
-
-        .instrument-btn.active {
-          background: rgba(99, 102, 241, 0.15);
-          border-color: rgba(99, 102, 241, 0.4);
-          color: #fff;
-          box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
-        }
-
-        .instrument-btn:disabled {
-          cursor: not-allowed;
-          opacity: 0.5;
-          transform: none;
-          box-shadow: none;
-        }
-
-        .instrument-btn:disabled:hover {
-          background: rgba(255, 255, 255, 0.03);
-          border-color: rgba(255, 255, 255, 0.08);
-          color: #9ca3af;
-        }
-
-        .loading-dot {
-          position: absolute;
-          right: 7px;
-          top: 7px;
-          width: 7px;
-          height: 7px;
-          border-radius: 999px;
-          background: #fbbf24;
-          box-shadow: 0 0 0 rgba(251, 191, 36, 0.6);
-          animation: loading-dot-pulse 900ms ease-out infinite;
-        }
-
-        @keyframes loading-dot-pulse {
-          0% {
-            transform: scale(0.9);
-            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6);
-          }
-          70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
-          }
-          100% {
-            transform: scale(0.9);
-            box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
-          }
-        }
-
-        @media (max-width: 860px) {
-          .instrument-buttons {
-            flex-wrap: wrap;
-            gap: 8px;
-          }
-
-          .instrument-btn {
-            padding: 10px 0;
-            font-size: 13px;
-            flex: 1 1 calc(33.333% - 6px);
-            min-width: 0;
-            text-align: center;
-            white-space: nowrap;
-          }
-        }
-      `}</style>
-    </div>
+      </Group>
+    </Stack>
   );
 }
