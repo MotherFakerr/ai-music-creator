@@ -1,4 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  IconArrowBackUp,
+  IconArrowForwardUp,
+  IconCircleDot,
+  IconMusic,
+  IconPlayerPlay,
+  IconPlayerSkipBack,
+  IconPlayerStop,
+  IconRepeat,
+  IconZoomIn,
+} from "@tabler/icons-react";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import { ChannelRack } from "./ChannelRack";
 import { PianoRoll } from "./PianoRoll";
@@ -368,6 +379,7 @@ export function PatternEditor() {
         onMoveChannel={moveChannel}
         onToggleStep={toggleChannelStep}
       />
+      <div className="playback-area">
       <div className={`selection-panel ${selectedNoteIds.length === 0 ? "is-empty" : ""}`}>
         <span className="panel-title">
             {`${selectedNoteIds.length} notes selected`}
@@ -479,6 +491,7 @@ export function PatternEditor() {
         playheadStep={isPlaying ? playheadStep : null}
       />
       <div className="transport">
+        <div className="transport-group transport-group-buttons">
         <button
           className="transport-btn"
           disabled={isPreparingAudio}
@@ -492,22 +505,39 @@ export function PatternEditor() {
               setIsPlaying(true);
             }
           }}
+          title={isPreparingAudio ? "Loading Audio..." : isPlaying ? "Stop" : "Play"}
         >
-          {isPreparingAudio ? "Loading Audio..." : isPlaying ? "Stop" : "Play"}
+          {isPreparingAudio ? (
+            <span className="transport-btn-label">Loading...</span>
+          ) : isPlaying ? (
+            <>
+              <IconPlayerStop size={14} />
+              <span className="transport-btn-label">Stop</span>
+            </>
+          ) : (
+            <>
+              <IconPlayerPlay size={14} />
+              <span className="transport-btn-label">Play</span>
+            </>
+          )}
         </button>
         <button
           className="transport-btn"
           disabled={!canUndo}
           onClick={() => undo()}
+          title="Undo"
         >
-          Undo
+          <IconArrowBackUp size={14} />
+          <span className="transport-btn-label">Undo</span>
         </button>
         <button
           className="transport-btn"
           disabled={!canRedo}
           onClick={() => redo()}
+          title="Redo"
         >
-          Redo
+          <IconArrowForwardUp size={14} />
+          <span className="transport-btn-label">Redo</span>
         </button>
         <button
           className="transport-btn"
@@ -516,65 +546,91 @@ export function PatternEditor() {
             audioEngineRef.current.stopAllNotes();
             clearStopTimers();
           }}
+          title="Reset playhead to start"
         >
-          Reset Head
+          <IconPlayerSkipBack size={14} />
+          <span className="transport-btn-label">Reset Head</span>
         </button>
-        <label className="transport-field">
-          BPM
-          <input
-            type="number"
-            min={40}
-            max={220}
-            value={bpm}
-            onChange={(event) => setBpm(Math.max(40, Math.min(220, Number(event.target.value) || 120)))}
-          />
-        </label>
-        <label className="transport-field">
-          Zoom
-          <input
-            type="range"
-            min={16}
-            max={40}
-            step={1}
-            value={stepWidth}
-            onChange={(event) => setStepWidth(Number(event.target.value))}
-          />
-          <span>{stepWidth}px</span>
-        </label>
-        <label className="transport-field transport-check">
-          <input
-            type="checkbox"
-            checked={loopEnabled}
-            onChange={(event) => setLoopEnabled(event.target.checked)}
-          />
-          Loop
-        </label>
-        <label className="transport-field">
-          Loop In
-          <input
-            type="number"
-            min={1}
-            max={totalSteps}
-            value={loopStartStep + 1}
-            onChange={(event) => setLoopStartStep(Math.max(0, Math.min(totalSteps - 1, Number(event.target.value) - 1)))}
-          />
-        </label>
-        <label className="transport-field">
-          Loop Out
-          <input
-            type="number"
-            min={1}
-            max={totalSteps}
-            value={loopEndStep + 1}
-            onChange={(event) => setLoopEndStep(Math.max(0, Math.min(totalSteps - 1, Number(event.target.value) - 1)))}
-          />
-        </label>
-        <span className="transport-status">
-          Step {playheadStep + 1} / {totalSteps}
-        </span>
+        </div>
+        <div className="transport-group" title="Tempo">
+          <IconMusic size={14} className="transport-field-icon" />
+          <label className="transport-field">
+            <span className="transport-field-label">BPM</span>
+            <input
+              type="number"
+              min={40}
+              max={220}
+              value={bpm}
+              onChange={(event) => setBpm(Math.max(40, Math.min(220, Number(event.target.value) || 120)))}
+            />
+          </label>
+        </div>
+        <div className="transport-group" title="Step width (zoom)">
+          <IconZoomIn size={14} className="transport-field-icon" />
+          <label className="transport-field transport-field-zoom">
+            <span className="transport-field-label">Zoom</span>
+            <input
+              type="range"
+              min={16}
+              max={40}
+              step={1}
+              value={stepWidth}
+              onChange={(event) => setStepWidth(Number(event.target.value))}
+            />
+            <span className="transport-field-value">{stepWidth}px</span>
+          </label>
+        </div>
+        <div className="transport-group transport-group-loop" title="Loop region">
+          <IconRepeat size={14} className="transport-field-icon" />
+          <label className="transport-field transport-check">
+            <input
+              type="checkbox"
+              checked={loopEnabled}
+              onChange={(event) => setLoopEnabled(event.target.checked)}
+            />
+            <span className="transport-field-label">Loop</span>
+          </label>
+          <label className="transport-field transport-field-inout">
+            <span className="transport-field-label">In</span>
+            <input
+              type="number"
+              min={1}
+              max={totalSteps}
+              value={loopStartStep + 1}
+              onChange={(event) => setLoopStartStep(Math.max(0, Math.min(totalSteps - 1, Number(event.target.value) - 1)))}
+            />
+          </label>
+          <span className="transport-inout-sep">–</span>
+          <label className="transport-field transport-field-inout">
+            <span className="transport-field-label">Out</span>
+            <input
+              type="number"
+              min={1}
+              max={totalSteps}
+              value={loopEndStep + 1}
+              onChange={(event) => setLoopEndStep(Math.max(0, Math.min(totalSteps - 1, Number(event.target.value) - 1)))}
+            />
+          </label>
+        </div>
+        <div className="transport-group transport-status-wrap" title="Playhead position">
+          <IconCircleDot size={14} className="transport-field-icon" />
+          <span className="transport-status">
+            {playheadStep + 1} / {totalSteps}
+          </span>
+        </div>
+      </div>
       </div>
       <style>{`
         .pattern-editor {
+          display: grid;
+          gap: 12px;
+          min-width: 0;
+        }
+        .playback-area {
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 6px 10px;
+          background: #11131a;
           display: grid;
           gap: 12px;
           min-width: 0;
@@ -583,21 +639,49 @@ export function PatternEditor() {
           display: flex;
           align-items: center;
           flex-wrap: wrap;
-          gap: 8px;
-          padding-top: 10px;
+          gap: 14px;
+          padding-top: 12px;
+          margin-top: 2px;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
         .transport-btn {
-          border: 1px solid #334155;
-          border-radius: 6px;
-          background: #0f172a;
-          color: #e2e8f0;
-          padding: 6px 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 1px solid #374151;
+          border-radius: 4px;
+          background: #111827;
+          color: #cbd5e1;
+          padding: 4px 8px;
           cursor: pointer;
+          font-size: 12px;
+        }
+        .transport-btn:hover:not(:disabled) {
+          color: #e2e8f0;
+          background: #1e293b;
         }
         .transport-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+        .transport-group {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          color: #cbd5e1;
+          padding: 6px 10px;
+          border-radius: 6px;
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .transport-group-buttons {
+          gap: 8px;
+          padding: 5px 8px;
+        }
+        .transport-field-icon {
+          flex-shrink: 0;
+          color: #94a3b8;
         }
         .transport-field {
           display: inline-flex;
@@ -606,23 +690,50 @@ export function PatternEditor() {
           font-size: 12px;
           color: #cbd5e1;
         }
+        .transport-field-label {
+          flex-shrink: 0;
+          min-width: 1.8em;
+        }
         .transport-field input[type="number"] {
-          width: 68px;
+          width: 48px;
           border: 1px solid #334155;
-          border-radius: 6px;
+          border-radius: 4px;
           background: #0f172a;
           color: #e2e8f0;
-          padding: 4px 6px;
+          padding: 3px 6px;
+          font-size: 12px;
         }
-        .transport-field input[type="range"] {
-          width: 110px;
+        .transport-field-zoom input[type="range"] {
+          width: 72px;
+        }
+        .transport-field-value {
+          min-width: 2.5em;
+          color: #94a3b8;
+          font-size: 11px;
+        }
+        .transport-group-loop {
+          gap: 4px;
+        }
+        .transport-group-loop .transport-field-inout input[type="number"] {
+          width: 40px;
+        }
+        .transport-inout-sep {
+          color: #64748b;
+          font-size: 11px;
+          padding: 0 2px;
         }
         .transport-check {
           padding: 0 4px;
         }
+        .transport-check input[type="checkbox"] {
+          margin: 0;
+        }
+        .transport-status-wrap {
+          color: #94a3b8;
+        }
         .transport-status {
           font-size: 12px;
-          color: #94a3b8;
+          font-variant-numeric: tabular-nums;
         }
         .selection-panel {
           border: 1px solid rgba(148, 163, 184, 0.3);
@@ -690,7 +801,7 @@ export function PatternEditor() {
             gap: 8px;
           }
           .transport {
-            gap: 6px;
+            gap: 10px;
           }
           .transport-btn {
             padding: 5px 8px;
@@ -700,8 +811,8 @@ export function PatternEditor() {
             gap: 4px;
             font-size: 11px;
           }
-          .transport-field input[type="range"] {
-            width: 96px;
+          .transport-field-zoom input[type="range"] {
+            width: 56px;
           }
           .selection-panel {
             padding: 8px;
