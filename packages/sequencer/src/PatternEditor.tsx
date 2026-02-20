@@ -3,6 +3,7 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconCircleDot,
+  IconLoader,
   IconMusic,
   IconPlayerPlay,
   IconPlayerSkipBack,
@@ -51,13 +52,16 @@ export function PatternEditor() {
   const audioEngineRef = useRef(getAudioEngine());
   const stopTimersRef = useRef<number[]>([]);
   const schedulerTimerRef = useRef<number | null>(null);
-  const clipboardRef = useRef<
-    | {
-        minStart: number;
-        notes: Array<{ channelId: string; pitch: number; startOffset: number; length: number; velocity: number }>;
-      }
-    | null
-  >(null);
+  const clipboardRef = useRef<{
+    minStart: number;
+    notes: Array<{
+      channelId: string;
+      pitch: number;
+      startOffset: number;
+      length: number;
+      velocity: number;
+    }>;
+  } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadStep, setPlayheadStep] = useState(0);
   const [bpm, setBpm] = useState(120);
@@ -72,7 +76,7 @@ export function PatternEditor() {
   const [stepWidth, setStepWidth] = useState(48);
   const [viewportStep, setViewportStep] = useState(0);
   const totalSteps = state.stepsPerBar * state.bars;
-  const msPerStep = (60000 / bpm) / 4;
+  const msPerStep = 60000 / bpm / 4;
   const selectedNotes = useMemo(
     () => state.notes.filter((note) => selectedNoteIds.includes(note.id)),
     [state.notes, selectedNoteIds],
@@ -100,9 +104,11 @@ export function PatternEditor() {
       return;
     }
     const avgVelocity =
-      selectedNotes.reduce((sum, note) => sum + note.velocity, 0) / selectedNotes.length;
+      selectedNotes.reduce((sum, note) => sum + note.velocity, 0) /
+      selectedNotes.length;
     const avgLength =
-      selectedNotes.reduce((sum, note) => sum + note.length, 0) / selectedNotes.length;
+      selectedNotes.reduce((sum, note) => sum + note.length, 0) /
+      selectedNotes.length;
     setPanelVelocity(Math.round(avgVelocity));
     setPanelLength(Math.max(1, Math.round(avgLength)));
   }, [selectedNotes]);
@@ -115,7 +121,9 @@ export function PatternEditor() {
   const scheduleStop = (note: number, afterMs: number) => {
     const timerId = window.setTimeout(() => {
       audioEngineRef.current.stopNote(note);
-      stopTimersRef.current = stopTimersRef.current.filter((id) => id !== timerId);
+      stopTimersRef.current = stopTimersRef.current.filter(
+        (id) => id !== timerId,
+      );
     }, afterMs);
     stopTimersRef.current.push(timerId);
   };
@@ -125,7 +133,9 @@ export function PatternEditor() {
     const activeChannels = state.channels.filter((channel) =>
       hasSolo ? channel.solo && !channel.muted : !channel.muted,
     );
-    const activeChannelMap = new Map(activeChannels.map((channel) => [channel.id, channel]));
+    const activeChannelMap = new Map(
+      activeChannels.map((channel) => [channel.id, channel]),
+    );
 
     state.notes.forEach((note) => {
       const channel = activeChannelMap.get(note.channelId);
@@ -135,7 +145,10 @@ export function PatternEditor() {
       if (note.startStep !== absoluteStep) {
         return;
       }
-      const velocity = Math.max(1, Math.round(note.velocity * (channel.volume / 100)));
+      const velocity = Math.max(
+        1,
+        Math.round(note.velocity * (channel.volume / 100)),
+      );
       if (velocity <= 0) {
         return;
       }
@@ -168,7 +181,9 @@ export function PatternEditor() {
 
   const applyVelocityToSelected = (nextVelocity: number) => {
     setPanelVelocity(nextVelocity);
-    selectedNoteIds.forEach((noteId) => setPianoRollNoteVelocity(noteId, nextVelocity));
+    selectedNoteIds.forEach((noteId) =>
+      setPianoRollNoteVelocity(noteId, nextVelocity),
+    );
   };
 
   const applyLengthToSelected = (nextLength: number) => {
@@ -229,7 +244,9 @@ export function PatternEditor() {
     if (!ready) {
       return;
     }
-    const selectedChannel = state.channels.find((channel) => channel.id === state.selectedChannelId);
+    const selectedChannel = state.channels.find(
+      (channel) => channel.id === state.selectedChannelId,
+    );
     audioEngineRef.current.triggerNoteWithInstrument(
       pitch,
       104,
@@ -243,7 +260,9 @@ export function PatternEditor() {
     if (!ready) {
       return;
     }
-    const selectedChannel = state.channels.find((channel) => channel.id === state.selectedChannelId);
+    const selectedChannel = state.channels.find(
+      (channel) => channel.id === state.selectedChannelId,
+    );
     audioEngineRef.current.triggerNoteWithInstrument(
       pitch,
       98,
@@ -268,7 +287,10 @@ export function PatternEditor() {
         undo();
         return;
       }
-      if ((withMod && event.key.toLowerCase() === "z" && event.shiftKey) || (event.ctrlKey && event.key.toLowerCase() === "y")) {
+      if (
+        (withMod && event.key.toLowerCase() === "z" && event.shiftKey) ||
+        (event.ctrlKey && event.key.toLowerCase() === "y")
+      ) {
         event.preventDefault();
         redo();
         return;
@@ -336,11 +358,17 @@ export function PatternEditor() {
         expectedAt += msPerStep;
         guard += 1;
       }
-      const delay = Math.max(8, Math.min(26, expectedAt - performance.now() - 2));
+      const delay = Math.max(
+        8,
+        Math.min(26, expectedAt - performance.now() - 2),
+      );
       schedulerTimerRef.current = window.setTimeout(tick, delay);
     };
 
-    schedulerTimerRef.current = window.setTimeout(tick, Math.max(8, msPerStep * 0.25));
+    schedulerTimerRef.current = window.setTimeout(
+      tick,
+      Math.max(8, msPerStep * 0.25),
+    );
 
     return () => {
       if (schedulerTimerRef.current) {
@@ -382,301 +410,332 @@ export function PatternEditor() {
         onMoveChannel={moveChannel}
       />
       <div className="playback-area">
-      <div className={`selection-panel ${selectedNoteIds.length === 0 ? "is-empty" : ""}`}>
-        <span className="panel-title">
+        <div
+          className={`selection-panel ${selectedNoteIds.length === 0 ? "is-empty" : ""}`}
+        >
+          <span className="panel-title">
             {`${selectedNoteIds.length} notes selected`}
-        </span>
-        <label className="panel-field">
-          Velocity
-          <Slider
-            className="panel-slider"
-            size="xs"
-            min={1}
-            max={127}
-            value={panelVelocity}
-            onChange={applyVelocityToSelected}
-            disabled={selectedNoteIds.length === 0}
-          />
-          <NumberInput
-            className="panel-number"
-            classNames={{ input: "compact-number-input", section: "compact-number-section" }}
-            size="xs"
-            min={1}
-            max={127}
-            value={panelVelocity}
-            onChange={(value) => applyVelocityToSelected(asNumber(value, 100))}
-            disabled={selectedNoteIds.length === 0}
-          />
-        </label>
-        <label className="panel-field">
-          Length
-          <NumberInput
-            className="panel-number"
-            classNames={{ input: "compact-number-input", section: "compact-number-section" }}
-            size="xs"
-            min={1}
-            max={totalSteps}
-            value={panelLength}
-            onChange={(value) => applyLengthToSelected(asNumber(value, 1))}
-            disabled={selectedNoteIds.length === 0}
-          />
-        </label>
-        <div className="panel-group">
-          <Button
-            className="panel-btn"
-            size="xs"
-            variant="default"
-            unstyled
-            onClick={() => transposeSelected(-12)}
-            disabled={selectedNoteIds.length === 0}
-          >
-            -12 st
-          </Button>
-          <Button
-            className="panel-btn"
-            size="xs"
-            variant="default"
-            unstyled
-            onClick={() => transposeSelected(-1)}
-            disabled={selectedNoteIds.length === 0}
-          >
-            -1 st
-          </Button>
-          <Button
-            className="panel-btn"
-            size="xs"
-            variant="default"
-            unstyled
-            onClick={() => transposeSelected(1)}
-            disabled={selectedNoteIds.length === 0}
-          >
-            +1 st
-          </Button>
-          <Button
-            className="panel-btn"
-            size="xs"
-            variant="default"
-            unstyled
-            onClick={() => transposeSelected(12)}
-            disabled={selectedNoteIds.length === 0}
-          >
-            +12 st
-          </Button>
-        </div>
-        <div className="panel-group">
-          <Button
-            className="panel-btn"
-            size="xs"
-            variant="default"
-            unstyled
-            onClick={() => nudgeSelected(-1)}
-            disabled={selectedNoteIds.length === 0}
-          >
-            Nudge Left
-          </Button>
-          <Button
-            className="panel-btn"
-            size="xs"
-            variant="default"
-            unstyled
-            onClick={() => nudgeSelected(1)}
-            disabled={selectedNoteIds.length === 0}
-          >
-            Nudge Right
-          </Button>
-          <Button
-            className="panel-btn danger"
-            size="xs"
-            variant="filled"
-            color="red"
-            unstyled
-            onClick={deleteSelected}
-            disabled={selectedNoteIds.length === 0}
-          >
-            Delete
-          </Button>
-        </div>
-      </div>
-      <PianoRoll
-        stepsPerBar={state.stepsPerBar}
-        bars={state.bars}
-        pitchRows={visiblePitchRows}
-        selectedChannelId={state.selectedChannelId}
-        channels={state.channels}
-        notes={state.notes}
-        selectedNoteIds={selectedNoteIds}
-        onSelectionChange={setSelectedNoteIds}
-        onAddNote={addPianoRollNote}
-        onPreviewAddedNote={previewAddedNote}
-        onPreviewMovedNote={previewMovedNote}
-        onDeleteNote={deletePianoRollNote}
-        onMoveNote={movePianoRollNote}
-        onMoveNotesByDelta={movePianoRollNotesByDelta}
-        onResizeNote={resizePianoRollNote}
-        onBeginEditTransaction={beginEditTransaction}
-        onEndEditTransaction={endEditTransaction}
-        onViewportStepChange={setViewportStep}
-        stepWidth={stepWidth}
-        playheadStep={isPlaying ? playheadStep : null}
-      />
-      <div className="transport">
-        <div className="transport-group transport-group-buttons">
-        <Button
-          className="transport-btn"
-          size="xs"
-          variant="default"
-          unstyled
-          disabled={isPreparingAudio}
-          onClick={async () => {
-            if (isPlaying) {
-              setIsPlaying(false);
-              return;
-            }
-            const ready = await ensureAudioReady();
-            if (ready) {
-              setIsPlaying(true);
-            }
-          }}
-          title={isPreparingAudio ? "Loading Audio..." : isPlaying ? "Stop" : "Play"}
-          leftSection={
-            isPreparingAudio ? undefined : isPlaying ? <IconPlayerStop size={14} /> : <IconPlayerPlay size={14} />
-          }
-        >
-          {isPreparingAudio ? (
-            <span className="transport-btn-label">Loading...</span>
-          ) : (
-            <span className="transport-btn-label">{isPlaying ? "Stop" : "Play"}</span>
-          )}
-        </Button>
-        <Button
-          className="transport-btn"
-          size="xs"
-          variant="default"
-          unstyled
-          disabled={!canUndo}
-          onClick={() => undo()}
-          title="Undo"
-          leftSection={<IconArrowBackUp size={14} />}
-        >
-          <span className="transport-btn-label">Undo</span>
-        </Button>
-        <Button
-          className="transport-btn"
-          size="xs"
-          variant="default"
-          unstyled
-          disabled={!canRedo}
-          onClick={() => redo()}
-          title="Redo"
-          leftSection={<IconArrowForwardUp size={14} />}
-        >
-          <span className="transport-btn-label">Redo</span>
-        </Button>
-        <Button
-          className="transport-btn"
-          size="xs"
-          variant="default"
-          unstyled
-          onClick={() => {
-            setPlayheadStep(loopEnabled ? loopStartStep : 0);
-            audioEngineRef.current.stopAllNotes();
-            clearStopTimers();
-          }}
-          title="Reset playhead to start"
-          leftSection={<IconPlayerSkipBack size={14} />}
-        >
-          <span className="transport-btn-label">Reset Head</span>
-        </Button>
-        </div>
-        <div className="transport-group" title="Tempo">
-          <IconMusic size={14} className="transport-field-icon" />
-          <label className="transport-field">
-            <span className="transport-field-label">BPM</span>
-            <NumberInput
-              className="transport-number"
-              classNames={{ input: "compact-number-input", section: "compact-number-section" }}
-              size="xs"
-              min={40}
-              max={220}
-              value={bpm}
-              onChange={(value) =>
-                setBpm(Math.max(40, Math.min(220, asNumber(value, 120))))
-              }
-            />
-          </label>
-        </div>
-        <div className="transport-group" title="Step width (zoom)">
-          <IconZoomIn size={14} className="transport-field-icon" />
-          <label className="transport-field transport-field-zoom">
-            <span className="transport-field-label">Zoom</span>
-            <Slider
-              className="transport-slider"
-              size="xs"
-              min={16}
-              max={40}
-              step={1}
-              value={stepWidth}
-              onChange={setStepWidth}
-            />
-            <span className="transport-field-value">{stepWidth}px</span>
-          </label>
-        </div>
-        <div className="transport-group transport-group-loop" title="Loop region">
-          <IconRepeat size={14} className="transport-field-icon" />
-          <Checkbox
-            className="transport-check"
-            size="xs"
-            checked={loopEnabled}
-            onChange={(event) => setLoopEnabled(event.currentTarget.checked)}
-            label={<span className="transport-field-label">Loop</span>}
-          />
-          <label className="transport-field transport-field-inout">
-            <span className="transport-field-label">In</span>
-            <NumberInput
-              className="transport-loop-number"
-              classNames={{ input: "compact-number-input", section: "compact-number-section" }}
-              size="xs"
-              min={1}
-              max={totalSteps}
-              value={loopStartStep + 1}
-              onChange={(value) =>
-                setLoopStartStep(
-                  Math.max(
-                    0,
-                    Math.min(totalSteps - 1, asNumber(value, loopStartStep + 1) - 1),
-                  ),
-                )
-              }
-            />
-          </label>
-          <span className="transport-inout-sep">–</span>
-          <label className="transport-field transport-field-inout">
-            <span className="transport-field-label">Out</span>
-            <NumberInput
-              className="transport-loop-number"
-              classNames={{ input: "compact-number-input", section: "compact-number-section" }}
-              size="xs"
-              min={1}
-              max={totalSteps}
-              value={loopEndStep + 1}
-              onChange={(value) =>
-                setLoopEndStep(
-                  Math.max(
-                    0,
-                    Math.min(totalSteps - 1, asNumber(value, loopEndStep + 1) - 1),
-                  ),
-                )
-              }
-            />
-          </label>
-        </div>
-        <div className="transport-group transport-status-wrap" title="Playhead position">
-          <IconCircleDot size={14} className="transport-field-icon" />
-          <span className="transport-status">
-            {playheadStep + 1} / {totalSteps}
           </span>
+          <label className="panel-field">
+            Velocity
+            <Slider
+              className="panel-slider"
+              size="xs"
+              min={1}
+              max={127}
+              value={panelVelocity}
+              onChange={applyVelocityToSelected}
+              disabled={selectedNoteIds.length === 0}
+            />
+            <NumberInput
+              className="panel-number"
+              classNames={{
+                input: "compact-number-input",
+                section: "compact-number-section",
+              }}
+              size="xs"
+              min={1}
+              max={127}
+              value={panelVelocity}
+              onChange={(value) =>
+                applyVelocityToSelected(asNumber(value, 100))
+              }
+              disabled={selectedNoteIds.length === 0}
+            />
+          </label>
+          <label className="panel-field">
+            Length
+            <NumberInput
+              className="panel-number"
+              classNames={{
+                input: "compact-number-input",
+                section: "compact-number-section",
+              }}
+              size="xs"
+              min={1}
+              max={totalSteps}
+              value={panelLength}
+              onChange={(value) => applyLengthToSelected(asNumber(value, 1))}
+              disabled={selectedNoteIds.length === 0}
+            />
+          </label>
+          <div className="panel-group">
+            <Button
+              className="panel-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => transposeSelected(-12)}
+              disabled={selectedNoteIds.length === 0}
+            >
+              -12 st
+            </Button>
+            <Button
+              className="panel-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => transposeSelected(-1)}
+              disabled={selectedNoteIds.length === 0}
+            >
+              -1 st
+            </Button>
+            <Button
+              className="panel-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => transposeSelected(1)}
+              disabled={selectedNoteIds.length === 0}
+            >
+              +1 st
+            </Button>
+            <Button
+              className="panel-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => transposeSelected(12)}
+              disabled={selectedNoteIds.length === 0}
+            >
+              +12 st
+            </Button>
+          </div>
+          <div className="panel-group">
+            <Button
+              className="panel-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => nudgeSelected(-1)}
+              disabled={selectedNoteIds.length === 0}
+            >
+              Nudge Left
+            </Button>
+            <Button
+              className="panel-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => nudgeSelected(1)}
+              disabled={selectedNoteIds.length === 0}
+            >
+              Nudge Right
+            </Button>
+            <Button
+              className="panel-btn danger"
+              size="xs"
+              variant="filled"
+              color="red"
+              unstyled
+              onClick={deleteSelected}
+              disabled={selectedNoteIds.length === 0}
+            >
+              Delete
+            </Button>
+          </div>
         </div>
-      </div>
+        <PianoRoll
+          stepsPerBar={state.stepsPerBar}
+          bars={state.bars}
+          pitchRows={visiblePitchRows}
+          selectedChannelId={state.selectedChannelId}
+          channels={state.channels}
+          notes={state.notes}
+          selectedNoteIds={selectedNoteIds}
+          onSelectionChange={setSelectedNoteIds}
+          onAddNote={addPianoRollNote}
+          onPreviewAddedNote={previewAddedNote}
+          onPreviewMovedNote={previewMovedNote}
+          onDeleteNote={deletePianoRollNote}
+          onMoveNote={movePianoRollNote}
+          onMoveNotesByDelta={movePianoRollNotesByDelta}
+          onResizeNote={resizePianoRollNote}
+          onBeginEditTransaction={beginEditTransaction}
+          onEndEditTransaction={endEditTransaction}
+          onViewportStepChange={setViewportStep}
+          stepWidth={stepWidth}
+          playheadStep={isPlaying ? playheadStep : null}
+        />
+        <div className="transport">
+          <div className="transport-group transport-group-buttons">
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              disabled={isPreparingAudio}
+              onClick={async () => {
+                if (isPlaying) {
+                  setIsPlaying(false);
+                  return;
+                }
+                const ready = await ensureAudioReady();
+                if (ready) {
+                  setIsPlaying(true);
+                }
+              }}
+              title={
+                isPreparingAudio
+                  ? "Loading Audio..."
+                  : isPlaying
+                    ? "Stop"
+                    : "Play"
+              }
+              leftSection={
+                isPreparingAudio ? (
+                  <IconLoader size={14} />
+                ) : isPlaying ? (
+                  <IconPlayerStop size={14} />
+                ) : (
+                  <IconPlayerPlay size={14} />
+                )
+              }
+            />
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={() => {
+                setPlayheadStep(loopEnabled ? loopStartStep : 0);
+                audioEngineRef.current.stopAllNotes();
+                clearStopTimers();
+              }}
+              title="Reset playhead to start"
+              leftSection={<IconPlayerSkipBack size={14} />}
+            />
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              disabled={!canUndo}
+              onClick={() => undo()}
+              title="Undo"
+              leftSection={<IconArrowBackUp size={14} />}
+            />
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              disabled={!canRedo}
+              onClick={() => redo()}
+              title="Redo"
+              leftSection={<IconArrowForwardUp size={14} />}
+            />
+          </div>
+          <div className="transport-group" title="Tempo">
+            <IconMusic size={14} className="transport-field-icon" />
+            <label className="transport-field">
+              <span className="transport-field-label">BPM</span>
+              <NumberInput
+                className="transport-number"
+                classNames={{
+                  input: "compact-number-input",
+                  section: "compact-number-section",
+                }}
+                size="xs"
+                min={40}
+                max={220}
+                value={bpm}
+                onChange={(value) =>
+                  setBpm(Math.max(40, Math.min(220, asNumber(value, 120))))
+                }
+              />
+            </label>
+          </div>
+          <div className="transport-group" title="Step width (zoom)">
+            <IconZoomIn size={14} className="transport-field-icon" />
+            <label className="transport-field transport-field-zoom">
+              <span className="transport-field-label">Zoom</span>
+              <Slider
+                className="transport-slider"
+                size="xs"
+                min={16}
+                max={40}
+                step={1}
+                value={stepWidth}
+                onChange={setStepWidth}
+              />
+              <span className="transport-field-value">{stepWidth}px</span>
+            </label>
+          </div>
+          <div
+            className="transport-group transport-group-loop"
+            title="Loop region"
+          >
+            <IconRepeat size={14} className="transport-field-icon" />
+            <Checkbox
+              className="transport-check"
+              size="xs"
+              checked={loopEnabled}
+              onChange={(event) => setLoopEnabled(event.currentTarget.checked)}
+              label={<span className="transport-field-label">Loop</span>}
+            />
+            <label className="transport-field transport-field-inout">
+              <span className="transport-field-label">In</span>
+              <NumberInput
+                className="transport-loop-number"
+                classNames={{
+                  input: "compact-number-input",
+                  section: "compact-number-section",
+                }}
+                size="xs"
+                min={1}
+                max={totalSteps}
+                value={loopStartStep + 1}
+                onChange={(value) =>
+                  setLoopStartStep(
+                    Math.max(
+                      0,
+                      Math.min(
+                        totalSteps - 1,
+                        asNumber(value, loopStartStep + 1) - 1,
+                      ),
+                    ),
+                  )
+                }
+              />
+            </label>
+            <span className="transport-inout-sep">–</span>
+            <label className="transport-field transport-field-inout">
+              <span className="transport-field-label">Out</span>
+              <NumberInput
+                className="transport-loop-number"
+                classNames={{
+                  input: "compact-number-input",
+                  section: "compact-number-section",
+                }}
+                size="xs"
+                min={1}
+                max={totalSteps}
+                value={loopEndStep + 1}
+                onChange={(value) =>
+                  setLoopEndStep(
+                    Math.max(
+                      0,
+                      Math.min(
+                        totalSteps - 1,
+                        asNumber(value, loopEndStep + 1) - 1,
+                      ),
+                    ),
+                  )
+                }
+              />
+            </label>
+          </div>
+          <div
+            className="transport-group transport-status-wrap"
+            title="Playhead position"
+          >
+            <IconCircleDot size={14} className="transport-field-icon" />
+            <span className="transport-status">
+              {playheadStep + 1} / {totalSteps}
+            </span>
+          </div>
+        </div>
       </div>
       <style>{`
         .pattern-editor {
