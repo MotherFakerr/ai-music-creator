@@ -10,12 +10,18 @@ import {
   IconRepeat,
   IconZoomIn,
 } from "@tabler/icons-react";
+import { Button, Checkbox, NumberInput, Slider } from "@mantine/core";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import { ChannelRack } from "./ChannelRack";
 import { PianoRoll } from "./PianoRoll";
 import { usePatternEditor } from "./usePatternEditor";
 
 export function PatternEditor() {
+  const asNumber = (value: string | number, fallback: number): number => {
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
   const {
     state,
     visiblePitchRows,
@@ -382,86 +388,113 @@ export function PatternEditor() {
         </span>
         <label className="panel-field">
           Velocity
-          <input
-            type="range"
+          <Slider
+            className="panel-slider"
+            size="xs"
             min={1}
             max={127}
             value={panelVelocity}
-            onChange={(event) => applyVelocityToSelected(Number(event.target.value))}
+            onChange={applyVelocityToSelected}
             disabled={selectedNoteIds.length === 0}
           />
-          <input
-            type="number"
+          <NumberInput
+            className="panel-number"
+            classNames={{ input: "compact-number-input", section: "compact-number-section" }}
+            size="xs"
             min={1}
             max={127}
             value={panelVelocity}
-            onChange={(event) => applyVelocityToSelected(Number(event.target.value) || 100)}
+            onChange={(value) => applyVelocityToSelected(asNumber(value, 100))}
             disabled={selectedNoteIds.length === 0}
           />
         </label>
         <label className="panel-field">
           Length
-          <input
-            type="number"
+          <NumberInput
+            className="panel-number"
+            classNames={{ input: "compact-number-input", section: "compact-number-section" }}
+            size="xs"
             min={1}
             max={totalSteps}
             value={panelLength}
-            onChange={(event) => applyLengthToSelected(Number(event.target.value) || 1)}
+            onChange={(value) => applyLengthToSelected(asNumber(value, 1))}
             disabled={selectedNoteIds.length === 0}
           />
         </label>
         <div className="panel-group">
-          <button
+          <Button
             className="panel-btn"
+            size="xs"
+            variant="default"
+            unstyled
             onClick={() => transposeSelected(-12)}
             disabled={selectedNoteIds.length === 0}
           >
             -12 st
-          </button>
-          <button
+          </Button>
+          <Button
             className="panel-btn"
+            size="xs"
+            variant="default"
+            unstyled
             onClick={() => transposeSelected(-1)}
             disabled={selectedNoteIds.length === 0}
           >
             -1 st
-          </button>
-          <button
+          </Button>
+          <Button
             className="panel-btn"
+            size="xs"
+            variant="default"
+            unstyled
             onClick={() => transposeSelected(1)}
             disabled={selectedNoteIds.length === 0}
           >
             +1 st
-          </button>
-          <button
+          </Button>
+          <Button
             className="panel-btn"
+            size="xs"
+            variant="default"
+            unstyled
             onClick={() => transposeSelected(12)}
             disabled={selectedNoteIds.length === 0}
           >
             +12 st
-          </button>
+          </Button>
         </div>
         <div className="panel-group">
-          <button
+          <Button
             className="panel-btn"
+            size="xs"
+            variant="default"
+            unstyled
             onClick={() => nudgeSelected(-1)}
             disabled={selectedNoteIds.length === 0}
           >
             Nudge Left
-          </button>
-          <button
+          </Button>
+          <Button
             className="panel-btn"
+            size="xs"
+            variant="default"
+            unstyled
             onClick={() => nudgeSelected(1)}
             disabled={selectedNoteIds.length === 0}
           >
             Nudge Right
-          </button>
-          <button
+          </Button>
+          <Button
             className="panel-btn danger"
+            size="xs"
+            variant="filled"
+            color="red"
+            unstyled
             onClick={deleteSelected}
             disabled={selectedNoteIds.length === 0}
           >
             Delete
-          </button>
+          </Button>
         </div>
       </div>
       <PianoRoll
@@ -488,8 +521,11 @@ export function PatternEditor() {
       />
       <div className="transport">
         <div className="transport-group transport-group-buttons">
-        <button
+        <Button
           className="transport-btn"
+          size="xs"
+          variant="default"
+          unstyled
           disabled={isPreparingAudio}
           onClick={async () => {
             if (isPlaying) {
@@ -502,62 +538,70 @@ export function PatternEditor() {
             }
           }}
           title={isPreparingAudio ? "Loading Audio..." : isPlaying ? "Stop" : "Play"}
+          leftSection={
+            isPreparingAudio ? undefined : isPlaying ? <IconPlayerStop size={14} /> : <IconPlayerPlay size={14} />
+          }
         >
           {isPreparingAudio ? (
             <span className="transport-btn-label">Loading...</span>
-          ) : isPlaying ? (
-            <>
-              <IconPlayerStop size={14} />
-              <span className="transport-btn-label">Stop</span>
-            </>
           ) : (
-            <>
-              <IconPlayerPlay size={14} />
-              <span className="transport-btn-label">Play</span>
-            </>
+            <span className="transport-btn-label">{isPlaying ? "Stop" : "Play"}</span>
           )}
-        </button>
-        <button
+        </Button>
+        <Button
           className="transport-btn"
+          size="xs"
+          variant="default"
+          unstyled
           disabled={!canUndo}
           onClick={() => undo()}
           title="Undo"
+          leftSection={<IconArrowBackUp size={14} />}
         >
-          <IconArrowBackUp size={14} />
           <span className="transport-btn-label">Undo</span>
-        </button>
-        <button
+        </Button>
+        <Button
           className="transport-btn"
+          size="xs"
+          variant="default"
+          unstyled
           disabled={!canRedo}
           onClick={() => redo()}
           title="Redo"
+          leftSection={<IconArrowForwardUp size={14} />}
         >
-          <IconArrowForwardUp size={14} />
           <span className="transport-btn-label">Redo</span>
-        </button>
-        <button
+        </Button>
+        <Button
           className="transport-btn"
+          size="xs"
+          variant="default"
+          unstyled
           onClick={() => {
             setPlayheadStep(loopEnabled ? loopStartStep : 0);
             audioEngineRef.current.stopAllNotes();
             clearStopTimers();
           }}
           title="Reset playhead to start"
+          leftSection={<IconPlayerSkipBack size={14} />}
         >
-          <IconPlayerSkipBack size={14} />
           <span className="transport-btn-label">Reset Head</span>
-        </button>
+        </Button>
         </div>
         <div className="transport-group" title="Tempo">
           <IconMusic size={14} className="transport-field-icon" />
           <label className="transport-field">
             <span className="transport-field-label">BPM</span>
-            <input
-              type="number"
+            <NumberInput
+              className="transport-number"
+              classNames={{ input: "compact-number-input", section: "compact-number-section" }}
+              size="xs"
               min={40}
               max={220}
               value={bpm}
-              onChange={(event) => setBpm(Math.max(40, Math.min(220, Number(event.target.value) || 120)))}
+              onChange={(value) =>
+                setBpm(Math.max(40, Math.min(220, asNumber(value, 120))))
+              }
             />
           </label>
         </div>
@@ -565,46 +609,64 @@ export function PatternEditor() {
           <IconZoomIn size={14} className="transport-field-icon" />
           <label className="transport-field transport-field-zoom">
             <span className="transport-field-label">Zoom</span>
-            <input
-              type="range"
+            <Slider
+              className="transport-slider"
+              size="xs"
               min={16}
               max={40}
               step={1}
               value={stepWidth}
-              onChange={(event) => setStepWidth(Number(event.target.value))}
+              onChange={setStepWidth}
             />
             <span className="transport-field-value">{stepWidth}px</span>
           </label>
         </div>
         <div className="transport-group transport-group-loop" title="Loop region">
           <IconRepeat size={14} className="transport-field-icon" />
-          <label className="transport-field transport-check">
-            <input
-              type="checkbox"
-              checked={loopEnabled}
-              onChange={(event) => setLoopEnabled(event.target.checked)}
-            />
-            <span className="transport-field-label">Loop</span>
-          </label>
+          <Checkbox
+            className="transport-check"
+            size="xs"
+            checked={loopEnabled}
+            onChange={(event) => setLoopEnabled(event.currentTarget.checked)}
+            label={<span className="transport-field-label">Loop</span>}
+          />
           <label className="transport-field transport-field-inout">
             <span className="transport-field-label">In</span>
-            <input
-              type="number"
+            <NumberInput
+              className="transport-loop-number"
+              classNames={{ input: "compact-number-input", section: "compact-number-section" }}
+              size="xs"
               min={1}
               max={totalSteps}
               value={loopStartStep + 1}
-              onChange={(event) => setLoopStartStep(Math.max(0, Math.min(totalSteps - 1, Number(event.target.value) - 1)))}
+              onChange={(value) =>
+                setLoopStartStep(
+                  Math.max(
+                    0,
+                    Math.min(totalSteps - 1, asNumber(value, loopStartStep + 1) - 1),
+                  ),
+                )
+              }
             />
           </label>
           <span className="transport-inout-sep">–</span>
           <label className="transport-field transport-field-inout">
             <span className="transport-field-label">Out</span>
-            <input
-              type="number"
+            <NumberInput
+              className="transport-loop-number"
+              classNames={{ input: "compact-number-input", section: "compact-number-section" }}
+              size="xs"
               min={1}
               max={totalSteps}
               value={loopEndStep + 1}
-              onChange={(event) => setLoopEndStep(Math.max(0, Math.min(totalSteps - 1, Number(event.target.value) - 1)))}
+              onChange={(value) =>
+                setLoopEndStep(
+                  Math.max(
+                    0,
+                    Math.min(totalSteps - 1, asNumber(value, loopEndStep + 1) - 1),
+                  ),
+                )
+              }
             />
           </label>
         </div>
@@ -623,6 +685,14 @@ export function PatternEditor() {
           min-width: 0;
         }
         .playback-area {
+          --control-border: #334155;
+          --control-bg: #0f172a;
+          --control-fg: #e2e8f0;
+          --control-hover-bg: #1e293b;
+          --control-radius: 6px;
+          --control-danger-border: #7f1d1d;
+          --control-danger-bg: #3f0f12;
+          --control-danger-fg: #fecaca;
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           padding: 6px 10px;
@@ -643,18 +713,20 @@ export function PatternEditor() {
         .transport-btn {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
-          border: 1px solid #374151;
-          border-radius: 4px;
-          background: #111827;
-          color: #cbd5e1;
-          padding: 4px 8px;
+          border: 1px solid var(--control-border);
+          border-radius: var(--control-radius);
+          background: var(--control-bg);
+          color: var(--control-fg);
+          height: 30px;
+          padding: 0 9px;
           cursor: pointer;
           font-size: 12px;
+          line-height: 1;
         }
         .transport-btn:hover:not(:disabled) {
-          color: #e2e8f0;
-          background: #1e293b;
+          background: var(--control-hover-bg);
         }
         .transport-btn:disabled {
           opacity: 0.6;
@@ -670,6 +742,8 @@ export function PatternEditor() {
           border-radius: 6px;
           background: rgba(0, 0, 0, 0.2);
           border: 1px solid rgba(255, 255, 255, 0.06);
+          min-height: 42px;
+          box-sizing: border-box;
         }
         .transport-group-buttons {
           gap: 8px;
@@ -685,21 +759,29 @@ export function PatternEditor() {
           gap: 6px;
           font-size: 12px;
           color: #cbd5e1;
+          min-height: 28px;
         }
         .transport-field-label {
           flex-shrink: 0;
           min-width: 1.8em;
         }
-        .transport-field input[type="number"] {
-          width: 48px;
+        .compact-number-input {
           border: 1px solid #334155;
           border-radius: 4px;
           background: #0f172a;
           color: #e2e8f0;
-          padding: 3px 6px;
-          font-size: 12px;
+          padding-right: 22px;
+          box-sizing: border-box;
+          text-align: left;
+          font-variant-numeric: tabular-nums;
         }
-        .transport-field-zoom input[type="range"] {
+        .compact-number-section {
+          width: 18px;
+        }
+        .transport-number .compact-number-input {
+          width: 62px;
+        }
+        .transport-slider {
           width: 72px;
         }
         .transport-field-value {
@@ -710,19 +792,18 @@ export function PatternEditor() {
         .transport-group-loop {
           gap: 4px;
         }
-        .transport-group-loop .transport-field-inout input[type="number"] {
-          width: 40px;
+        .transport-loop-number .compact-number-input {
+          width: 56px;
         }
         .transport-inout-sep {
           color: #64748b;
           font-size: 11px;
           padding: 0 2px;
         }
-        .transport-check {
-          padding: 0 4px;
-        }
-        .transport-check input[type="checkbox"] {
-          margin: 0;
+        .transport-check .mantine-Checkbox-label {
+          color: #cbd5e1;
+          font-size: 12px;
+          padding-left: 4px;
         }
         .transport-status-wrap {
           color: #94a3b8;
@@ -762,35 +843,40 @@ export function PatternEditor() {
           gap: 6px;
           font-size: 12px;
           color: #cbd5e1;
+          min-height: 30px;
         }
         .panel-field input[type="range"] {
           width: 140px;
         }
-        .panel-field input[type="number"] {
-          width: 64px;
-          border: 1px solid #334155;
+        .panel-slider {
+          width: 140px;
+        }
+        .panel-number .compact-number-input {
+          width: 78px;
           border-radius: 6px;
-          background: #0f172a;
-          color: #e2e8f0;
-          padding: 4px 6px;
         }
         .panel-group {
           display: inline-flex;
           gap: 6px;
         }
         .panel-btn {
-          border: 1px solid #334155;
-          border-radius: 6px;
-          background: #0f172a;
-          color: #e2e8f0;
-          padding: 5px 8px;
+          border: 1px solid var(--control-border);
+          border-radius: var(--control-radius);
+          background: var(--control-bg);
+          color: var(--control-fg);
+          height: 30px;
+          padding: 0 10px;
           cursor: pointer;
           font-size: 12px;
+          line-height: 1;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .panel-btn.danger {
-          border-color: #7f1d1d;
-          color: #fecaca;
-          background: #3f0f12;
+          border-color: var(--control-danger-border);
+          color: var(--control-danger-fg);
+          background: var(--control-danger-bg);
         }
         @media (max-width: 1366px), (max-height: 900px) {
           .pattern-editor {
@@ -810,6 +896,9 @@ export function PatternEditor() {
           .transport-field-zoom input[type="range"] {
             width: 56px;
           }
+          .transport-slider {
+            width: 56px;
+          }
           .selection-panel {
             padding: 8px;
             gap: 8px;
@@ -817,8 +906,102 @@ export function PatternEditor() {
           .panel-field input[type="range"] {
             width: 120px;
           }
+          .panel-slider {
+            width: 120px;
+          }
           .panel-btn {
             padding: 4px 7px;
+          }
+        }
+        @media (max-width: 768px) {
+          .playback-area {
+            padding: 6px;
+            gap: 8px;
+          }
+          .selection-panel {
+            gap: 8px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: center;
+          }
+          .panel-title {
+            grid-column: 1 / -1;
+            margin-bottom: 2px;
+          }
+          .panel-field {
+            width: auto;
+            min-width: 0;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+          }
+          .panel-field input[type="range"] {
+            width: 100%;
+            min-width: 72px;
+          }
+          .panel-slider {
+            width: 100%;
+            min-width: 72px;
+          }
+          .panel-group {
+            grid-column: 1 / -1;
+            width: auto;
+            flex-wrap: wrap;
+            row-gap: 6px;
+          }
+          .transport {
+            gap: 6px;
+            padding-top: 8px;
+            display: grid;
+            grid-template-columns: 1fr;
+          }
+          .transport-group {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            padding: 6px 8px;
+            gap: 8px;
+            min-height: 40px;
+          }
+          .transport-group-buttons {
+            justify-content: flex-start;
+            gap: 6px;
+          }
+          .transport-btn {
+            padding: 4px 7px;
+          }
+          .transport-btn-label {
+            font-size: 11px;
+          }
+          .transport-number .compact-number-input,
+          .transport-loop-number .compact-number-input {
+            width: 58px;
+          }
+        }
+        @media (max-width: 520px) {
+          .transport-group {
+            gap: 4px;
+          }
+          .transport-btn-label {
+            display: none;
+          }
+          .transport-btn {
+            padding: 5px;
+            min-width: 28px;
+            justify-content: center;
+          }
+          .panel-field input[type="range"] {
+            width: min(44vw, 140px);
+          }
+          .panel-slider {
+            width: min(44vw, 140px);
+          }
+          .selection-panel {
+            grid-template-columns: 1fr;
+          }
+          .panel-title,
+          .panel-group {
+            grid-column: auto;
           }
         }
       `}</style>

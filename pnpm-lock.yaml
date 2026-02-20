@@ -50,6 +50,9 @@ importers:
       '@ai-music-creator/audio':
         specifier: workspace:*
         version: link:../audio
+      '@ai-music-creator/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@18.3.1)(react@18.3.1)
@@ -59,6 +62,12 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@18.3.1)
+      '@mantine/core':
+        specifier: ^8.3.14
+        version: 8.3.15(@mantine/hooks@8.3.15)(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)
+      '@mantine/hooks':
+        specifier: ^8.3.14
+        version: 8.3.15(react@18.3.1)
       '@tabler/icons-react':
         specifier: ^3.25.0
         version: 3.37.1(react@18.3.1)

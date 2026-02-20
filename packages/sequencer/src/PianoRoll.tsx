@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Select } from "@mantine/core";
 import type { PianoRollNote, PitchRow, SequencerChannel } from "./types";
 
 export interface PianoRollProps {
@@ -432,14 +433,18 @@ export function PianoRoll({
         <div className="right-group">
           <label className="snap-label">
             Snap
-            <select
-              value={snapStepSize}
-              onChange={(event) => setSnapStepSize(Number(event.target.value))}
-            >
-              <option value={1}>1/16</option>
-              <option value={2}>1/8</option>
-              <option value={4}>1/4</option>
-            </select>
+            <Select
+              className="snap-select"
+              classNames={{ input: "snap-select-input", dropdown: "snap-select-dropdown", option: "snap-select-option" }}
+              size="xs"
+              value={String(snapStepSize)}
+              data={[
+                { value: "1", label: "1/16" },
+                { value: "2", label: "1/8" },
+                { value: "4", label: "1/4" },
+              ]}
+              onChange={(value) => setSnapStepSize(Number(value ?? 1))}
+            />
           </label>
         </div>
       </div>
@@ -588,12 +593,22 @@ export function PianoRoll({
           font-size: 12px;
           color: #cbd5e1;
         }
-        .snap-label select {
+        .snap-select {
+          min-width: 0;
+          width: 88px;
+        }
+        .snap-select-input {
           border: 1px solid #334155;
           background: #0f172a;
           color: #e2e8f0;
           border-radius: 6px;
-          padding: 3px 6px;
+        }
+        .snap-select-dropdown {
+          background: #0f172a;
+          border-color: #334155;
+        }
+        .snap-select-option {
+          color: #e2e8f0;
         }
         .hint {
           font-size: 12px;
@@ -759,6 +774,39 @@ export function PianoRoll({
           }
           .piano-grid-wrapper {
             max-height: 360px;
+          }
+        }
+        @media (max-width: 768px) {
+          .piano-roll {
+            padding: 8px;
+          }
+          .piano-roll-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+          }
+          .left-group {
+            flex-wrap: wrap;
+            gap: 6px;
+          }
+          .right-group {
+            justify-content: flex-start;
+          }
+          .channel-label,
+          .selected-count,
+          .snap-label {
+            font-size: 11px;
+          }
+          .piano-grid-wrapper {
+            max-height: 300px;
+          }
+        }
+        @media (max-width: 520px) {
+          .hint {
+            display: none;
+          }
+          .piano-grid-wrapper {
+            max-height: 260px;
           }
         }
       `}</style>

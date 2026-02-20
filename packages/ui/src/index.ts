@@ -14,6 +14,7 @@ export * from "./Controls";
 export * from "./InstrumentSelector";
 export * from "./BaseNoteSelector";
 export * from "./AudioPlayer";
+export * from "./VolumeKnob";
 
 // 导出类型
 export type { KeyboardMode } from "./KeyboardModeSwitch";

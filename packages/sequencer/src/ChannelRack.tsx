@@ -23,7 +23,9 @@ import {
   IconVolume,
   IconVolumeOff,
 } from "@tabler/icons-react";
+import { ActionIcon, Button, Select, TextInput } from "@mantine/core";
 import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
+import { VolumeKnob } from "@ai-music-creator/ui";
 import type { PianoRollNote, SequencerChannel } from "./types";
 
 export interface ChannelRackProps {
@@ -159,9 +161,12 @@ function SortableChannelRow({
       >
         <span className="channel-dot" style={{ background: channel.color }} />
         {isEditing ? (
-          <input
+          <TextInput
             ref={inputRef}
-            className="channel-name-input"
+            className="channel-name-text-input"
+            classNames={{ input: "channel-name-input" }}
+            size="xs"
+            variant="unstyled"
             value={draftName}
             onBlur={() => {
               commitName(channel.name);
@@ -184,9 +189,12 @@ function SortableChannelRow({
         ) : (
           <>
             <span className="channel-name-text">{draftName || channel.name}</span>
-            <button
+            <ActionIcon
               type="button"
               className="channel-edit-btn"
+              unstyled
+              size="xs"
+              variant="subtle"
               title="编辑名称"
               onClick={(event) => {
                 event.stopPropagation();
@@ -195,12 +203,15 @@ function SortableChannelRow({
               }}
             >
               <IconPencil size={14} />
-            </button>
+            </ActionIcon>
           </>
         )}
       </div>
-      <button
+      <ActionIcon
         className={`mute-btn ${channel.muted ? "is-muted" : ""}`}
+        unstyled
+        size="sm"
+        variant="default"
         onClick={(event) => {
           event.stopPropagation();
           onToggleMute();
@@ -213,9 +224,12 @@ function SortableChannelRow({
         ) : (
           <IconVolume size={14} />
         )}
-      </button>
-      <button
+      </ActionIcon>
+      <ActionIcon
         className={`solo-btn ${channel.solo ? "is-solo" : ""}`}
+        unstyled
+        size="sm"
+        variant="default"
         onClick={(event) => {
           event.stopPropagation();
           onToggleSolo();
@@ -223,41 +237,42 @@ function SortableChannelRow({
         onPointerDown={stopRowSelectPointer}
         title={channel.solo ? "Solo on" : "Solo off"}
       >
-        <IconHeadphones size={14} />
-      </button>
+        <IconHeadphones size={15} />
+      </ActionIcon>
       <label
         className="volume-wrap"
         onClick={stopRowSelect}
         onPointerDown={stopRowSelectPointer}
       >
         <span>Vol</span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={channel.volume}
-          onChange={(event) => onSetVolume(Number(event.target.value))}
-        />
-        <span className="volume-value">{channel.volume}</span>
+        <VolumeKnob value={channel.volume} onChange={onSetVolume} diameter={30} />
       </label>
       <label
         className="instrument-wrap"
         onClick={stopRowSelect}
         onPointerDown={stopRowSelectPointer}
       >
-        <span>Inst</span>
-        <select
+        <span className="instrument-label">Inst</span>
+        <Select
+          className="instrument-select"
+          classNames={{ input: "rack-select-input", dropdown: "rack-select-dropdown", option: "rack-select-option" }}
+          size="xs"
+          checkIconPosition="right"
+          data={[
+            { value: EN_INSTRUMENT_TYPE.DRUM, label: "Drum" },
+            { value: EN_INSTRUMENT_TYPE.PIANO, label: "Piano" },
+            { value: EN_INSTRUMENT_TYPE.SYNTH, label: "Synth" },
+            { value: EN_INSTRUMENT_TYPE.GUITAR, label: "Guitar" },
+            { value: EN_INSTRUMENT_TYPE.DISTORTION_GUITAR, label: "Dist Guitar" },
+          ]}
           value={channel.instrument}
-          onChange={(event) =>
-            onSetInstrument(event.target.value as EN_INSTRUMENT_TYPE)
-          }
-        >
-          <option value={EN_INSTRUMENT_TYPE.DRUM}>Drum</option>
-          <option value={EN_INSTRUMENT_TYPE.PIANO}>Piano</option>
-          <option value={EN_INSTRUMENT_TYPE.SYNTH}>Synth</option>
-          <option value={EN_INSTRUMENT_TYPE.GUITAR}>Guitar</option>
-          <option value={EN_INSTRUMENT_TYPE.DISTORTION_GUITAR}>Dist Guitar</option>
-        </select>
+          onChange={(value) => {
+            if (!value) {
+              return;
+            }
+            onSetInstrument(value as EN_INSTRUMENT_TYPE);
+          }}
+        />
       </label>
       <div
         className={`piano-mini-preview ${isSelected ? "is-selected" : ""}`}
@@ -300,8 +315,12 @@ function SortableChannelRow({
           ))}
         </div>
       </div>
-      <button
+      <ActionIcon
         className="remove-btn"
+        unstyled
+        size="sm"
+        variant="filled"
+        color="red"
         onClick={(event) => {
           event.stopPropagation();
           onRemoveChannel();
@@ -310,7 +329,7 @@ function SortableChannelRow({
         title={`Remove ${channel.name}`}
       >
         <IconTrash size={14} />
-      </button>
+      </ActionIcon>
     </div>
   );
 }
@@ -376,10 +395,17 @@ export function ChannelRack({
     <div className="channel-rack">
       <div className="channel-rack-header">
         <h3>Channel Rack</h3>
-        <button className="header-btn" onClick={onAddChannel} title="Add channel">
-          <IconPlus size={14} />
+        <Button
+          className="header-btn"
+          unstyled
+          size="xs"
+          variant="default"
+          onClick={onAddChannel}
+          title="Add channel"
+          leftSection={<IconPlus size={14} />}
+        >
           <span>Add Channel</span>
-        </button>
+        </Button>
       </div>
       <DndContext
         sensors={sensors}
@@ -422,6 +448,14 @@ export function ChannelRack({
       </DndContext>
       <style>{`
         .channel-rack {
+          --control-border: #334155;
+          --control-bg: #0f172a;
+          --control-fg: #e2e8f0;
+          --control-hover-bg: #1e293b;
+          --control-radius: 6px;
+          --control-danger-border: #7f1d1d;
+          --control-danger-bg: #3f0f12;
+          --control-danger-fg: #fecaca;
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           padding: 6px 10px;
@@ -445,7 +479,7 @@ export function ChannelRack({
         }
         .channel-row {
           display: grid;
-          grid-template-columns: 24px 150px 56px 50px 170px 170px 1fr 52px;
+          grid-template-columns: 24px 150px 48px 48px auto 170px 1fr 48px;
           align-items: center;
           gap: 6px;
           padding: 4px 6px;
@@ -501,6 +535,8 @@ export function ChannelRack({
           cursor: pointer;
           text-align: left;
           width: 100%;
+          min-width: 0;
+          height: 30px;
         }
         .channel-dot {
           width: 6px;
@@ -530,10 +566,10 @@ export function ChannelRack({
           align-items: center;
           justify-content: center;
           padding: 2px;
-          border: none;
+          border: 1px solid transparent;
           background: transparent;
           color: #64748b;
-          border-radius: 4px;
+          border-radius: var(--control-radius);
           cursor: pointer;
           flex-shrink: 0;
           opacity: 0;
@@ -550,12 +586,16 @@ export function ChannelRack({
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid #374151;
-          background: #111827;
-          color: #cbd5e1;
-          border-radius: 4px;
-          padding: 3px 6px;
+          border: 1px solid var(--control-border);
+          background: var(--control-bg);
+          color: var(--control-fg);
+          border-radius: var(--control-radius);
+          height: 30px;
+          padding: 0;
           cursor: pointer;
+        }
+        .mute-btn:hover {
+          background: var(--control-hover-bg);
         }
         .mute-btn.is-muted {
           background: #1f2937;
@@ -566,12 +606,16 @@ export function ChannelRack({
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid #374151;
-          background: #111827;
-          color: #cbd5e1;
-          border-radius: 4px;
-          padding: 3px 6px;
+          border: 1px solid var(--control-border);
+          background: var(--control-bg);
+          color: var(--control-fg);
+          border-radius: var(--control-radius);
+          height: 30px;
+          padding: 0;
           cursor: pointer;
+        }
+        .solo-btn:hover {
+          background: var(--control-hover-bg);
         }
         .solo-btn.is-solo {
           background: #422006;
@@ -580,39 +624,46 @@ export function ChannelRack({
         }
         .volume-wrap {
           display: inline-grid;
-          grid-template-columns: 24px 1fr 26px;
+          grid-template-columns: 22px 36px;
           align-items: center;
           gap: 4px;
           color: #94a3b8;
           font-size: 10px;
-        }
-        .volume-wrap input[type="range"] {
-          width: 100%;
-        }
-        .volume-value {
-          color: #e2e8f0;
-          text-align: right;
         }
         .instrument-wrap {
           display: inline-grid;
-          grid-template-columns: 28px 1fr;
+          grid-template-columns: auto 1fr;
           align-items: center;
           gap: 4px;
           color: #94a3b8;
           font-size: 10px;
         }
-        .instrument-wrap select {
+        .instrument-label {
+          justify-self: end;
+          text-align: right;
+        }
+        .instrument-select {
+          min-width: 0;
+        }
+        .rack-select-input {
           border: 1px solid #334155;
           background: #0f172a;
           color: #e2e8f0;
           border-radius: 4px;
-          padding: 2px 5px;
+          padding: 0 20px 0 6px;
           min-width: 0;
           font-size: 11px;
         }
+        .rack-select-dropdown {
+          background: #0f172a;
+          border-color: #334155;
+        }
+        .rack-select-option {
+          color: #e2e8f0;
+        }
         .piano-mini-preview {
           position: relative;
-          height: 24px;
+          height: 30px;
           border: 1px solid #334155;
           border-radius: 4px;
           background: #0b1020;
@@ -667,28 +718,85 @@ export function ChannelRack({
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 1px solid #7f1d1d;
-          background: #3f0f12;
-          color: #fecaca;
-          border-radius: 4px;
-          padding: 3px 6px;
+          border: 1px solid var(--control-danger-border);
+          background: var(--control-danger-bg);
+          color: var(--control-danger-fg);
+          border-radius: var(--control-radius);
+          height: 30px;
           cursor: pointer;
         }
         .header-btn {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          border: 1px solid #334155;
-          background: #0f172a;
-          color: #e2e8f0;
-          border-radius: 4px;
+          border: 1px solid var(--control-border);
+          background: var(--control-bg);
+          color: var(--control-fg);
+          border-radius: var(--control-radius);
           padding: 4px 8px;
           cursor: pointer;
           font-size: 11px;
         }
-        @media (max-width: 1024px) {
+        .header-btn:hover {
+          background: var(--control-hover-bg);
+        }
+        @media (max-width: 900px) {
           .channel-row {
-            grid-template-columns: 24px 1fr;
+            grid-template-columns: 20px auto minmax(0, 1fr) 42px 42px;
+            grid-template-areas:
+              "drag name name mute solo"
+              "drag preview preview preview preview"
+              "drag volume inst remove remove";
+            row-gap: 6px;
+            column-gap: 6px;
+            padding: 6px;
+          }
+          .channel-drag-handle {
+            grid-area: drag;
+          }
+          .channel-name-wrap {
+            grid-area: name;
+          }
+          .mute-btn {
+            grid-area: mute;
+          }
+          .solo-btn {
+            grid-area: solo;
+          }
+          .piano-mini-preview {
+            grid-area: preview;
+          }
+          .volume-wrap {
+            grid-area: volume;
+          }
+          .instrument-wrap {
+            grid-area: inst;
+          }
+          .remove-btn {
+            grid-area: remove;
+            align-self: stretch;
+          }
+          .channel-rack-header h3 {
+            font-size: 12px;
+          }
+          .header-btn span {
+            display: none;
+          }
+        }
+        @media (max-width: 640px) {
+          .channel-rack {
+            padding: 6px;
+          }
+          .channel-row {
+            grid-template-columns: 18px auto minmax(0, 1fr) 38px 38px;
+          }
+          .volume-wrap,
+          .instrument-wrap {
+            font-size: 9px;
+          }
+          .channel-name-text,
+          .channel-name-input {
+            font-size: 11px;
           }
         }
       `}</style>
