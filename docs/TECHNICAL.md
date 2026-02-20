@@ -92,6 +92,7 @@ ai-music-creator/
     │   │   ├── Keyboard.tsx              # 虚拟键盘组件
     │   │   ├── InstrumentSelector.tsx     # 音色选择器
     │   │   ├── BaseNoteSelector.tsx       # 基准音选择器
+    │   │   ├── VolumeKnob.tsx             # 通用旋钮组件（可配置高度）
     │   │   ├── useKeyboard.ts            # 键盘事件 Hook
     │   │   └── index.ts                 # 导出
     │   └── package.json
@@ -189,6 +190,7 @@ ai-music-creator/
 - 管理音符编辑交互（新增、移动、拉长、多选、批量参数调整）
 - 管理编曲播放控制（BPM、Loop、播放头）
 - 联动 `@ai-music-creator/audio` 进行实时试听
+- 复用 `@ai-music-creator/ui` 的通用组件（例如 `VolumeKnob`）
 
 **不做什么**：
 
@@ -218,6 +220,7 @@ ai-music-creator/
 - `Keyboard` - 虚拟键盘组件
 - `InstrumentSelector` - 音色选择器
 - `BaseNoteSelector` - 基准音选择器
+- `VolumeKnob` - 可复用旋钮控件（由业务侧传入值、变更回调和尺寸）
 - `PerformancePreviewPanel` - 演奏预览面板
 
 **适合 `packages/web`**：

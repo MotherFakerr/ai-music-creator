@@ -64,9 +64,10 @@
 
 **当前已完成（里程碑 2.5）**：
 - ✅ 在 monorepo 新增独立包：`packages/sequencer`
-- ✅ Channel Rack：通道选择、Step 开关、Mute/Solo、Volume
+- ✅ Channel Rack：通道选择、Mute/Solo、Volume（Knob 交互）
 - ✅ 通道管理：新增/删除、重命名（确认提交）、上下排序
 - ✅ 通道音色：每通道可切换音色（Drum/Piano/Synth/Guitar/Dist Guitar）
+- ✅ 通道缩略预览：Channel Rack 以 Piano Roll 音符数据进行可视化预览
 - ✅ Piano Roll：新增/删除音符、拖拽移动、拉长时值、预听、Zoom
 - ✅ 多选编辑：框选、Ctrl/Cmd 多选、批量删除、批量参数
 - ✅ 编辑效率：Undo/Redo、复制粘贴、粘贴后自动选中
@@ -74,6 +75,8 @@
 - ✅ 批量参数区：Velocity、Length、Transpose、Nudge
 - ✅ 播放与循环：Play/Stop、BPM、Loop In/Out、播放头
 - ✅ 基础音频联动：按步触发通道与音符，依据力度、通道音量与通道音色发声
+- ✅ 组件工程化：`VolumeKnob` 抽离到 `@ai-music-creator/ui`，由 `sequencer` 复用
+- ✅ 移动端排版优化：Volume 与 Instrument 同行，减少窄屏空白区域
 
 **待选（暂不优先）**：
 - ⏳ Quantize（量化）：按 Snap 粒度对齐选中音符
