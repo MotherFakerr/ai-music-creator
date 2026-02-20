@@ -25,7 +25,6 @@ import {
   useActiveNoteLayout,
   useNoteLaneMapper,
 } from "./hooks/usePerformanceLayout";
-import { PatternEditor } from "@ai-music-creator/sequencer";
 
 const TRACE_LIFETIME_MS = 1650;
 const TRACE_MAX_ITEMS = 48;
@@ -198,40 +197,17 @@ function App() {
           />
           <Box style={{ display: "flex", justifyContent: "flex-end" }}>
             <a
-              href="/sequencer-debug"
+              href="/sequencer"
               style={{
                 color: "#93c5fd",
                 fontSize: 13,
                 textDecoration: "none",
               }}
             >
-              Open Sequencer Debug Page
+              进入编曲工作台
             </a>
           </Box>
 
-          <Grid gutter="md" align="stretch">
-            <Grid.Col span={{ base: 12, md: 4 }} style={{ display: "flex" }}>
-              <SettingsPanel
-                baseNote={baseNote}
-                volume={volume}
-                onBaseNoteChange={handleBaseNoteChange}
-                onVolumeChange={setVolume}
-              />
-            </Grid.Col>
-
-            <Grid.Col span={{ base: 12, md: 8 }} style={{ display: "flex" }}>
-              <PerformancePreviewPanel
-                activeNoteLabel={activeNoteLabel}
-                activeNotesSize={activeNotes.size}
-                isInstrumentLoading={isInstrumentLoading}
-                activeNoteAnchors={activeNoteAnchors}
-                traces={traces}
-                alignedNoteLabels={alignedNoteLabels}
-                traceLifetimeMs={TRACE_LIFETIME_MS}
-              />
-            </Grid.Col>
-          </Grid>
-
           <Card
             radius="lg"
             padding="lg"
@@ -240,61 +216,77 @@ function App() {
               background: "rgba(15, 19, 32, 0.7)",
             }}
           >
-            <AudioPlayer />
-          </Card>
+            <Stack gap={14}>
+              <Box
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "#dbeafe",
+                  letterSpacing: 0.3,
+                }}
+              >
+                演奏与跟奏
+              </Box>
 
-          <Card
-            radius="lg"
-            padding="lg"
-            style={{
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(15, 19, 32, 0.7)",
-            }}
-          >
-            <InstrumentSelector
-              value={instrument}
-              onChange={handleInstrumentChange}
-              isLoading={isInstrumentLoading}
-              disabled={!isInitialized}
-            />
-          </Card>
+              <Grid gutter="md" align="stretch">
+                <Grid.Col span={{ base: 12, md: 4 }} style={{ display: "flex" }}>
+                  <SettingsPanel
+                    baseNote={baseNote}
+                    volume={volume}
+                    onBaseNoteChange={handleBaseNoteChange}
+                    onVolumeChange={setVolume}
+                  />
+                </Grid.Col>
 
-          <Stack gap={6}>
-            <Box style={{ display: "flex", justifyContent: "flex-end" }}>
-              <KeyboardModeSwitch
-                value={keyboardMode}
-                onChange={setKeyboardMode}
+                <Grid.Col span={{ base: 12, md: 8 }} style={{ display: "flex" }}>
+                  <PerformancePreviewPanel
+                    activeNoteLabel={activeNoteLabel}
+                    activeNotesSize={activeNotes.size}
+                    isInstrumentLoading={isInstrumentLoading}
+                    activeNoteAnchors={activeNoteAnchors}
+                    traces={traces}
+                    alignedNoteLabels={alignedNoteLabels}
+                    traceLifetimeMs={TRACE_LIFETIME_MS}
+                  />
+                </Grid.Col>
+              </Grid>
+
+              <AudioPlayer />
+
+              <InstrumentSelector
+                value={instrument}
+                onChange={handleInstrumentChange}
+                isLoading={isInstrumentLoading}
+                disabled={!isInitialized}
               />
-            </Box>
 
-            <Box className="keyboard-area">
-              {keyboardMode === "qwerty" ? (
-                <Keyboard
-                  activeNotes={activeNotes}
-                  baseNote={baseNote}
-                  onNoteOn={noteOn}
-                  onNoteOff={noteOff}
-                />
-              ) : (
-                <PianoKeyboard
-                  activeNotes={activeNotes}
-                  baseNote={baseNote}
-                  onNoteOn={noteOn}
-                  onNoteOff={noteOff}
-                />
-              )}
-            </Box>
-          </Stack>
+              <Stack gap={6}>
+                <Box style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <KeyboardModeSwitch
+                    value={keyboardMode}
+                    onChange={setKeyboardMode}
+                  />
+                </Box>
 
-          <Card
-            radius="lg"
-            padding="lg"
-            style={{
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(15, 19, 32, 0.7)",
-            }}
-          >
-            <PatternEditor />
+                <Box className="keyboard-area">
+                  {keyboardMode === "qwerty" ? (
+                    <Keyboard
+                      activeNotes={activeNotes}
+                      baseNote={baseNote}
+                      onNoteOn={noteOn}
+                      onNoteOff={noteOff}
+                    />
+                  ) : (
+                    <PianoKeyboard
+                      activeNotes={activeNotes}
+                      baseNote={baseNote}
+                      onNoteOn={noteOn}
+                      onNoteOff={noteOff}
+                    />
+                  )}
+                </Box>
+              </Stack>
+            </Stack>
           </Card>
 
           <style>{`
