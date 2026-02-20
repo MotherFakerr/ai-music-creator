@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -24,14 +24,14 @@ import {
   IconVolumeOff,
 } from "@tabler/icons-react";
 import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
-import type { SequencerChannel } from "./types";
+import type { PianoRollNote, SequencerChannel } from "./types";
 
 export interface ChannelRackProps {
   channels: SequencerChannel[];
   stepsPerBar: number;
+  bars: number;
+  notes: PianoRollNote[];
   selectedChannelId: string | null;
-  isStepEnabled: (channelId: string, step: number) => boolean;
-  isStepEditable: (channelId: string) => boolean;
   onSelectChannel: (channelId: string) => void;
   onToggleMute: (channelId: string) => void;
   onToggleSolo: (channelId: string) => void;
@@ -41,48 +41,49 @@ export interface ChannelRackProps {
   onRemoveChannel: (channelId: string) => void;
   onRenameChannel: (channelId: string, name: string) => void;
   onMoveChannel: (channelId: string, newIndex: number) => void;
-  onToggleStep: (channelId: string, step: number) => void;
 }
 
 function SortableChannelRow({
   channel,
   stepsPerBar,
+  bars,
+  notes,
   isSelected,
-  canEditStep,
   draftName,
   onDraftNameChange,
   commitName,
   onSelectChannel,
   setEditingChannelId,
   editingChannelId,
-  isStepEnabled,
   onToggleMute,
   onToggleSolo,
   onSetVolume,
   onSetInstrument,
   onRemoveChannel,
   onRenameChannel,
-  onToggleStep,
 }: {
   channel: SequencerChannel;
   stepsPerBar: number;
+  bars: number;
+  notes: PianoRollNote[];
   isSelected: boolean;
-  canEditStep: boolean;
   draftName: string;
   onDraftNameChange: (value: string) => void;
   commitName: (fallback: string) => void;
   onSelectChannel: () => void;
   setEditingChannelId: (id: string | null) => void;
   editingChannelId: string | null;
-  isStepEnabled: (step: number) => boolean;
   onToggleMute: () => void;
   onToggleSolo: () => void;
   onSetVolume: (volume: number) => void;
   onSetInstrument: (instrument: EN_INSTRUMENT_TYPE) => void;
   onRemoveChannel: () => void;
   onRenameChannel: (name: string) => void;
-  onToggleStep: (step: number) => void;
 }) {
+  const PREVIEW_LANES = 10;
+  const PREVIEW_PADDING_Y = 2;
+  const PREVIEW_LANE_SPACING = 2;
+  const PREVIEW_NOTE_HEIGHT = 2;
   const {
     attributes,
     listeners,
@@ -105,6 +106,28 @@ function SortableChannelRow({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const totalSteps = Math.max(1, stepsPerBar * bars);
+  const channelNotes = useMemo(
+    () => notes.filter((note) => note.channelId === channel.id),
+    [notes, channel.id],
+  );
+  const previewNotes = useMemo(
+    () =>
+      channelNotes.map((note) => {
+        const safeLength = Math.max(1, note.length);
+        const normalized = Math.max(0, Math.min(127, note.pitch)) / 127;
+        const lane = Math.max(0, Math.min(PREVIEW_LANES - 1, Math.round(normalized * (PREVIEW_LANES - 1))));
+        return {
+          id: note.id,
+          left: (note.startStep / totalSteps) * 100,
+          width: Math.max((safeLength / totalSteps) * 100, 0.8),
+          laneTop:
+            PREVIEW_PADDING_Y + (PREVIEW_LANES - 1 - lane) * PREVIEW_LANE_SPACING,
+          velocityOpacity: 0.45 + (Math.max(1, Math.min(127, note.velocity)) / 127) * 0.5,
+        };
+      }),
+    [channelNotes, totalSteps],
+  );
 
   return (
     <div
@@ -206,31 +229,42 @@ function SortableChannelRow({
           <option value={EN_INSTRUMENT_TYPE.DISTORTION_GUITAR}>Dist Guitar</option>
         </select>
       </label>
-      <div className="step-grid">
-        {Array.from({ length: stepsPerBar }, (_, step) => {
-          const enabled = isStepEnabled(step);
-          return (
-            <button
-              key={step}
-              className={`step-btn ${enabled ? "is-enabled" : ""}`}
-              onClick={() => onToggleStep(step)}
-              disabled={!canEditStep}
-              title={
-                canEditStep
-                  ? `${channel.name} step ${step + 1}`
-                  : `${channel.name} step preview (locked by piano roll edits)`
-              }
-              style={
-                enabled
-                  ? {
-                      background: channel.color,
-                      boxShadow: `0 0 0 1px ${channel.color}55, 0 0 8px ${channel.color}66`,
-                    }
-                  : undefined
-              }
+      <div className="piano-mini-preview" title={`${channel.name} piano roll preview`}>
+        <div className="preview-grid-lines">
+          {Array.from({ length: totalSteps + 1 }, (_, index) => (
+            <span
+              key={`line-${index}`}
+              className={`preview-line ${
+                index % stepsPerBar === 0 ? "is-bar" : index % 4 === 0 ? "is-beat" : ""
+              }`}
+              style={{ left: `${(index / totalSteps) * 100}%` }}
             />
-          );
-        })}
+          ))}
+        </div>
+        <div className="preview-pitch-lines">
+          {Array.from({ length: PREVIEW_LANES }, (_, index) => (
+            <span
+              key={`pitch-${index}`}
+              className="preview-pitch-line"
+              style={{ top: `${PREVIEW_PADDING_Y + index * PREVIEW_LANE_SPACING}px` }}
+            />
+          ))}
+        </div>
+        <div className="preview-notes">
+          {previewNotes.map((note) => (
+            <span
+              key={note.id}
+              className="preview-note"
+              style={{
+                left: `${note.left}%`,
+                width: `${note.width}%`,
+                top: `${note.laneTop}px`,
+                opacity: note.velocityOpacity,
+                background: channel.color,
+              }}
+            />
+          ))}
+        </div>
       </div>
       <button
         className="remove-btn"
@@ -246,9 +280,9 @@ function SortableChannelRow({
 export function ChannelRack({
   channels,
   stepsPerBar,
+  bars,
+  notes,
   selectedChannelId,
-  isStepEnabled,
-  isStepEditable,
   onSelectChannel,
   onToggleMute,
   onToggleSolo,
@@ -258,7 +292,6 @@ export function ChannelRack({
   onRemoveChannel,
   onRenameChannel,
   onMoveChannel,
-  onToggleStep,
 }: ChannelRackProps) {
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
@@ -325,8 +358,9 @@ export function ChannelRack({
                 key={channel.id}
                 channel={channel}
                 stepsPerBar={stepsPerBar}
+                bars={bars}
+                notes={notes}
                 isSelected={channel.id === selectedChannelId}
-                canEditStep={isStepEditable(channel.id)}
                 draftName={draftNames[channel.id] ?? channel.name}
                 onDraftNameChange={(value) =>
                   setDraftNames((prev) => ({ ...prev, [channel.id]: value }))
@@ -335,7 +369,6 @@ export function ChannelRack({
                 onSelectChannel={() => onSelectChannel(channel.id)}
                 setEditingChannelId={setEditingChannelId}
                 editingChannelId={editingChannelId}
-                isStepEnabled={(step) => isStepEnabled(channel.id, step)}
                 onToggleMute={() => onToggleMute(channel.id)}
                 onToggleSolo={() => onToggleSolo(channel.id)}
                 onSetVolume={(volume) => onSetVolume(channel.id, volume)}
@@ -344,7 +377,6 @@ export function ChannelRack({
                 }
                 onRemoveChannel={() => onRemoveChannel(channel.id)}
                 onRenameChannel={(name) => onRenameChannel(channel.id, name)}
-                onToggleStep={(step) => onToggleStep(channel.id, step)}
               />
             ))}
           </SortableContext>
@@ -528,24 +560,54 @@ export function ChannelRack({
           min-width: 0;
           font-size: 11px;
         }
-        .step-grid {
-          display: grid;
-          grid-template-columns: repeat(16, minmax(12px, 1fr));
-          gap: 3px;
-        }
-        .step-btn {
-          height: 14px;
-          border: 1px solid #374151;
+        .piano-mini-preview {
+          position: relative;
+          height: 24px;
+          border: 1px solid #334155;
+          border-radius: 4px;
           background: #0b1020;
-          border-radius: 3px;
-          cursor: pointer;
+          overflow: hidden;
         }
-        .step-btn:disabled {
-          cursor: default;
-          opacity: 0.72;
+        .preview-grid-lines {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
         }
-        .step-btn.is-enabled {
-          border-color: transparent;
+        .preview-line {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: rgba(148, 163, 184, 0.12);
+        }
+        .preview-line.is-beat {
+          background: rgba(148, 163, 184, 0.2);
+        }
+        .preview-line.is-bar {
+          background: rgba(203, 213, 225, 0.4);
+        }
+        .preview-pitch-lines {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+        }
+        .preview-pitch-line {
+          position: absolute;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: rgba(148, 163, 184, 0.08);
+        }
+        .preview-notes {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+        }
+        .preview-note {
+          position: absolute;
+          height: 2px;
+          border-radius: 1px;
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
         }
         .remove-btn {
           display: flex;

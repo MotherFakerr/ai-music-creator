@@ -6,7 +6,6 @@ export interface SequencerChannel {
   color: string;
   muted: boolean;
   solo: boolean;
-  stepLocked: boolean;
   volume: number; // 0-100
   instrument: EN_INSTRUMENT_TYPE;
 }
@@ -18,7 +17,6 @@ export interface PianoRollNote {
   startStep: number;
   length: number;
   velocity: number;
-  source?: "step" | "piano";
 }
 
 export interface PatternState {

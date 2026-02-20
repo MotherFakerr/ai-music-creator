@@ -21,9 +21,6 @@ export function PatternEditor() {
     visiblePitchRows,
     canUndo,
     canRedo,
-    toggleChannelStep,
-    isChannelStepEnabled,
-    isChannelStepEditable,
     toggleChannelMute,
     toggleChannelSolo,
     setChannelVolume,
@@ -365,9 +362,9 @@ export function PatternEditor() {
       <ChannelRack
         channels={state.channels}
         stepsPerBar={state.stepsPerBar}
+        bars={state.bars}
+        notes={state.notes}
         selectedChannelId={state.selectedChannelId}
-        isStepEnabled={isChannelStepEnabled}
-        isStepEditable={isChannelStepEditable}
         onSelectChannel={selectChannel}
         onToggleMute={toggleChannelMute}
         onToggleSolo={toggleChannelSolo}
@@ -377,7 +374,6 @@ export function PatternEditor() {
         onRemoveChannel={removeChannel}
         onRenameChannel={renameChannel}
         onMoveChannel={moveChannel}
-        onToggleStep={toggleChannelStep}
       />
       <div className="playback-area">
       <div className={`selection-panel ${selectedNoteIds.length === 0 ? "is-empty" : ""}`}>
