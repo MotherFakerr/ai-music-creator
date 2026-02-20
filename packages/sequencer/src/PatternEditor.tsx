@@ -351,6 +351,133 @@ export function PatternEditor() {
 
   return (
     <div className="pattern-editor">
+      <ChannelRack
+        channels={state.channels}
+        stepsPerBar={state.stepsPerBar}
+        selectedChannelId={state.selectedChannelId}
+        isStepEnabled={isChannelStepEnabled}
+        isStepEditable={isChannelStepEditable}
+        onSelectChannel={selectChannel}
+        onToggleMute={toggleChannelMute}
+        onToggleSolo={toggleChannelSolo}
+        onSetVolume={setChannelVolume}
+        onSetInstrument={setChannelInstrument}
+        onAddChannel={addChannel}
+        onRemoveChannel={removeChannel}
+        onRenameChannel={renameChannel}
+        onMoveChannel={moveChannel}
+        onToggleStep={toggleChannelStep}
+      />
+      <div className={`selection-panel ${selectedNoteIds.length === 0 ? "is-empty" : ""}`}>
+        <span className="panel-title">
+            {`${selectedNoteIds.length} notes selected`}
+        </span>
+        <label className="panel-field">
+          Velocity
+          <input
+            type="range"
+            min={1}
+            max={127}
+            value={panelVelocity}
+            onChange={(event) => applyVelocityToSelected(Number(event.target.value))}
+            disabled={selectedNoteIds.length === 0}
+          />
+          <input
+            type="number"
+            min={1}
+            max={127}
+            value={panelVelocity}
+            onChange={(event) => applyVelocityToSelected(Number(event.target.value) || 100)}
+            disabled={selectedNoteIds.length === 0}
+          />
+        </label>
+        <label className="panel-field">
+          Length
+          <input
+            type="number"
+            min={1}
+            max={totalSteps}
+            value={panelLength}
+            onChange={(event) => applyLengthToSelected(Number(event.target.value) || 1)}
+            disabled={selectedNoteIds.length === 0}
+          />
+        </label>
+        <div className="panel-group">
+          <button
+            className="panel-btn"
+            onClick={() => transposeSelected(-12)}
+            disabled={selectedNoteIds.length === 0}
+          >
+            -12 st
+          </button>
+          <button
+            className="panel-btn"
+            onClick={() => transposeSelected(-1)}
+            disabled={selectedNoteIds.length === 0}
+          >
+            -1 st
+          </button>
+          <button
+            className="panel-btn"
+            onClick={() => transposeSelected(1)}
+            disabled={selectedNoteIds.length === 0}
+          >
+            +1 st
+          </button>
+          <button
+            className="panel-btn"
+            onClick={() => transposeSelected(12)}
+            disabled={selectedNoteIds.length === 0}
+          >
+            +12 st
+          </button>
+        </div>
+        <div className="panel-group">
+          <button
+            className="panel-btn"
+            onClick={() => nudgeSelected(-1)}
+            disabled={selectedNoteIds.length === 0}
+          >
+            Nudge Left
+          </button>
+          <button
+            className="panel-btn"
+            onClick={() => nudgeSelected(1)}
+            disabled={selectedNoteIds.length === 0}
+          >
+            Nudge Right
+          </button>
+          <button
+            className="panel-btn danger"
+            onClick={deleteSelected}
+            disabled={selectedNoteIds.length === 0}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      <PianoRoll
+        stepsPerBar={state.stepsPerBar}
+        bars={state.bars}
+        pitchRows={visiblePitchRows}
+        selectedChannelId={state.selectedChannelId}
+        channels={state.channels}
+        notes={state.notes}
+        selectedNoteIds={selectedNoteIds}
+        onSelectionChange={setSelectedNoteIds}
+        onAddNote={addPianoRollNote}
+        onPreviewAddedNote={previewAddedNote}
+        onPreviewMovedNote={previewMovedNote}
+        onDeleteNote={deletePianoRollNote}
+        onMoveNote={movePianoRollNote}
+        onMoveNotesByDelta={movePianoRollNotesByDelta}
+        onResizeNote={resizePianoRollNote}
+        onBeginEditTransaction={beginEditTransaction}
+        onEndEditTransaction={endEditTransaction}
+        onViewportStepChange={setViewportStep}
+        stepWidth={stepWidth}
+        playheadStep={isPlaying ? playheadStep : null}
+      />
       <div className="transport">
         <button
           className="transport-btn"
@@ -446,102 +573,6 @@ export function PatternEditor() {
           Step {playheadStep + 1} / {totalSteps}
         </span>
       </div>
-      <ChannelRack
-        channels={state.channels}
-        stepsPerBar={state.stepsPerBar}
-        selectedChannelId={state.selectedChannelId}
-        isStepEnabled={isChannelStepEnabled}
-        isStepEditable={isChannelStepEditable}
-        onSelectChannel={selectChannel}
-        onToggleMute={toggleChannelMute}
-        onToggleSolo={toggleChannelSolo}
-        onSetVolume={setChannelVolume}
-        onSetInstrument={setChannelInstrument}
-        onAddChannel={addChannel}
-        onRemoveChannel={removeChannel}
-        onRenameChannel={renameChannel}
-        onMoveChannel={moveChannel}
-        onToggleStep={toggleChannelStep}
-      />
-      {selectedNoteIds.length > 0 ? (
-        <div className="selection-panel">
-          <span className="panel-title">{selectedNoteIds.length} notes selected</span>
-          <label className="panel-field">
-            Velocity
-            <input
-              type="range"
-              min={1}
-              max={127}
-              value={panelVelocity}
-              onChange={(event) => applyVelocityToSelected(Number(event.target.value))}
-            />
-            <input
-              type="number"
-              min={1}
-              max={127}
-              value={panelVelocity}
-              onChange={(event) => applyVelocityToSelected(Number(event.target.value) || 100)}
-            />
-          </label>
-          <label className="panel-field">
-            Length
-            <input
-              type="number"
-              min={1}
-              max={totalSteps}
-              value={panelLength}
-              onChange={(event) => applyLengthToSelected(Number(event.target.value) || 1)}
-            />
-          </label>
-          <div className="panel-group">
-            <button className="panel-btn" onClick={() => transposeSelected(-12)}>
-              -12 st
-            </button>
-            <button className="panel-btn" onClick={() => transposeSelected(-1)}>
-              -1 st
-            </button>
-            <button className="panel-btn" onClick={() => transposeSelected(1)}>
-              +1 st
-            </button>
-            <button className="panel-btn" onClick={() => transposeSelected(12)}>
-              +12 st
-            </button>
-          </div>
-          <div className="panel-group">
-            <button className="panel-btn" onClick={() => nudgeSelected(-1)}>
-              Nudge Left
-            </button>
-            <button className="panel-btn" onClick={() => nudgeSelected(1)}>
-              Nudge Right
-            </button>
-            <button className="panel-btn danger" onClick={deleteSelected}>
-              Delete
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <PianoRoll
-        stepsPerBar={state.stepsPerBar}
-        bars={state.bars}
-        pitchRows={visiblePitchRows}
-        selectedChannelId={state.selectedChannelId}
-        channels={state.channels}
-        notes={state.notes}
-        selectedNoteIds={selectedNoteIds}
-        onSelectionChange={setSelectedNoteIds}
-        onAddNote={addPianoRollNote}
-        onPreviewAddedNote={previewAddedNote}
-        onPreviewMovedNote={previewMovedNote}
-        onDeleteNote={deletePianoRollNote}
-        onMoveNote={movePianoRollNote}
-        onMoveNotesByDelta={movePianoRollNotesByDelta}
-        onResizeNote={resizePianoRollNote}
-        onBeginEditTransaction={beginEditTransaction}
-        onEndEditTransaction={endEditTransaction}
-        onViewportStepChange={setViewportStep}
-        stepWidth={stepWidth}
-        playheadStep={isPlaying ? playheadStep : null}
-      />
       <style>{`
         .pattern-editor {
           display: grid;
@@ -553,6 +584,8 @@ export function PatternEditor() {
           align-items: center;
           flex-wrap: wrap;
           gap: 8px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
         .transport-btn {
           border: 1px solid #334155;
@@ -600,6 +633,16 @@ export function PatternEditor() {
           flex-wrap: wrap;
           align-items: center;
           gap: 10px;
+        }
+        .selection-panel.is-empty {
+          opacity: 0.78;
+        }
+        .selection-panel.is-empty .panel-field input,
+        .selection-panel.is-empty .panel-btn {
+          cursor: not-allowed;
+        }
+        .panel-btn:disabled {
+          opacity: 0.7;
         }
         .panel-title {
           font-size: 12px;
