@@ -417,7 +417,15 @@ export function PianoRoll({
         <div className="left-group">
           <h3>Piano Roll</h3>
           <span className="channel-label">
-            {selectedChannel ? `Editing: ${selectedChannel.name}` : "No channel selected"}
+            {selectedChannel ? (
+              <>
+                <span
+                  className="channel-label-dot"
+                  style={{ background: selectedChannel.color }}
+                />
+                {`Editing: ${selectedChannel.name}`}
+              </>
+            ) : "No channel selected"}
           </span>
           <span className="selected-count">Selected: {selectedNoteIds.length}</span>
         </div>
@@ -558,6 +566,16 @@ export function PianoRoll({
         .channel-label {
           font-size: 12px;
           color: #9ca3af;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .channel-label-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+          flex-shrink: 0;
         }
         .selected-count {
           font-size: 12px;

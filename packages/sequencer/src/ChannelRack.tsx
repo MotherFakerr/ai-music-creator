@@ -106,6 +106,12 @@ function SortableChannelRow({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const stopRowSelect: React.MouseEventHandler<HTMLElement> = (event) => {
+    event.stopPropagation();
+  };
+  const stopRowSelectPointer: React.PointerEventHandler<HTMLElement> = (event) => {
+    event.stopPropagation();
+  };
   const totalSteps = Math.max(1, stepsPerBar * bars);
   const channelNotes = useMemo(
     () => notes.filter((note) => note.channelId === channel.id),
@@ -134,8 +140,16 @@ function SortableChannelRow({
       ref={setNodeRef}
       style={style}
       className={`channel-row ${isSelected ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
+      onClick={onSelectChannel}
     >
-      <div className="channel-drag-handle" title="拖动排序" {...attributes} {...listeners}>
+      <div
+        className="channel-drag-handle"
+        title="拖动排序"
+        onClick={stopRowSelect}
+        onPointerDown={stopRowSelectPointer}
+        {...attributes}
+        {...listeners}
+      >
         <IconGripVertical size={14} />
       </div>
       <div
@@ -187,7 +201,11 @@ function SortableChannelRow({
       </div>
       <button
         className={`mute-btn ${channel.muted ? "is-muted" : ""}`}
-        onClick={onToggleMute}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleMute();
+        }}
+        onPointerDown={stopRowSelectPointer}
         title={channel.muted ? "Unmute" : "Mute"}
       >
         {channel.muted ? (
@@ -198,12 +216,20 @@ function SortableChannelRow({
       </button>
       <button
         className={`solo-btn ${channel.solo ? "is-solo" : ""}`}
-        onClick={onToggleSolo}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleSolo();
+        }}
+        onPointerDown={stopRowSelectPointer}
         title={channel.solo ? "Solo on" : "Solo off"}
       >
         <IconHeadphones size={14} />
       </button>
-      <label className="volume-wrap">
+      <label
+        className="volume-wrap"
+        onClick={stopRowSelect}
+        onPointerDown={stopRowSelectPointer}
+      >
         <span>Vol</span>
         <input
           type="range"
@@ -214,7 +240,11 @@ function SortableChannelRow({
         />
         <span className="volume-value">{channel.volume}</span>
       </label>
-      <label className="instrument-wrap">
+      <label
+        className="instrument-wrap"
+        onClick={stopRowSelect}
+        onPointerDown={stopRowSelectPointer}
+      >
         <span>Inst</span>
         <select
           value={channel.instrument}
@@ -229,7 +259,11 @@ function SortableChannelRow({
           <option value={EN_INSTRUMENT_TYPE.DISTORTION_GUITAR}>Dist Guitar</option>
         </select>
       </label>
-      <div className="piano-mini-preview" title={`${channel.name} piano roll preview`}>
+      <div
+        className={`piano-mini-preview ${isSelected ? "is-selected" : ""}`}
+        title={`${channel.name} piano roll preview`}
+        style={{ "--preview-accent": channel.color } as React.CSSProperties}
+      >
         <div className="preview-grid-lines">
           {Array.from({ length: totalSteps + 1 }, (_, index) => (
             <span
@@ -268,7 +302,11 @@ function SortableChannelRow({
       </div>
       <button
         className="remove-btn"
-        onClick={onRemoveChannel}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRemoveChannel();
+        }}
+        onPointerDown={stopRowSelectPointer}
         title={`Remove ${channel.name}`}
       >
         <IconTrash size={14} />
@@ -413,10 +451,22 @@ export function ChannelRack({
           padding: 4px 6px;
           border-radius: 6px;
           background: #181b25;
+          position: relative;
         }
         .channel-row.is-selected {
-          outline: 1px solid rgba(148, 163, 184, 0.5);
-          box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+          outline: 1px solid rgba(96, 165, 250, 0.55);
+          box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.2);
+          background: linear-gradient(90deg, rgba(96, 165, 250, 0.14) 0, rgba(24, 27, 37, 1) 36px);
+        }
+        .channel-row.is-selected::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 2px;
+          bottom: 2px;
+          width: 3px;
+          border-radius: 3px;
+          background: #60a5fa;
         }
         .channel-row.is-dragging {
           opacity: 0.85;
@@ -567,6 +617,10 @@ export function ChannelRack({
           border-radius: 4px;
           background: #0b1020;
           overflow: hidden;
+        }
+        .piano-mini-preview.is-selected {
+          border-color: var(--preview-accent, #60a5fa);
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--preview-accent, #60a5fa) 45%, transparent);
         }
         .preview-grid-lines {
           position: absolute;
