@@ -80,6 +80,7 @@ export interface UsePatternEditorResult {
   redo: () => void;
   beginEditTransaction: () => void;
   endEditTransaction: () => void;
+  setState: (state: PatternState) => void;
 }
 
 function getRequiredBars(stepsPerBar: number, endStepExclusive: number): number {
@@ -516,5 +517,8 @@ export function usePatternEditor(): UsePatternEditorResult {
     redo,
     beginEditTransaction,
     endEditTransaction,
+    setState: (newState: PatternState) => {
+      applyWithHistory(() => newState);
+    },
   };
 }

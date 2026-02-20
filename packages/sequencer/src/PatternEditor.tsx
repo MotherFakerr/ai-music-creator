@@ -3,12 +3,14 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconCircleDot,
+  IconDownload,
   IconLoader,
   IconMusic,
   IconPlayerPlay,
   IconPlayerSkipBack,
   IconPlayerStop,
   IconRepeat,
+  IconUpload,
   IconZoomIn,
 } from "@tabler/icons-react";
 import { Button, Checkbox, NumberInput, Slider } from "@mantine/core";
@@ -16,6 +18,12 @@ import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import { ChannelRack } from "./ChannelRack";
 import { PianoRoll } from "./PianoRoll";
 import { usePatternEditor } from "./usePatternEditor";
+import {
+  exportToMidi,
+  parseMidiFile,
+  downloadMidi,
+} from "./midi";
+import type { PatternState } from "./types";
 
 export function PatternEditor() {
   const asNumber = (value: string | number, fallback: number): number => {
@@ -48,6 +56,7 @@ export function PatternEditor() {
     redo,
     beginEditTransaction,
     endEditTransaction,
+    setState,
   } = usePatternEditor();
   const audioEngineRef = useRef(getAudioEngine());
   const stopTimersRef = useRef<number[]>([]);
@@ -62,6 +71,7 @@ export function PatternEditor() {
       velocity: number;
     }>;
   } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadStep, setPlayheadStep] = useState(0);
   const [bpm, setBpm] = useState(120);
@@ -237,6 +247,49 @@ export function PatternEditor() {
     }));
     const insertedIds = insertPianoRollNotes(nextNotes);
     setSelectedNoteIds(insertedIds);
+  };
+
+  // MIDI 导出
+  const handleExportMidi = () => {
+    try {
+      const midiData = exportToMidi(state, { bpm });
+      downloadMidi(midiData, `pattern-${Date.now()}.mid`);
+    } catch (e) {
+      console.error("MIDI export failed:", e);
+      alert("导出失败: " + e);
+    }
+  };
+
+  // MIDI 导入
+  const handleImportMidi = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { state: importedState, errors } = await parseMidiFile(file);
+      
+      if (errors.length > 0) {
+        console.warn("MIDI import warnings:", errors);
+      }
+
+      // 更新状态
+      setState(importedState);
+      
+      // 清空选择
+      setSelectedNoteIds([]);
+      
+      alert(`导入成功！${importedState.channels.length} 个通道，${importedState.notes.length} 个音符`);
+    } catch (e) {
+      console.error("MIDI import failed:", e);
+      alert("导入失败: " + e);
+    }
+
+    // 清空 input 以允许再次选择同一文件
+    event.target.value = "";
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const previewAddedNote = async (pitch: number) => {
@@ -661,6 +714,37 @@ export function PatternEditor() {
               />
               <span className="transport-field-value">{stepWidth}px</span>
             </label>
+          </div>
+          <div className="transport-group" title="MIDI import/export">
+            <input
+              type="file"
+              accept=".mid,.midi"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleImportMidi}
+            />
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={triggerFileInput}
+              title="Import MIDI"
+              leftSection={<IconUpload size={14} />}
+            >
+              Import
+            </Button>
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={handleExportMidi}
+              title="Export MIDI"
+              leftSection={<IconDownload size={14} />}
+            >
+              Export
+            </Button>
           </div>
           <div
             className="transport-group transport-group-loop"
