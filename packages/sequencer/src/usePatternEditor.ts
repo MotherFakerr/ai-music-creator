@@ -74,7 +74,7 @@ export interface UsePatternEditorResult {
   addChannel: () => void;
   removeChannel: (channelId: string) => void;
   renameChannel: (channelId: string, name: string) => void;
-  moveChannel: (channelId: string, direction: "up" | "down") => void;
+  moveChannel: (channelId: string, newIndex: number) => void;
   selectChannel: (channelId: string) => void;
   addPianoRollNote: (pitch: number, step: number) => void;
   insertPianoRollNotes: (notes: Array<Omit<PianoRollNote, "id">>) => string[];
@@ -346,19 +346,19 @@ export function usePatternEditor(): UsePatternEditorResult {
     });
   };
 
-  const moveChannel = (channelId: string, direction: "up" | "down") => {
+  const moveChannel = (channelId: string, newIndex: number) => {
     applyWithHistory((prev) => {
       const index = prev.channels.findIndex((channel) => channel.id === channelId);
       if (index < 0) {
         return prev;
       }
-      const nextIndex = direction === "up" ? index - 1 : index + 1;
-      if (nextIndex < 0 || nextIndex >= prev.channels.length) {
+      const toIndex = Math.max(0, Math.min(newIndex, prev.channels.length - 1));
+      if (index === toIndex) {
         return prev;
       }
       const nextChannels = [...prev.channels];
       const [moved] = nextChannels.splice(index, 1);
-      nextChannels.splice(nextIndex, 0, moved);
+      nextChannels.splice(toIndex, 0, moved);
       return {
         ...prev,
         channels: nextChannels,
