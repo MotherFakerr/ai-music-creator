@@ -588,7 +588,7 @@ export function PianoRoll({
           min-width: 0;
           overflow-x: auto;
           overflow-y: auto;
-          max-height: 560px;
+          max-height: 420px;
           border-radius: 8px;
           border: 1px solid #2f3540;
           background: #22262d;
@@ -724,6 +724,24 @@ export function PianoRoll({
           border-left: 1px solid rgba(0, 0, 0, 0.25);
           background: rgba(255, 255, 255, 0.32);
           cursor: ew-resize;
+        }
+        @media (max-width: 1366px), (max-height: 900px) {
+          .piano-roll {
+            padding: 10px;
+          }
+          .piano-roll-header {
+            margin-bottom: 8px;
+          }
+          .left-group {
+            gap: 6px;
+          }
+          .hint {
+            font-size: 11px;
+            margin-bottom: 6px;
+          }
+          .piano-grid-wrapper {
+            max-height: 360px;
+          }
         }
       `}</style>
     </div>

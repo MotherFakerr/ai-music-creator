@@ -4,12 +4,6 @@ import { ChannelRack } from "./ChannelRack";
 import { PianoRoll } from "./PianoRoll";
 import { usePatternEditor } from "./usePatternEditor";
 
-const CHANNEL_DEFAULT_NOTE: Record<string, number> = {
-  kick: 36,
-  snare: 38,
-  hat: 42,
-};
-
 export function PatternEditor() {
   const {
     state,
@@ -17,6 +11,8 @@ export function PatternEditor() {
     canUndo,
     canRedo,
     toggleChannelStep,
+    isChannelStepEnabled,
+    isChannelStepEditable,
     toggleChannelMute,
     toggleChannelSolo,
     setChannelVolume,
@@ -111,28 +107,11 @@ export function PatternEditor() {
   };
 
   const playStep = (absoluteStep: number) => {
-    const stepInBar = absoluteStep % state.stepsPerBar;
     const hasSolo = state.channels.some((channel) => channel.solo);
     const activeChannels = state.channels.filter((channel) =>
       hasSolo ? channel.solo && !channel.muted : !channel.muted,
     );
     const activeChannelMap = new Map(activeChannels.map((channel) => [channel.id, channel]));
-
-    activeChannels.forEach((channel, index) => {
-      if (channel.steps[stepInBar]?.enabled) {
-        const triggerNote = CHANNEL_DEFAULT_NOTE[channel.id] ?? 48 + index * 2;
-        const velocity = Math.max(1, Math.round(108 * (channel.volume / 100)));
-        if (velocity <= 0) {
-          return;
-        }
-        audioEngineRef.current.triggerNoteWithInstrument(
-          triggerNote,
-          velocity,
-          channel.instrument,
-          Math.max(0.06, (msPerStep * 0.9) / 1000),
-        );
-      }
-    });
 
     state.notes.forEach((note) => {
       const channel = activeChannelMap.get(note.channelId);
@@ -467,6 +446,23 @@ export function PatternEditor() {
           Step {playheadStep + 1} / {totalSteps}
         </span>
       </div>
+      <ChannelRack
+        channels={state.channels}
+        stepsPerBar={state.stepsPerBar}
+        selectedChannelId={state.selectedChannelId}
+        isStepEnabled={isChannelStepEnabled}
+        isStepEditable={isChannelStepEditable}
+        onSelectChannel={selectChannel}
+        onToggleMute={toggleChannelMute}
+        onToggleSolo={toggleChannelSolo}
+        onSetVolume={setChannelVolume}
+        onSetInstrument={setChannelInstrument}
+        onAddChannel={addChannel}
+        onRemoveChannel={removeChannel}
+        onRenameChannel={renameChannel}
+        onMoveChannel={moveChannel}
+        onToggleStep={toggleChannelStep}
+      />
       {selectedNoteIds.length > 0 ? (
         <div className="selection-panel">
           <span className="panel-title">{selectedNoteIds.length} notes selected</span>
@@ -524,20 +520,6 @@ export function PatternEditor() {
           </div>
         </div>
       ) : null}
-      <ChannelRack
-        channels={state.channels}
-        selectedChannelId={state.selectedChannelId}
-        onSelectChannel={selectChannel}
-        onToggleMute={toggleChannelMute}
-        onToggleSolo={toggleChannelSolo}
-        onSetVolume={setChannelVolume}
-        onSetInstrument={setChannelInstrument}
-        onAddChannel={addChannel}
-        onRemoveChannel={removeChannel}
-        onRenameChannel={renameChannel}
-        onMoveChannel={moveChannel}
-        onToggleStep={toggleChannelStep}
-      />
       <PianoRoll
         stepsPerBar={state.stepsPerBar}
         bars={state.bars}
@@ -659,6 +641,35 @@ export function PatternEditor() {
           border-color: #7f1d1d;
           color: #fecaca;
           background: #3f0f12;
+        }
+        @media (max-width: 1366px), (max-height: 900px) {
+          .pattern-editor {
+            gap: 8px;
+          }
+          .transport {
+            gap: 6px;
+          }
+          .transport-btn {
+            padding: 5px 8px;
+            font-size: 12px;
+          }
+          .transport-field {
+            gap: 4px;
+            font-size: 11px;
+          }
+          .transport-field input[type="range"] {
+            width: 96px;
+          }
+          .selection-panel {
+            padding: 8px;
+            gap: 8px;
+          }
+          .panel-field input[type="range"] {
+            width: 120px;
+          }
+          .panel-btn {
+            padding: 4px 7px;
+          }
         }
       `}</style>
     </div>

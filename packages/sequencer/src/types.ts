@@ -1,19 +1,14 @@
 import type { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
 
-export interface ChannelStep {
-  step: number;
-  enabled: boolean;
-}
-
 export interface SequencerChannel {
   id: string;
   name: string;
   color: string;
   muted: boolean;
   solo: boolean;
+  stepLocked: boolean;
   volume: number; // 0-100
   instrument: EN_INSTRUMENT_TYPE;
-  steps: ChannelStep[];
 }
 
 export interface PianoRollNote {
@@ -23,6 +18,7 @@ export interface PianoRollNote {
   startStep: number;
   length: number;
   velocity: number;
+  source?: "step" | "piano";
 }
 
 export interface PatternState {

@@ -4,7 +4,10 @@ import type { SequencerChannel } from "./types";
 
 export interface ChannelRackProps {
   channels: SequencerChannel[];
+  stepsPerBar: number;
   selectedChannelId: string | null;
+  isStepEnabled: (channelId: string, step: number) => boolean;
+  isStepEditable: (channelId: string) => boolean;
   onSelectChannel: (channelId: string) => void;
   onToggleMute: (channelId: string) => void;
   onToggleSolo: (channelId: string) => void;
@@ -19,7 +22,10 @@ export interface ChannelRackProps {
 
 export function ChannelRack({
   channels,
+  stepsPerBar,
   selectedChannelId,
+  isStepEnabled,
+  isStepEditable,
   onSelectChannel,
   onToggleMute,
   onToggleSolo,
@@ -67,6 +73,7 @@ export function ChannelRack({
       <div className="channel-rack-list">
         {channels.map((channel) => {
           const isSelected = channel.id === selectedChannelId;
+          const canEditStep = isStepEditable(channel.id);
           return (
             <div
               key={channel.id}
@@ -177,22 +184,30 @@ export function ChannelRack({
                 </button>
               </div>
               <div className="step-grid">
-                {channel.steps.map((step) => (
-                  <button
-                    key={step.step}
-                    className={`step-btn ${step.enabled ? "is-enabled" : ""}`}
-                    onClick={() => onToggleStep(channel.id, step.step)}
-                    title={`${channel.name} step ${step.step + 1}`}
-                    style={
-                      step.enabled
-                        ? {
-                            background: channel.color,
-                            boxShadow: `0 0 0 1px ${channel.color}55, 0 0 8px ${channel.color}66`,
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                {Array.from({ length: stepsPerBar }, (_, step) => {
+                  const enabled = isStepEnabled(channel.id, step);
+                  return (
+                    <button
+                      key={step}
+                      className={`step-btn ${enabled ? "is-enabled" : ""}`}
+                      onClick={() => onToggleStep(channel.id, step)}
+                      disabled={!canEditStep}
+                      title={
+                        canEditStep
+                          ? `${channel.name} step ${step + 1}`
+                          : `${channel.name} step preview (locked by piano roll edits)`
+                      }
+                      style={
+                        enabled
+                          ? {
+                              background: channel.color,
+                              boxShadow: `0 0 0 1px ${channel.color}55, 0 0 8px ${channel.color}66`,
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
               </div>
               <button
                 className="remove-btn"
@@ -208,33 +223,33 @@ export function ChannelRack({
       <style>{`
         .channel-rack {
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 12px;
+          border-radius: 8px;
+          padding: 6px 10px;
           background: #11131a;
         }
         .channel-rack-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 10px;
+          margin-bottom: 6px;
         }
         .channel-rack-header h3 {
           margin: 0;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
           color: #e5e7eb;
         }
         .channel-rack-list {
           display: grid;
-          gap: 8px;
+          gap: 4px;
         }
         .channel-row {
           display: grid;
           grid-template-columns: 220px 56px 50px 170px 170px 58px 1fr 52px;
           align-items: center;
-          gap: 8px;
-          padding: 8px;
-          border-radius: 8px;
+          gap: 6px;
+          padding: 4px 6px;
+          border-radius: 6px;
           background: #181b25;
         }
         .channel-row.is-selected {
@@ -244,19 +259,19 @@ export function ChannelRack({
         .channel-name-wrap {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           border: 1px solid #374151;
           background: #101217;
           color: #f3f4f6;
-          border-radius: 6px;
-          padding: 6px 8px;
+          border-radius: 4px;
+          padding: 3px 6px;
           cursor: pointer;
           text-align: left;
           width: 100%;
         }
         .channel-dot {
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
           border-radius: 999px;
         }
         .channel-name-input {
@@ -266,25 +281,26 @@ export function ChannelRack({
           color: #e5e7eb;
           width: 100%;
           min-width: 0;
-          font-size: 13px;
+          font-size: 12px;
         }
         .rename-btn {
           border: 1px solid #334155;
           background: #0f172a;
           color: #cbd5e1;
-          border-radius: 6px;
-          padding: 3px 7px;
+          border-radius: 4px;
+          padding: 2px 6px;
           cursor: pointer;
-          font-size: 11px;
+          font-size: 10px;
           line-height: 1.2;
         }
         .mute-btn {
           border: 1px solid #374151;
           background: #111827;
           color: #cbd5e1;
-          border-radius: 6px;
-          padding: 6px 0;
+          border-radius: 4px;
+          padding: 3px 0;
           cursor: pointer;
+          font-size: 11px;
         }
         .mute-btn.is-muted {
           background: #1f2937;
@@ -295,9 +311,10 @@ export function ChannelRack({
           border: 1px solid #374151;
           background: #111827;
           color: #cbd5e1;
-          border-radius: 6px;
-          padding: 6px 0;
+          border-radius: 4px;
+          padding: 3px 0;
           cursor: pointer;
+          font-size: 11px;
         }
         .solo-btn.is-solo {
           background: #422006;
@@ -306,11 +323,11 @@ export function ChannelRack({
         }
         .volume-wrap {
           display: inline-grid;
-          grid-template-columns: 26px 1fr 28px;
+          grid-template-columns: 24px 1fr 26px;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
           color: #94a3b8;
-          font-size: 11px;
+          font-size: 10px;
         }
         .volume-wrap input[type="range"] {
           width: 100%;
@@ -321,44 +338,50 @@ export function ChannelRack({
         }
         .instrument-wrap {
           display: inline-grid;
-          grid-template-columns: 30px 1fr;
+          grid-template-columns: 28px 1fr;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
           color: #94a3b8;
-          font-size: 11px;
+          font-size: 10px;
         }
         .instrument-wrap select {
           border: 1px solid #334155;
           background: #0f172a;
           color: #e2e8f0;
-          border-radius: 6px;
-          padding: 4px 6px;
+          border-radius: 4px;
+          padding: 2px 5px;
           min-width: 0;
+          font-size: 11px;
         }
         .move-wrap {
           display: grid;
-          gap: 4px;
+          gap: 2px;
         }
         .move-btn {
           border: 1px solid #334155;
           background: #0f172a;
           color: #cbd5e1;
-          border-radius: 6px;
-          padding: 2px 0;
+          border-radius: 4px;
+          padding: 1px 0;
           cursor: pointer;
           line-height: 1.1;
+          font-size: 10px;
         }
         .step-grid {
           display: grid;
-          grid-template-columns: repeat(16, minmax(14px, 1fr));
-          gap: 4px;
+          grid-template-columns: repeat(16, minmax(12px, 1fr));
+          gap: 3px;
         }
         .step-btn {
-          height: 18px;
+          height: 14px;
           border: 1px solid #374151;
           background: #0b1020;
-          border-radius: 4px;
+          border-radius: 3px;
           cursor: pointer;
+        }
+        .step-btn:disabled {
+          cursor: default;
+          opacity: 0.72;
         }
         .step-btn.is-enabled {
           border-color: transparent;
@@ -367,18 +390,19 @@ export function ChannelRack({
           border: 1px solid #7f1d1d;
           background: #3f0f12;
           color: #fecaca;
-          border-radius: 6px;
-          padding: 6px 0;
+          border-radius: 4px;
+          padding: 3px 0;
           cursor: pointer;
+          font-size: 10px;
         }
         .header-btn {
           border: 1px solid #334155;
           background: #0f172a;
           color: #e2e8f0;
-          border-radius: 6px;
-          padding: 6px 10px;
+          border-radius: 4px;
+          padding: 4px 8px;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 11px;
         }
         @media (max-width: 1024px) {
           .channel-row {

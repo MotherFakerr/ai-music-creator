@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
 import type { PatternState, PianoRollNote, PitchRow, SequencerChannel } from "./types";
+import { getChannelTriggerNote } from "./channelTrigger";
 
 const DEFAULT_STEPS_PER_BAR = 16;
 const DEFAULT_BARS = 2;
@@ -12,12 +13,9 @@ const DEFAULT_CHANNELS: SequencerChannel[] = [
     color: "#f97316",
     muted: false,
     solo: false,
+    stepLocked: false,
     volume: 100,
     instrument: EN_INSTRUMENT_TYPE.DRUM,
-    steps: Array.from({ length: DEFAULT_STEPS_PER_BAR }, (_, step) => ({
-      step,
-      enabled: step % 4 === 0,
-    })),
   },
   {
     id: "snare",
@@ -25,12 +23,9 @@ const DEFAULT_CHANNELS: SequencerChannel[] = [
     color: "#22c55e",
     muted: false,
     solo: false,
+    stepLocked: false,
     volume: 100,
     instrument: EN_INSTRUMENT_TYPE.DRUM,
-    steps: Array.from({ length: DEFAULT_STEPS_PER_BAR }, (_, step) => ({
-      step,
-      enabled: step % 8 === 4,
-    })),
   },
   {
     id: "hat",
@@ -38,12 +33,9 @@ const DEFAULT_CHANNELS: SequencerChannel[] = [
     color: "#60a5fa",
     muted: false,
     solo: false,
+    stepLocked: false,
     volume: 100,
     instrument: EN_INSTRUMENT_TYPE.DRUM,
-    steps: Array.from({ length: DEFAULT_STEPS_PER_BAR }, (_, step) => ({
-      step,
-      enabled: step % 2 === 0,
-    })),
   },
 ];
 
@@ -58,24 +50,7 @@ const CHANNEL_COLOR_POOL = [
   "#a78bfa",
 ];
 
-const DEFAULT_NOTES: PianoRollNote[] = [
-  {
-    id: "n-1",
-    channelId: "kick",
-    pitch: 48,
-    startStep: 0,
-    length: 2,
-    velocity: 100,
-  },
-  {
-    id: "n-2",
-    channelId: "kick",
-    pitch: 52,
-    startStep: 4,
-    length: 2,
-    velocity: 100,
-  },
-];
+const DEFAULT_NOTES: PianoRollNote[] = [];
 
 function getPitchLabel(pitch: number): string {
   const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -90,6 +65,8 @@ export interface UsePatternEditorResult {
   canUndo: boolean;
   canRedo: boolean;
   toggleChannelStep: (channelId: string, step: number) => void;
+  isChannelStepEnabled: (channelId: string, step: number) => boolean;
+  isChannelStepEditable: (channelId: string) => boolean;
   toggleChannelMute: (channelId: string) => void;
   toggleChannelSolo: (channelId: string) => void;
   setChannelVolume: (channelId: string, volume: number) => void;
@@ -182,6 +159,21 @@ export function usePatternEditor(): UsePatternEditorResult {
     });
   };
 
+  const lockChannelsForPianoEdit = (prev: PatternState, channelIds: Set<string>): SequencerChannel[] => {
+    if (channelIds.size === 0) {
+      return prev.channels;
+    }
+    let changed = false;
+    const nextChannels = prev.channels.map((channel) => {
+      if (!channelIds.has(channel.id) || channel.stepLocked) {
+        return channel;
+      }
+      changed = true;
+      return { ...channel, stepLocked: true };
+    });
+    return changed ? nextChannels : prev.channels;
+  };
+
   const visiblePitchRows = useMemo<PitchRow[]>(() => {
     const rows: PitchRow[] = [];
     for (let pitch = 127; pitch >= 0; pitch -= 1) {
@@ -191,20 +183,70 @@ export function usePatternEditor(): UsePatternEditorResult {
   }, []);
 
   const toggleChannelStep = (channelId: string, step: number) => {
-    applyWithHistory((prev) => ({
-      ...prev,
-      channels: prev.channels.map((channel) => {
-        if (channel.id !== channelId) {
-          return channel;
-        }
+    applyWithHistory((prev) => {
+      const channelIndex = prev.channels.findIndex((channel) => channel.id === channelId);
+      if (channelIndex < 0) {
+        return prev;
+      }
+      const targetChannel = prev.channels[channelIndex];
+      if (targetChannel.stepLocked) {
+        return prev;
+      }
+      const triggerPitch = getChannelTriggerNote(channelId, channelIndex);
+      const normalizedStep = Math.max(0, Math.min(prev.stepsPerBar - 1, step));
+      const hasEnabled = prev.notes.some(
+        (note) =>
+          note.channelId === channelId &&
+          note.pitch === triggerPitch &&
+          note.startStep % prev.stepsPerBar === normalizedStep,
+      );
+
+      if (hasEnabled) {
         return {
-          ...channel,
-          steps: channel.steps.map((item) =>
-            item.step === step ? { ...item, enabled: !item.enabled } : item,
+          ...prev,
+          notes: prev.notes.filter(
+            (note) =>
+              !(
+                note.channelId === channelId &&
+                note.pitch === triggerPitch &&
+                note.startStep % prev.stepsPerBar === normalizedStep
+              ),
           ),
         };
-      }),
-    }));
+      }
+
+      const notesToInsert: PianoRollNote[] = Array.from({ length: prev.bars }, (_, barIndex) => ({
+        id: `step-note-${Date.now()}-${barIndex}-${Math.random().toString(36).slice(2, 6)}`,
+        channelId,
+        pitch: triggerPitch,
+        startStep: barIndex * prev.stepsPerBar + normalizedStep,
+        length: 1,
+        velocity: 100,
+        source: "step",
+      }));
+      return {
+        ...prev,
+        notes: [...prev.notes, ...notesToInsert],
+      };
+    });
+  };
+
+  const isChannelStepEnabled = (channelId: string, step: number) => {
+    const hasChannel = state.channels.some((channel) => channel.id === channelId);
+    if (!hasChannel) {
+      return false;
+    }
+    const normalizedStep = Math.max(0, Math.min(state.stepsPerBar - 1, step));
+    return state.notes.some(
+      (note) =>
+        note.channelId === channelId &&
+        note.startStep % state.stepsPerBar === normalizedStep,
+    );
+  };
+
+  const isChannelStepEditable = (channelId: string) => {
+    const channel = state.channels.find((item) => item.id === channelId);
+    return channel ? !channel.stepLocked : false;
   };
 
   const toggleChannelMute = (channelId: string) => {
@@ -254,12 +296,9 @@ export function usePatternEditor(): UsePatternEditorResult {
         color: CHANNEL_COLOR_POOL[index % CHANNEL_COLOR_POOL.length],
         muted: false,
         solo: false,
+        stepLocked: false,
         volume: 100,
         instrument: EN_INSTRUMENT_TYPE.PIANO,
-        steps: Array.from({ length: prev.stepsPerBar }, (_, step) => ({
-          step,
-          enabled: false,
-        })),
       };
       return {
         ...prev,
@@ -359,6 +398,7 @@ export function usePatternEditor(): UsePatternEditorResult {
         startStep: step,
         length: 2,
         velocity: 100,
+        source: "piano",
       };
 
       const requiredBars = Math.max(
@@ -368,6 +408,7 @@ export function usePatternEditor(): UsePatternEditorResult {
 
       return {
         ...prev,
+        channels: lockChannelsForPianoEdit(prev, new Set([selectedChannelId])),
         bars: requiredBars,
         notes: [...prev.notes, newNote],
       };
@@ -381,6 +422,7 @@ export function usePatternEditor(): UsePatternEditorResult {
     const generated = notes.map((note, index) => ({
       ...note,
       id: `note-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
+      source: "piano" as const,
     }));
     applyWithHistory((prev) => {
       let maxEnd = 0;
@@ -391,8 +433,10 @@ export function usePatternEditor(): UsePatternEditorResult {
         }
       });
       const requiredBars = Math.max(prev.bars, getRequiredBars(prev.stepsPerBar, maxEnd + 1));
+      const touchedChannels = new Set(generated.map((note) => note.channelId));
       return {
         ...prev,
+        channels: lockChannelsForPianoEdit(prev, touchedChannels),
         bars: requiredBars,
         notes: [...prev.notes, ...generated],
       };
@@ -401,10 +445,17 @@ export function usePatternEditor(): UsePatternEditorResult {
   };
 
   const deletePianoRollNote = (noteId: string) => {
-    applyWithHistory((prev) => ({
-      ...prev,
-      notes: prev.notes.filter((note) => note.id !== noteId),
-    }));
+    applyWithHistory((prev) => {
+      const target = prev.notes.find((note) => note.id === noteId);
+      if (!target) {
+        return prev;
+      }
+      return {
+        ...prev,
+        channels: lockChannelsForPianoEdit(prev, new Set([target.channelId])),
+        notes: prev.notes.filter((note) => note.id !== noteId),
+      };
+    });
   };
 
   const movePianoRollNote = (noteId: string, nextPitch: number, nextStep: number) => {
@@ -420,6 +471,7 @@ export function usePatternEditor(): UsePatternEditorResult {
       const totalSteps = prev.stepsPerBar * requiredBars;
       return {
         ...prev,
+        channels: lockChannelsForPianoEdit(prev, new Set([targetNote.channelId])),
         bars: requiredBars,
         notes: prev.notes.map((note) => {
           if (note.id !== noteId) {
@@ -431,6 +483,7 @@ export function usePatternEditor(): UsePatternEditorResult {
             ...note,
             pitch: nextPitch,
             startStep: Math.max(0, Math.min(nextStep, maxStartStep)),
+            source: "piano",
           };
         }),
       };
@@ -451,6 +504,7 @@ export function usePatternEditor(): UsePatternEditorResult {
       const totalSteps = prev.stepsPerBar * requiredBars;
       return {
         ...prev,
+        channels: lockChannelsForPianoEdit(prev, new Set([targetNote.channelId])),
         bars: requiredBars,
         notes: prev.notes.map((note) => {
           if (note.id !== noteId) {
@@ -460,6 +514,7 @@ export function usePatternEditor(): UsePatternEditorResult {
           return {
             ...note,
             length: Math.max(1, Math.min(nextLength, maxLength)),
+            source: "piano",
           };
         }),
       };
@@ -483,8 +538,10 @@ export function usePatternEditor(): UsePatternEditorResult {
       });
       const requiredBars = Math.max(prev.bars, getRequiredBars(prev.stepsPerBar, maxEndStep));
       const totalSteps = prev.stepsPerBar * requiredBars;
+      const touchedChannels = new Set(targetNotes.map((note) => note.channelId));
       return {
         ...prev,
+        channels: lockChannelsForPianoEdit(prev, touchedChannels),
         bars: requiredBars,
         notes: prev.notes.map((note) => {
           if (!idSet.has(note.id)) {
@@ -496,6 +553,7 @@ export function usePatternEditor(): UsePatternEditorResult {
             ...note,
             pitch: Math.max(0, Math.min(127, note.pitch + pitchDelta)),
             startStep: Math.max(0, Math.min(maxStartStep, note.startStep + stepDelta)),
+            source: "piano",
           };
         }),
       };
@@ -503,14 +561,25 @@ export function usePatternEditor(): UsePatternEditorResult {
   };
 
   const setPianoRollNoteVelocity = (noteId: string, velocity: number) => {
-    applyWithHistory((prev) => ({
-      ...prev,
-      notes: prev.notes.map((note) =>
-        note.id === noteId
-          ? { ...note, velocity: Math.max(1, Math.min(127, Math.round(velocity))) }
-          : note,
-      ),
-    }));
+    applyWithHistory((prev) => {
+      const target = prev.notes.find((note) => note.id === noteId);
+      if (!target) {
+        return prev;
+      }
+      return {
+        ...prev,
+        channels: lockChannelsForPianoEdit(prev, new Set([target.channelId])),
+        notes: prev.notes.map((note) =>
+          note.id === noteId
+            ? {
+                ...note,
+                velocity: Math.max(1, Math.min(127, Math.round(velocity))),
+                source: "piano",
+              }
+            : note,
+        ),
+      };
+    });
   };
 
   const undo = () => {
@@ -547,6 +616,8 @@ export function usePatternEditor(): UsePatternEditorResult {
     canUndo: undoStack.length > 0,
     canRedo: redoStack.length > 0,
     toggleChannelStep,
+    isChannelStepEnabled,
+    isChannelStepEditable,
     toggleChannelMute,
     toggleChannelSolo,
     setChannelVolume,
