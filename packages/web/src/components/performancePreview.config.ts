@@ -4,8 +4,9 @@
 // - 动效类：motion.mode + presets
 export const PERFORMANCE_PREVIEW_UI = {
   card: {
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(15, 19, 32, 0.7)",
+    border: "1px solid rgba(148,163,184,0.2)",
+    background:
+      "linear-gradient(180deg, rgba(12, 18, 31, 0.86) 0%, rgba(8, 12, 22, 0.8) 100%)",
   },
   noteText: {
     multiSize: "1.9rem",

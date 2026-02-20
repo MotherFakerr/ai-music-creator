@@ -1,9 +1,4 @@
-/**
- * BaseNoteSelector Component
- * 基准音选择器
- */
-
-import React from "react";
+import { ActionIcon, Badge, Group, Stack, Text } from "@mantine/core";
 import { DEFAULT_BASE_NOTE, getNoteName } from "@ai-music-creator/core";
 
 export interface BaseNoteSelectorProps {
@@ -11,113 +6,80 @@ export interface BaseNoteSelectorProps {
   onChange?: (note: number) => void;
 }
 
+const MIN_NOTE = 48; // C3
+const MAX_NOTE = 60; // C4
+
 export function BaseNoteSelector({
   value = DEFAULT_BASE_NOTE,
   onChange,
 }: BaseNoteSelectorProps) {
-  // 输入范围
-  const MIN_NOTE = 48; // C3
-  const MAX_NOTE = 60; // C4
-
-  const handleIncrement = () => {
-    const newNote = Math.min(value + 1, MAX_NOTE);
-    onChange?.(newNote);
-  };
-
-  const handleDecrement = () => {
-    const newNote = Math.max(value - 1, MIN_NOTE);
-    onChange?.(newNote);
-  };
-
-  // 显示的音名
   const displayNote = getNoteName(value);
 
   return (
-    <div className="base-note-selector">
-      <span className="selector-label">基准音</span>
-      <div className="selector-content">
-        <span className="note-display">{displayNote}</span>
-        <div className="arrow-controls">
-          <button
-            className="arrow-btn up"
-            onClick={handleIncrement}
-            disabled={value >= MAX_NOTE}
-            aria-label="升高"
-          >
-            ▲
-          </button>
-          <button
-            className="arrow-btn down"
-            onClick={handleDecrement}
-            disabled={value <= MIN_NOTE}
-            aria-label="降低"
-          >
-            ▼
-          </button>
-        </div>
-      </div>
-
-      <style>{`
-        .base-note-selector {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .selector-label {
-          color: #ced4da;
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.8px;
-        }
-
-        .selector-content {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .note-display {
-          font-size: 28px;
-          font-weight: 600;
-          font-family: 'Monaco', 'Consolas', monospace;
-          color: #fff;
-          min-width: 50px;
-        }
-
-        .arrow-controls {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .arrow-btn {
-          width: 28px;
-          height: 20px;
-          padding: 0;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          color: #6b7280;
-          font-size: 10px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.15s ease;
-        }
-
-        .arrow-btn:hover:not(:disabled) {
-          background: rgba(99, 102, 241, 0.2);
-          border-color: rgba(99, 102, 241, 0.4);
-          color: #fff;
-        }
-
-        .arrow-btn:disabled {
-          opacity: 0.3;
-          cursor: not-allowed;
-        }
-      `}</style>
-    </div>
+    <Group align="center" gap={8} wrap="nowrap">
+      <Text size="sm" fw={600} c="gray.4" style={{ minWidth: 36 }}>
+        基准音
+      </Text>
+      <Group gap={8} align="center" style={{ flex: 1 }}>
+        <ActionIcon
+          variant="default"
+          size="sm"
+          radius={6}
+          disabled={value <= MIN_NOTE}
+          onClick={() => onChange?.(Math.max(value - 1, MIN_NOTE))}
+          aria-label="降低"
+          styles={{
+            root: {
+              width: 30,
+              height: 30,
+              minWidth: 30,
+              minHeight: 30,
+              borderColor: "#334155",
+              background: "#0f172a",
+              color: "#cbd5e1",
+            },
+          }}
+        >
+          ▼
+        </ActionIcon>
+        <Badge
+          variant="light"
+          color="blue"
+          radius={6}
+          styles={{
+            root: {
+              height: 30,
+              minWidth: 56,
+              justifyContent: "center",
+              fontSize: 15,
+              fontFamily: "Monaco, Consolas, monospace",
+            },
+          }}
+        >
+          {displayNote}
+        </Badge>
+        <ActionIcon
+          variant="default"
+          size="sm"
+          radius={6}
+          disabled={value >= MAX_NOTE}
+          onClick={() => onChange?.(Math.min(value + 1, MAX_NOTE))}
+          aria-label="升高"
+          styles={{
+            root: {
+              width: 30,
+              height: 30,
+              minWidth: 30,
+              minHeight: 30,
+              borderColor: "#334155",
+              background: "#0f172a",
+              color: "#cbd5e1",
+            },
+          }}
+        >
+          ▲
+        </ActionIcon>
+      </Group>
+    </Group>
   );
 }
