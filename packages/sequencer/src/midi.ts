@@ -22,6 +22,23 @@ const INSTRUMENT_TO_PROGRAM: Record<EN_INSTRUMENT_TYPE, number> = {
 };
 
 /**
+ * MIDI Program Number 到乐器类型的映射
+ */
+const PROGRAM_TO_INSTRUMENT: Record<number, EN_INSTRUMENT_TYPE> = {
+  0: EN_INSTRUMENT_TYPE.PIANO,
+  24: EN_INSTRUMENT_TYPE.GUITAR,
+  29: EN_INSTRUMENT_TYPE.DISTORTION_GUITAR,
+  // 其他映射可以根据需要添加
+};
+
+/**
+ * 根据 Program Number 推断乐器类型
+ */
+function getInstrumentFromProgram(programNumber: number): EN_INSTRUMENT_TYPE {
+  return PROGRAM_TO_INSTRUMENT[programNumber] ?? EN_INSTRUMENT_TYPE.PIANO;
+}
+
+/**
  * 将 PatternState 导出为 MIDI 文件
  */
 export function exportToMidi(
@@ -134,6 +151,10 @@ export function parseMidi(
     // 确定通道名
     const channelName = track.name || `Track ${trackIndex + 1}`;
     
+    // 获取乐器信息
+    const instrumentNumber = track.instrument?.number ?? 0;
+    const instrument = getInstrumentFromProgram(instrumentNumber);
+    
     // 创建通道
     const channelId = `channel-${trackIndex}`;
     const channelColor = getChannelColor(trackIndex);
@@ -145,7 +166,7 @@ export function parseMidi(
       muted: false,
       solo: false,
       volume: 100,
-      instrument: defaultInstrumentId as any,
+      instrument,
     });
 
     // 转换音符
