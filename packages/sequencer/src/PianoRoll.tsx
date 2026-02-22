@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Select } from "@mantine/core";
 import type { PianoRollNote, PitchRow, SequencerChannel } from "./types";
 
@@ -66,7 +66,14 @@ export function PianoRoll({
     return grouped;
   }, [selectedNotes]);
   const [snapStepSize, setSnapStepSize] = useState(1);
+  const [boxSelectUI, setBoxSelectUI] = useState<{
+    startStep: number;
+    startPitch: number;
+    endStep: number;
+    endPitch: number;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const initializedScrollRef = useRef(false);
   const isDraggingRef = useRef(false);
   const lastAutoScrollAtRef = useRef(0);
@@ -75,30 +82,189 @@ export function PianoRoll({
   const rowHeight = 24;
   const selectedNoteIdSetRef = useRef(new Set<string>());
   selectedNoteIdSetRef.current = new Set(selectedNoteIds);
-  const cellsByPitch = useMemo(() => {
-    const map = new Map<number, JSX.Element[]>();
-    pitchRows.forEach((row) => {
-      map.set(
-        row.pitch,
-        Array.from({ length: totalSteps }, (_, step) => (
-          <button
-            key={`${row.pitch}-${step}`}
-            className={`
-              piano-cell
-              ${step % 2 === 1 ? "is-step-alt" : ""}
-            `}
-            data-step={step}
-            data-pitch={row.pitch}
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-            title={`${row.label} / Step ${step + 1}`}
-          />
-        )),
-      );
+
+  const canvasWidth = totalSteps * stepWidth;
+  const canvasHeight = pitchRows.length * rowHeight;
+
+  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+  const snapStep = useCallback((step: number) => {
+    const snapped = Math.round(step / snapStepSize) * snapStepSize;
+    return clamp(snapped, 0, totalSteps - 1);
+  }, [snapStepSize, totalSteps]);
+
+  const getPitchIndex = useCallback((pitch: number) => pitchRows.findIndex((item) => item.pitch === pitch), [pitchRows]);
+  const isBlackKeyPitch = useCallback((pitch: number) => {
+    const semitone = ((pitch % 12) + 12) % 12;
+    return semitone === 1 || semitone === 3 || semitone === 6 || semitone === 8 || semitone === 10;
+  }, []);
+
+  const getGridPoint = useCallback((clientX: number, clientY: number) => {
+    const wrapper = scrollRef.current;
+    if (!wrapper) return null;
+
+    const rect = wrapper.getBoundingClientRect();
+    const x = clientX - rect.left + wrapper.scrollLeft - labelWidth;
+    const y = clientY - rect.top + wrapper.scrollTop;
+    const step = clamp(Math.floor(x / stepWidth), 0, totalSteps - 1);
+    const rowIndex = clamp(Math.floor(y / rowHeight), 0, pitchRows.length - 1);
+    const pitch = pitchRows[rowIndex]?.pitch ?? pitchRows[pitchRows.length - 1]?.pitch ?? 48;
+
+    return { step, pitch };
+  }, [stepWidth, rowHeight, totalSteps, pitchRows]);
+
+  // Canvas rendering
+  const drawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    // Background
+    ctx.fillStyle = "#242932";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Grid lines
+    for (let step = 0; step < totalSteps; step++) {
+      const x = step * stepWidth;
+      const isAlt = step % 2 === 1;
+      const isBarStart = step % stepsPerBar === 0;
+
+      // Row backgrounds
+      for (let rowIdx = 0; rowIdx < pitchRows.length; rowIdx++) {
+        const y = rowIdx * rowHeight;
+        const pitch = pitchRows[rowIdx].pitch;
+        const isBlack = isBlackKeyPitch(pitch);
+
+        if (isBlack) {
+          ctx.fillStyle = isAlt ? "#232931" : "#20252d";
+        } else {
+          ctx.fillStyle = isAlt ? "#272d37" : "#242932";
+        }
+        ctx.fillRect(x, y, stepWidth, rowHeight);
+      }
+
+      // Vertical lines
+      ctx.fillStyle = isBarStart ? "rgba(170, 180, 196, 0.65)" : "rgba(116, 126, 143, 0.2)";
+      ctx.fillRect(x, 0, 1, canvasHeight);
+    }
+
+    // Horizontal lines
+    for (let rowIdx = 0; rowIdx <= pitchRows.length; rowIdx++) {
+      const y = rowIdx * rowHeight;
+      ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
+      ctx.fillRect(0, y, canvasWidth, 1);
+    }
+
+    // Bar guides (darker lines at bar start)
+    for (let bar = 0; bar <= bars; bar++) {
+      const x = bar * stepsPerBar * stepWidth;
+      ctx.fillStyle = "rgba(170, 180, 196, 0.65)";
+      ctx.fillRect(x, 0, 1, canvasHeight);
+    }
+
+    // Box selection
+    if (boxSelectUI) {
+      const minStep = Math.min(boxSelectUI.startStep, boxSelectUI.endStep);
+      const maxStep = Math.max(boxSelectUI.startStep, boxSelectUI.endStep);
+      const startPitchIdx = Math.max(0, getPitchIndex(boxSelectUI.startPitch));
+      const endPitchIdx = Math.max(0, getPitchIndex(boxSelectUI.endPitch));
+      const topIndex = Math.min(startPitchIdx, endPitchIdx);
+      const bottomIndex = Math.max(startPitchIdx, endPitchIdx);
+
+      const bx = minStep * stepWidth;
+      const by = topIndex * rowHeight;
+      const bw = (maxStep - minStep + 1) * stepWidth;
+      const bh = (bottomIndex - topIndex + 1) * rowHeight;
+
+      ctx.fillStyle = "rgba(251, 191, 36, 0.12)";
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeStyle = "rgba(251, 191, 36, 0.8)";
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.setLineDash([]);
+    }
+
+    // Notes
+    const channelColor = selectedChannel?.color ?? "#60a5fa";
+    selectedNotes.forEach((note) => {
+      const rowIndex = getPitchIndex(note.pitch);
+      if (rowIndex < 0) return;
+
+      const nx = note.startStep * stepWidth + 1;
+      const ny = rowIndex * rowHeight + 2;
+      const nw = Math.max(1, note.length) * stepWidth - 2;
+      const nh = rowHeight - 4;
+
+      ctx.fillStyle = channelColor;
+      ctx.beginPath();
+      ctx.roundRect(nx, ny, nw, nh, 4);
+      ctx.fill();
+
+      // Selection outline
+      if (selectedNoteIdSetRef.current.has(note.id)) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(nx, ny, nw, nh, 4);
+        ctx.stroke();
+
+        ctx.shadowColor = "rgba(255, 255, 255, 0.35)";
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Velocity text
+      if (nw > 20) {
+        ctx.fillStyle = "#0b1020";
+        ctx.font = "700 10px system-ui";
+        ctx.fillText(String(note.velocity), nx + 4, ny + 14);
+      }
+
+      // Resize handle
+      if (nw > 12) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+        ctx.fillRect(nx + nw - 8, ny, 8, nh);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
+        ctx.fillRect(nx + nw - 8, ny, 1, nh);
+      }
     });
-    return map;
-  }, [pitchRows, totalSteps]);
+
+    // Playhead
+    if (playheadStep !== null) {
+      const px = playheadStep * stepWidth;
+      ctx.fillStyle = "rgba(251, 191, 36, 0.9)";
+      ctx.fillRect(px, 0, 2, canvasHeight);
+    }
+
+    ctx.restore();
+  }, [totalSteps, stepsPerBar, bars, stepWidth, rowHeight, canvasWidth, canvasHeight, pitchRows, isBlackKeyPitch, boxSelectUI, selectedNotes, selectedChannel, getPitchIndex, playheadStep]);
+
+  // Initialize canvas size
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasWidth * dpr;
+    canvas.height = canvasHeight * dpr;
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+
+    drawCanvas();
+  }, [canvasWidth, canvasHeight, drawCanvas]);
+
+  // Re-render on changes
+  useEffect(() => {
+    drawCanvas();
+  }, [drawCanvas]);
 
   const dragRef = useRef<{
     mode: "move" | "resize";
@@ -119,25 +285,9 @@ export function PianoRoll({
     currentStep: number;
     currentPitch: number;
   } | null>(null);
-  const [boxSelectUI, setBoxSelectUI] = useState<{
-    startStep: number;
-    startPitch: number;
-    endStep: number;
-    endPitch: number;
-  } | null>(null);
 
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
-  const snapStep = (step: number) => {
-    const snapped = Math.round(step / snapStepSize) * snapStepSize;
-    return clamp(snapped, 0, totalSteps - 1);
-  };
-  const getPitchIndex = (pitch: number) => pitchRows.findIndex((item) => item.pitch === pitch);
-  const isBlackKeyPitch = (pitch: number) => {
-    const semitone = ((pitch % 12) + 12) % 12;
-    return semitone === 1 || semitone === 3 || semitone === 6 || semitone === 8 || semitone === 10;
-  };
   const isPointerOnScrollbar = (
-    event: React.PointerEvent<HTMLDivElement>,
+    event: React.PointerEvent<HTMLElement>,
     wrapper: HTMLDivElement,
   ) => {
     const rect = wrapper.getBoundingClientRect();
@@ -146,22 +296,6 @@ export function PianoRoll({
     const onVerticalScrollbar = hasVertical && event.clientX >= rect.left + wrapper.clientWidth;
     const onHorizontalScrollbar = hasHorizontal && event.clientY >= rect.top + wrapper.clientHeight;
     return onVerticalScrollbar || onHorizontalScrollbar;
-  };
-
-  const getGridPoint = (clientX: number, clientY: number) => {
-    const wrapper = scrollRef.current;
-    if (!wrapper) {
-      return null;
-    }
-
-    const rect = wrapper.getBoundingClientRect();
-    const x = clientX - rect.left + wrapper.scrollLeft - labelWidth;
-    const y = clientY - rect.top + wrapper.scrollTop;
-    const step = clamp(Math.floor(x / stepWidth), 0, totalSteps - 1);
-    const rowIndex = clamp(Math.floor(y / rowHeight), 0, pitchRows.length - 1);
-    const pitch = pitchRows[rowIndex]?.pitch ?? pitchRows[pitchRows.length - 1]?.pitch ?? 48;
-
-    return { step, pitch };
   };
 
   const startDraggingNote = (
@@ -264,7 +398,7 @@ export function PianoRoll({
     window.addEventListener("pointercancel", onUp);
   };
 
-  const beginBoxSelection = (event: React.PointerEvent<HTMLDivElement>) => {
+  const beginBoxSelection = (event: React.PointerEvent<HTMLElement>) => {
     if (event.button !== 0) {
       return;
     }
@@ -275,19 +409,8 @@ export function PianoRoll({
     if (isPointerOnScrollbar(event, wrapper)) {
       return;
     }
-    const cellElement = (event.target as HTMLElement | null)?.closest(
-      ".piano-cell",
-    ) as HTMLButtonElement | null;
-    const cellStepAttr = cellElement?.dataset.step;
-    const cellPitchAttr = cellElement?.dataset.pitch;
-    const point =
-      cellStepAttr !== undefined && cellPitchAttr !== undefined
-        ? {
-            step: clamp(Number(cellStepAttr), 0, totalSteps - 1),
-            pitch: clamp(Number(cellPitchAttr), 0, 127),
-            stepWidth: 0,
-          }
-        : getGridPoint(event.clientX, event.clientY);
+
+    const point = getGridPoint(event.clientX, event.clientY);
     if (!point) {
       return;
     }
@@ -378,26 +501,57 @@ export function PianoRoll({
     window.addEventListener("pointercancel", onUp);
   };
 
-  const boxStyle = useMemo(() => {
-    if (!boxSelectUI) {
-      return undefined;
-    }
-    const minStep = Math.min(boxSelectUI.startStep, boxSelectUI.endStep);
-    const maxStep = Math.max(boxSelectUI.startStep, boxSelectUI.endStep);
-    const startPitchIdx = Math.max(0, getPitchIndex(boxSelectUI.startPitch));
-    const endPitchIdx = Math.max(0, getPitchIndex(boxSelectUI.endPitch));
-    const topIndex = Math.min(startPitchIdx, endPitchIdx);
-    const bottomIndex = Math.max(startPitchIdx, endPitchIdx);
-    const leftPx = labelWidth + minStep * stepWidth;
-    const widthPx = Math.max(1, (maxStep - minStep + 1) * stepWidth - 1);
+  // Handle canvas pointer events for note interaction
+  const handleCanvasPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const point = getGridPoint(event.clientX, event.clientY);
+    if (!point) return;
 
-    return {
-      left: `${leftPx}px`,
-      width: `${widthPx}px`,
-      top: `${topIndex * rowHeight}px`,
-      height: `${(bottomIndex - topIndex + 1) * rowHeight}px`,
-    };
-  }, [boxSelectUI, stepWidth]);
+    // Check if clicking on a note
+    const clickedNote = selectedNotes.find((note) => {
+      const rowIndex = getPitchIndex(note.pitch);
+      if (rowIndex < 0) return false;
+
+      const noteX = note.startStep * stepWidth;
+      const noteWidth = Math.max(1, note.length) * stepWidth;
+      const clickX = point.step * stepWidth;
+
+      return note.pitch === point.pitch && clickX >= noteX && clickX <= noteX + noteWidth;
+    });
+
+    if (clickedNote) {
+      const noteX = clickedNote.startStep * stepWidth;
+      const noteWidth = Math.max(1, clickedNote.length) * stepWidth;
+      const clickX = point.step * stepWidth;
+      const isOnResizeHandle = clickX >= noteX + noteWidth - 12;
+      startDraggingNote(event as any, clickedNote, isOnResizeHandle ? "resize" : "move");
+    } else {
+      beginBoxSelection(event);
+    }
+  };
+
+  // Handle right-click on canvas for note deletion
+  const handleCanvasContextMenu = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    const point = getGridPoint(event.clientX, event.clientY);
+    if (!point) return;
+
+    // Find note at click position
+    const clickedNote = selectedNotes.find((note) => {
+      const rowIndex = getPitchIndex(note.pitch);
+      if (rowIndex < 0) return false;
+
+      const noteX = note.startStep * stepWidth;
+      const noteWidth = Math.max(1, note.length) * stepWidth;
+      const clickX = point.step * stepWidth;
+
+      return note.pitch === point.pitch && clickX >= noteX && clickX <= noteX + noteWidth;
+    });
+
+    if (clickedNote) {
+      onDeleteNote(clickedNote.id);
+      onSelectionChange(selectedNoteIds.filter((id) => id !== clickedNote.id));
+    }
+  };
 
   useEffect(() => {
     if (playheadStep === null) {
@@ -496,71 +650,31 @@ export function PianoRoll({
         drag right handle to resize, right-click note to delete, Ctrl/Cmd+Click to multi-select.
       </div>
 
-      <div className="piano-grid-wrapper" ref={scrollRef} onPointerDown={beginBoxSelection}>
-        <div
-          className="piano-grid"
-          style={{ width: `${labelWidth + totalSteps * stepWidth}px` }}
-        >
-          <div className="bar-guides">
-            {Array.from({ length: bars + 1 }, (_, barIndex) => (
-              <div
-                key={`bar-guide-${barIndex}`}
-                className={`bar-guide ${barIndex === 0 ? "is-start" : ""}`}
-                style={{
-                  left: `${labelWidth + barIndex * stepsPerBar * stepWidth}px`,
-                }}
-              />
-            ))}
-          </div>
-          {playheadStep !== null ? (
-            <div
-              className="playhead-line"
-              style={{ left: `${labelWidth + playheadStep * stepWidth}px` }}
-            />
-          ) : null}
-          {boxStyle ? <div className="selection-box" style={boxStyle} /> : null}
+      <div className="piano-roll-container">
+        {/* Pitch Labels - DOM */}
+        <div className="pitch-labels">
           {pitchRows.map((row, rowIndex) => (
             <div
               key={row.pitch}
-              className={`piano-row ${rowIndex % 2 === 1 ? "is-row-alt" : ""} ${
+              className={`pitch-label ${rowIndex % 2 === 1 ? "is-row-alt" : ""} ${
                 isBlackKeyPitch(row.pitch) ? "is-black-key-row" : "is-white-key-row"
               }`}
             >
-              <div className="pitch-label">{row.label}</div>
-              <div className="cells">
-                {cellsByPitch.get(row.pitch)}
-                {(notesByPitch.get(row.pitch) ?? []).map((note) => (
-                    <div
-                      key={note.id}
-                      className={`note-block ${selectedNoteIdSetRef.current.has(note.id) ? "is-selected" : ""}`}
-                      style={{
-                        left: `${note.startStep * stepWidth + 1}px`,
-                        width: `${Math.max(1, note.length) * stepWidth - 2}px`,
-                        background: selectedChannel?.color ?? "#60a5fa",
-                      }}
-                      onPointerDown={(event) => startDraggingNote(event, note, "move")}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                      }}
-                      onContextMenu={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onDeleteNote(note.id);
-                        onSelectionChange(selectedNoteIds.filter((id) => id !== note.id));
-                      }}
-                    >
-                      <span className="note-velocity">{note.velocity}</span>
-                      <span
-                        className="note-resize-handle"
-                        onPointerDown={(event) => startDraggingNote(event, note, "resize")}
-                      />
-                    </div>
-                  ))}
-              </div>
+              {row.label}
             </div>
           ))}
         </div>
+
+        {/* Canvas Container - Scrollable */}
+        <div className="piano-canvas-wrapper" ref={scrollRef}>
+          <canvas
+            ref={canvasRef}
+            onPointerDown={handleCanvasPointerDown}
+            onContextMenu={handleCanvasContextMenu}
+          />
+        </div>
       </div>
+
       <style>{`
         .piano-roll {
           width: 100%;
@@ -640,148 +754,48 @@ export function PianoRoll({
           color: #93a3b8;
           margin-bottom: 8px;
         }
-        .piano-grid-wrapper {
-          width: 100%;
-          max-width: 100%;
-          min-width: 0;
-          overflow-x: auto;
-          overflow-y: auto;
-          max-height: 420px;
+        .piano-roll-container {
+          display: flex;
+          overflow: hidden;
           border-radius: 8px;
           border: 1px solid #2f3540;
           background: #22262d;
-          box-sizing: border-box;
+          max-height: 420px;
         }
-        .piano-grid {
-          position: relative;
-        }
-        .bar-guides {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-          pointer-events: none;
-        }
-        .bar-guide {
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          width: 1px;
-          background: rgba(116, 126, 143, 0.35);
-        }
-        .bar-guide.is-start {
-          background: rgba(170, 180, 196, 0.65);
-        }
-        .playhead-line {
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          width: 2px;
-          background: rgba(251, 191, 36, 0.9);
-          z-index: 5;
-          pointer-events: none;
-        }
-        .selection-box {
-          position: absolute;
-          z-index: 4;
-          border: 1px dashed rgba(251, 191, 36, 0.8);
-          background: rgba(251, 191, 36, 0.12);
-          pointer-events: none;
-        }
-        .piano-row {
-          display: grid;
-          grid-template-columns: 56px 1fr;
-          height: 24px;
-          border-bottom: 1px solid #2b313c;
-          box-sizing: border-box;
-        }
-        .piano-row.is-row-alt {
-          background: rgba(255, 255, 255, 0.012);
-        }
-        .piano-row:last-child {
-          border-bottom: none;
+        .pitch-labels {
+          flex-shrink: 0;
+          width: 56px;
+          overflow: hidden;
         }
         .pitch-label {
-          border-right: 1px solid #313845;
+          height: 24px;
           display: grid;
           place-items: center;
           color: #cdd3dd;
           font-size: 11px;
           background: #2a2f37;
           user-select: none;
-          height: 24px;
+          border-right: 1px solid #313845;
+          border-bottom: 1px solid #2b313c;
           box-sizing: border-box;
         }
-        .piano-row.is-black-key-row .pitch-label {
+        .pitch-label.is-row-alt {
+          background: rgba(255, 255, 255, 0.012);
+        }
+        .pitch-label.is-black-key-row {
           background: #20252c;
           color: #9ea7b6;
         }
-        .cells {
-          display: grid;
-          grid-template-columns: repeat(${totalSteps}, ${stepWidth}px);
-          grid-template-rows: 24px;
-          grid-auto-rows: 24px;
+        .pitch-label.is-black-key-row.is-row-alt {
+          background: #1e2228;
+        }
+        .piano-canvas-wrapper {
+          flex: 1;
+          overflow: auto;
           position: relative;
-          height: 24px;
-          box-sizing: border-box;
         }
-        .piano-cell {
-          height: 24px;
-          border: none;
-          border-right: 1px solid #2a303a;
-          border-bottom: 1px solid #2a303a;
-          background: #242932;
-          cursor: pointer;
-          pointer-events: auto;
-        }
-        .piano-row.is-black-key-row .piano-cell {
-          background: #20252d;
-        }
-        .piano-cell.is-step-alt {
-          background: #272d37;
-        }
-        .piano-row.is-black-key-row .piano-cell.is-step-alt {
-          background: #232931;
-        }
-        .piano-cell:hover {
-          background: #313844;
-        }
-        .piano-row.is-black-key-row .piano-cell:hover {
-          background: #2d343e;
-        }
-        .note-block {
-          position: absolute;
-          top: 2px;
-          z-index: 2;
-          border-radius: 4px;
-          height: 20px;
-          cursor: grab;
-          display: grid;
-          grid-template-columns: 1fr 8px;
-          align-items: center;
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
-          color: #0b1020;
-          font-size: 10px;
-          font-weight: 700;
-          user-select: none;
-          pointer-events: auto;
-          box-sizing: border-box;
-          overflow: hidden;
-        }
-        .note-block:active {
-          cursor: grabbing;
-        }
-        .note-block.is-selected {
-          box-shadow: 0 0 0 1px #ffffff, 0 0 10px rgba(255, 255, 255, 0.35);
-        }
-        .note-velocity {
-          padding-left: 4px;
-          opacity: 0.72;
-        }
-        .note-resize-handle {
-          height: 100%;
-          border-left: 1px solid rgba(0, 0, 0, 0.25);
-          background: rgba(255, 255, 255, 0.32);
-          cursor: ew-resize;
+        .piano-canvas-wrapper canvas {
+          display: block;
         }
         @media (max-width: 1366px), (max-height: 900px) {
           .piano-roll {
@@ -797,7 +811,7 @@ export function PianoRoll({
             font-size: 11px;
             margin-bottom: 6px;
           }
-          .piano-grid-wrapper {
+          .piano-roll-container {
             max-height: 360px;
           }
         }
@@ -822,7 +836,7 @@ export function PianoRoll({
           .snap-label {
             font-size: 11px;
           }
-          .piano-grid-wrapper {
+          .piano-roll-container {
             max-height: 300px;
           }
         }
@@ -830,7 +844,7 @@ export function PianoRoll({
           .hint {
             display: none;
           }
-          .piano-grid-wrapper {
+          .piano-roll-container {
             max-height: 260px;
           }
         }
