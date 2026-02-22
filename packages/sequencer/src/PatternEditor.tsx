@@ -3,12 +3,14 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconCircleDot,
+  IconDownload,
   IconLoader,
   IconMusic,
   IconPlayerPlay,
   IconPlayerSkipBack,
   IconPlayerStop,
   IconRepeat,
+  IconUpload,
   IconZoomIn,
 } from "@tabler/icons-react";
 import { Button, Checkbox, NumberInput, Slider } from "@mantine/core";
@@ -16,6 +18,12 @@ import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import { ChannelRack } from "./ChannelRack";
 import { PianoRoll } from "./PianoRoll";
 import { usePatternEditor } from "./usePatternEditor";
+import {
+  exportToMidi,
+  parseMidiFile,
+  downloadMidi,
+} from "./midi";
+import type { PatternState } from "./types";
 
 export function PatternEditor() {
   const asNumber = (value: string | number, fallback: number): number => {
@@ -48,6 +56,7 @@ export function PatternEditor() {
     redo,
     beginEditTransaction,
     endEditTransaction,
+    setState,
   } = usePatternEditor();
   const audioEngineRef = useRef(getAudioEngine());
   const stopTimersRef = useRef<number[]>([]);
@@ -62,6 +71,7 @@ export function PatternEditor() {
       velocity: number;
     }>;
   } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadStep, setPlayheadStep] = useState(0);
   const [bpm, setBpm] = useState(120);
@@ -77,6 +87,23 @@ export function PatternEditor() {
   const [viewportStep, setViewportStep] = useState(0);
   const totalSteps = state.stepsPerBar * state.bars;
   const msPerStep = 60000 / bpm / 4;
+  const playheadStepRef = useRef(playheadStep);
+  const msPerStepRef = useRef(msPerStep);
+  const channelsRef = useRef(state.channels);
+  const notesByStepRef = useRef<Map<number, typeof state.notes>>(new Map());
+  const lastPlayheadUiSyncAtRef = useRef(0);
+  const notesByStep = useMemo(() => {
+    const grouped = new Map<number, typeof state.notes>();
+    state.notes.forEach((note) => {
+      const current = grouped.get(note.startStep);
+      if (current) {
+        current.push(note);
+      } else {
+        grouped.set(note.startStep, [note]);
+      }
+    });
+    return grouped;
+  }, [state.notes]);
   const selectedNotes = useMemo(
     () => state.notes.filter((note) => selectedNoteIds.includes(note.id)),
     [state.notes, selectedNoteIds],
@@ -86,6 +113,22 @@ export function PatternEditor() {
     setLoopStartStep((prev) => Math.max(0, Math.min(prev, totalSteps - 1)));
     setLoopEndStep((prev) => Math.max(0, Math.min(prev, totalSteps - 1)));
   }, [totalSteps]);
+
+  useEffect(() => {
+    playheadStepRef.current = playheadStep;
+  }, [playheadStep]);
+
+  useEffect(() => {
+    msPerStepRef.current = msPerStep;
+  }, [msPerStep]);
+
+  useEffect(() => {
+    channelsRef.current = state.channels;
+  }, [state.channels]);
+
+  useEffect(() => {
+    notesByStepRef.current = notesByStep;
+  }, [notesByStep]);
 
   useEffect(() => {
     if (loopStartStep > loopEndStep) {
@@ -128,21 +171,23 @@ export function PatternEditor() {
     stopTimersRef.current.push(timerId);
   };
 
-  const playStep = (absoluteStep: number) => {
-    const hasSolo = state.channels.some((channel) => channel.solo);
-    const activeChannels = state.channels.filter((channel) =>
+  const playStep = (absoluteStep: number, whenSecondsFromNow: number = 0) => {
+    const channels = channelsRef.current;
+    const notesAtStep = notesByStepRef.current.get(absoluteStep);
+    if (!notesAtStep || notesAtStep.length === 0) {
+      return;
+    }
+    const hasSolo = channels.some((channel) => channel.solo);
+    const activeChannels = channels.filter((channel) =>
       hasSolo ? channel.solo && !channel.muted : !channel.muted,
     );
     const activeChannelMap = new Map(
       activeChannels.map((channel) => [channel.id, channel]),
     );
 
-    state.notes.forEach((note) => {
+    notesAtStep.forEach((note) => {
       const channel = activeChannelMap.get(note.channelId);
       if (!channel) {
-        return;
-      }
-      if (note.startStep !== absoluteStep) {
         return;
       }
       const velocity = Math.max(
@@ -156,7 +201,11 @@ export function PatternEditor() {
         note.pitch,
         velocity,
         channel.instrument,
-        Math.max(0.09, (msPerStep * Math.max(1, note.length) * 0.95) / 1000),
+        Math.max(
+          0.09,
+          (msPerStepRef.current * Math.max(1, note.length) * 0.95) / 1000,
+        ),
+        whenSecondsFromNow,
       );
     });
   };
@@ -239,6 +288,49 @@ export function PatternEditor() {
     setSelectedNoteIds(insertedIds);
   };
 
+  // MIDI 导出
+  const handleExportMidi = () => {
+    try {
+      const midiData = exportToMidi(state, { bpm });
+      downloadMidi(midiData, `pattern-${Date.now()}.mid`);
+    } catch (e) {
+      console.error("MIDI export failed:", e);
+      alert("导出失败: " + e);
+    }
+  };
+
+  // MIDI 导入
+  const handleImportMidi = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { state: importedState, errors } = await parseMidiFile(file);
+      
+      if (errors.length > 0) {
+        console.warn("MIDI import warnings:", errors);
+      }
+
+      // 更新状态
+      setState(importedState);
+      
+      // 清空选择
+      setSelectedNoteIds([]);
+      
+      alert(`导入成功！${importedState.channels.length} 个通道，${importedState.notes.length} 个音符`);
+    } catch (e) {
+      console.error("MIDI import failed:", e);
+      alert("导入失败: " + e);
+    }
+
+    // 清空 input 以允许再次选择同一文件
+    event.target.value = "";
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   const previewAddedNote = async (pitch: number) => {
     const ready = await ensureAudioReady();
     if (!ready) {
@@ -315,7 +407,7 @@ export function PatternEditor() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedNoteIds, undo, redo, selectedNotes, playheadStep]);
+  }, [selectedNoteIds, undo, redo, selectedNotes]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -327,14 +419,16 @@ export function PatternEditor() {
       }
       return;
     }
-    let cursor = playheadStep;
+    let cursor = playheadStepRef.current;
     if (loopEnabled && (cursor < loopStartStep || cursor > loopEndStep)) {
       cursor = loopStartStep;
+      playheadStepRef.current = loopStartStep;
       setPlayheadStep(loopStartStep);
     }
 
-    playStep(cursor);
-    let expectedAt = performance.now() + msPerStep;
+    playStep(cursor, 0);
+    let expectedAt = performance.now() + msPerStepRef.current;
+    const schedulerLookaheadMs = 90;
     const getNextStep = (current: number) => {
       let nextStep = current + 1;
       if (loopEnabled) {
@@ -350,13 +444,20 @@ export function PatternEditor() {
     const tick = () => {
       const now = performance.now();
       let guard = 0;
-      while (now >= expectedAt - 1 && guard < 8) {
+      let latestStep: number | null = null;
+      while (expectedAt <= now + schedulerLookaheadMs && guard < 16) {
         const next = getNextStep(cursor);
+        const delaySeconds = Math.max(0, (expectedAt - now) / 1000);
         cursor = next;
-        setPlayheadStep(next);
-        playStep(next);
-        expectedAt += msPerStep;
+        playheadStepRef.current = next;
+        latestStep = next;
+        playStep(next, delaySeconds);
+        expectedAt += msPerStepRef.current;
         guard += 1;
+      }
+      if (latestStep !== null && now - lastPlayheadUiSyncAtRef.current >= 33) {
+        lastPlayheadUiSyncAtRef.current = now;
+        setPlayheadStep(latestStep);
       }
       const delay = Math.max(
         8,
@@ -380,15 +481,11 @@ export function PatternEditor() {
     };
   }, [
     isPlaying,
-    playheadStep,
     loopEnabled,
     loopStartStep,
     loopEndStep,
     totalSteps,
     msPerStep,
-    state.channels,
-    state.notes,
-    state.stepsPerBar,
   ]);
 
   return (
@@ -598,7 +695,9 @@ export function PatternEditor() {
               variant="default"
               unstyled
               onClick={() => {
-                setPlayheadStep(loopEnabled ? loopStartStep : 0);
+                const nextStep = loopEnabled ? loopStartStep : 0;
+                playheadStepRef.current = nextStep;
+                setPlayheadStep(nextStep);
                 audioEngineRef.current.stopAllNotes();
                 clearStopTimers();
               }}
@@ -637,12 +736,19 @@ export function PatternEditor() {
                   section: "compact-number-section",
                 }}
                 size="xs"
-                min={40}
-                max={220}
+                min={1}
+                max={400}
                 value={bpm}
-                onChange={(value) =>
-                  setBpm(Math.max(40, Math.min(220, asNumber(value, 120))))
-                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const val = asNumber((e.target as HTMLInputElement).value, 120);
+                    setBpm(Math.max(1, Math.min(400, val)));
+                  }
+                }}
+                onBlur={(e) => {
+                  const val = asNumber(e.target.value, 120);
+                  setBpm(Math.max(1, Math.min(400, val)));
+                }}
               />
             </label>
           </div>
@@ -661,6 +767,37 @@ export function PatternEditor() {
               />
               <span className="transport-field-value">{stepWidth}px</span>
             </label>
+          </div>
+          <div className="transport-group" title="MIDI import/export">
+            <input
+              type="file"
+              accept=".mid,.midi"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleImportMidi}
+            />
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={triggerFileInput}
+              title="Import MIDI"
+              leftSection={<IconUpload size={14} />}
+            >
+              Import
+            </Button>
+            <Button
+              className="transport-btn"
+              size="xs"
+              variant="default"
+              unstyled
+              onClick={handleExportMidi}
+              title="Export MIDI"
+              leftSection={<IconDownload size={14} />}
+            >
+              Export
+            </Button>
           </div>
           <div
             className="transport-group transport-group-loop"
