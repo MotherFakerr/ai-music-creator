@@ -5,9 +5,21 @@
 
 import { Midi, type MidiJSON } from "@tonejs/midi";
 import type { PatternState, PianoRollNote, SequencerChannel } from "./types";
+import { EN_INSTRUMENT_TYPE } from "@ai-music-creator/audio";
 
 const DEFAULT_TPQ = 480; // ticks per quarter note
 const DEFAULT_BPM = 120;
+
+/**
+ * 乐器类型到 MIDI Program Number 的映射 (GM 标准)
+ */
+const INSTRUMENT_TO_PROGRAM: Record<EN_INSTRUMENT_TYPE, number> = {
+  [EN_INSTRUMENT_TYPE.PIANO]: 0,           // Acoustic Grand Piano
+  [EN_INSTRUMENT_TYPE.SYNTH]: 80,          // Lead 1 (Square)
+  [EN_INSTRUMENT_TYPE.GUITAR]: 24,         // Acoustic Guitar Nylon
+  [EN_INSTRUMENT_TYPE.DISTORTION_GUITAR]: 29, // Electric Guitar (Distortion)
+  [EN_INSTRUMENT_TYPE.DRUM]: 0,            // Drum Kit (通道 10 使用 percussion)
+};
 
 /**
  * 将 PatternState 导出为 MIDI 文件
@@ -48,6 +60,10 @@ export function exportToMidi(
     const track = midi.addTrack();
     track.name = channel.name;
     track.channel = index; // MIDI 通道 0-15
+
+    // 设置乐器 (Program Change)
+    const programNumber = INSTRUMENT_TO_PROGRAM[channel.instrument] ?? 0;
+    track.instrument.number = programNumber;
 
     // 将音符添加到音轨
     channelNotes.forEach(note => {
