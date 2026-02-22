@@ -736,12 +736,19 @@ export function PatternEditor() {
                   section: "compact-number-section",
                 }}
                 size="xs"
-                min={40}
-                max={220}
+                min={1}
+                max={400}
                 value={bpm}
-                onChange={(value) =>
-                  setBpm(Math.max(40, Math.min(220, asNumber(value, 120))))
-                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const val = asNumber((e.target as HTMLInputElement).value, 120);
+                    setBpm(Math.max(1, Math.min(400, val)));
+                  }
+                }}
+                onBlur={(e) => {
+                  const val = asNumber(e.target.value, 120);
+                  setBpm(Math.max(1, Math.min(400, val)));
+                }}
               />
             </label>
           </div>
