@@ -137,9 +137,6 @@ export function PianoRoll({
       canvas.height = visibleHeight * dpr;
       canvas.style.width = `${visibleWidth}px`;
       canvas.style.height = `${visibleHeight}px`;
-      // 设置内容尺寸让容器可以滚动
-      canvas.style.maxWidth = `${contentWidth}px`;
-      canvas.style.maxHeight = `${contentHeight}px`;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -732,6 +729,13 @@ export function PianoRoll({
 
         {/* Canvas Container - Scrollable */}
         <div className="piano-canvas-wrapper" ref={scrollRef}>
+          <div 
+            className="piano-canvas-inner"
+            style={{
+              width: `${totalSteps * stepWidth}px`,
+              height: `${pitchRows.length * rowHeight}px`,
+            }}
+          />
           <canvas
             ref={canvasRef}
             onPointerDown={handleCanvasPointerDown}
@@ -864,8 +868,13 @@ export function PianoRoll({
           overflow: auto;
           position: relative;
         }
+        .piano-canvas-inner {
+          position: relative;
+        }
         .piano-canvas-wrapper canvas {
-          display: block;
+          position: absolute;
+          top: 0;
+          left: 0;
         }
         @media (max-width: 1366px), (max-height: 900px) {
           .piano-roll {
