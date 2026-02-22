@@ -113,7 +113,7 @@ export function PianoRoll({
     return { step, pitch };
   }, [stepWidth, rowHeight, totalSteps, pitchRows]);
 
-  // Canvas 渲染：canvas 尺寸等于内容尺寸（支持滚动），只渲染可见区域
+  // Canvas 渲染：尺寸 = 可见区域，绘制时偏移内容
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const wrapper = scrollRef.current;
@@ -130,38 +130,42 @@ export function PianoRoll({
     const visibleWidth = wrapper.clientWidth;
     const visibleHeight = wrapper.clientHeight;
 
-    // canvas 尺寸等于内容尺寸（这样才能滚动）
-    const needsResize = canvas.width !== contentWidth * dpr || canvas.height !== contentHeight * dpr;
+    // canvas 尺寸 = 可见区域
+    const needsResize = canvas.width !== visibleWidth * dpr || canvas.height !== visibleHeight * dpr;
     if (needsResize) {
-      canvas.width = contentWidth * dpr;
-      canvas.height = contentHeight * dpr;
-      canvas.style.width = `${contentWidth}px`;
-      canvas.style.height = `${contentHeight}px`;
+      canvas.width = visibleWidth * dpr;
+      canvas.height = visibleHeight * dpr;
+      canvas.style.width = `${visibleWidth}px`;
+      canvas.style.height = `${visibleHeight}px`;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    // 计算可见范围
+    // 绘制偏移量：canvas 0,0 对应内容的 scrollLeft, scrollTop
+    const offsetX = scrollLeft;
+    const offsetY = scrollTop;
+
+    // 计算可见范围（在内容坐标系中）
     const startStep = Math.floor(scrollLeft / stepWidth);
     const endStep = Math.min(totalSteps, Math.ceil((scrollLeft + visibleWidth) / stepWidth) + 1);
     const startPitchIdx = Math.floor(scrollTop / rowHeight);
     const endPitchIdx = Math.min(pitchRows.length, Math.ceil((scrollTop + visibleHeight) / rowHeight) + 1);
 
-    // Background (填充整个内容区域，因为 scroll 会移动 canvas)
+    // Background (可见区域)
     ctx.fillStyle = "#242932";
-    ctx.fillRect(0, 0, contentWidth, contentHeight);
+    ctx.fillRect(0, 0, visibleWidth, visibleHeight);
 
-    // Grid lines (只绘制可见的)
+    // Grid lines
     for (let step = startStep; step < endStep; step++) {
-      const x = step * stepWidth;
+      const x = step * stepWidth - offsetX;
       const isAlt = step % 2 === 1;
       const isBarStart = step % stepsPerBar === 0;
 
       // Row backgrounds
       for (let rowIdx = startPitchIdx; rowIdx < endPitchIdx; rowIdx++) {
-        const y = rowIdx * rowHeight;
+        const y = rowIdx * rowHeight - offsetY;
         const pitch = pitchRows[rowIdx]?.pitch;
         if (!pitch) continue;
         const isBlack = isBlackKeyPitch(pitch);
@@ -177,23 +181,25 @@ export function PianoRoll({
       // Vertical lines
       if (x >= -stepWidth && x <= visibleWidth) {
         ctx.fillStyle = isBarStart ? "rgba(170, 180, 196, 0.65)" : "rgba(116, 126, 143, 0.2)";
-        ctx.fillRect(x, 0, 1, contentHeight);
+        ctx.fillRect(x, 0, 1, visibleHeight);
       }
     }
 
-    // Horizontal lines (绘制所有行)
-    for (let rowIdx = 0; rowIdx <= pitchRows.length; rowIdx++) {
-      const y = rowIdx * rowHeight;
-      ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
-      ctx.fillRect(0, y, contentWidth, 1);
+    // Horizontal lines
+    for (let rowIdx = startPitchIdx; rowIdx <= endPitchIdx; rowIdx++) {
+      const y = rowIdx * rowHeight - offsetY;
+      if (y >= -rowHeight && y <= visibleHeight) {
+        ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
+        ctx.fillRect(0, y, visibleWidth, 1);
+      }
     }
 
     // Bar guides
     for (let bar = 0; bar <= bars; bar++) {
-      const x = bar * stepsPerBar * stepWidth ;
+      const x = bar * stepsPerBar * stepWidth - offsetX;
       if (x >= -stepWidth && x <= visibleWidth) {
         ctx.fillStyle = "rgba(170, 180, 196, 0.65)";
-        ctx.fillRect(x, 0, 1, contentHeight);
+        ctx.fillRect(x, 0, 1, visibleHeight);
       }
     }
 
@@ -206,8 +212,8 @@ export function PianoRoll({
       const topIndex = Math.min(startPitchIdxBox, endPitchIdxBox);
       const bottomIndex = Math.max(startPitchIdxBox, endPitchIdxBox);
 
-      const bx = minStep * stepWidth ;
-      const by = topIndex * rowHeight ;
+      const bx = minStep * stepWidth - offsetX;
+      const by = topIndex * rowHeight - offsetY;
       const bw = (maxStep - minStep + 1) * stepWidth;
       const bh = (bottomIndex - topIndex + 1) * rowHeight;
 
@@ -231,8 +237,8 @@ export function PianoRoll({
       const noteEndStep = note.startStep + note.length;
       if (noteEndStep < startStep || note.startStep > endStep) return;
 
-      const nx = note.startStep * stepWidth  + 1;
-      const ny = rowIndex * rowHeight  + 2;
+      const nx = note.startStep * stepWidth - offsetX + 1;
+      const ny = rowIndex * rowHeight - offsetY + 2;
       const nw = Math.max(1, note.length) * stepWidth - 2;
       const nh = rowHeight - 4;
 
@@ -273,10 +279,10 @@ export function PianoRoll({
 
     // Playhead
     if (playheadStep !== null) {
-      const px = playheadStep * stepWidth ;
+      const px = playheadStep * stepWidth - offsetX;
       if (px >= 0 && px <= visibleWidth) {
         ctx.fillStyle = "rgba(251, 191, 36, 0.9)";
-        ctx.fillRect(px, 0, 2, contentHeight);
+        ctx.fillRect(px, 0, 2, visibleHeight);
       }
     }
 
