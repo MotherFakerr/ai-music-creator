@@ -149,9 +149,9 @@ export function PianoRoll({
     const startPitchIdx = Math.floor(scrollTop / rowHeight);
     const endPitchIdx = Math.min(pitchRows.length, Math.ceil((scrollTop + visibleHeight) / rowHeight) + 1);
 
-    // Background (只填充可见区域)
+    // Background (填充整个内容区域，因为 scroll 会移动 canvas)
     ctx.fillStyle = "#242932";
-    ctx.fillRect(scrollLeft, scrollTop, visibleWidth, visibleHeight);
+    ctx.fillRect(0, 0, contentWidth, contentHeight);
 
     // Grid lines (只绘制可见的)
     for (let step = startStep; step < endStep; step++) {
@@ -177,7 +177,7 @@ export function PianoRoll({
       // Vertical lines
       if (x >= -stepWidth && x <= visibleWidth) {
         ctx.fillStyle = isBarStart ? "rgba(170, 180, 196, 0.65)" : "rgba(116, 126, 143, 0.2)";
-        ctx.fillRect(x, 0, 1, visibleHeight);
+        ctx.fillRect(x, 0, 1, contentHeight);
       }
     }
 
@@ -186,7 +186,7 @@ export function PianoRoll({
       const y = rowIdx * rowHeight ;
       if (y >= -rowHeight && y <= visibleHeight) {
         ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
-        ctx.fillRect(0, y, visibleWidth, 1);
+        ctx.fillRect(0, y, contentWidth, 1);
       }
     }
 
@@ -195,7 +195,7 @@ export function PianoRoll({
       const x = bar * stepsPerBar * stepWidth ;
       if (x >= -stepWidth && x <= visibleWidth) {
         ctx.fillStyle = "rgba(170, 180, 196, 0.65)";
-        ctx.fillRect(x, 0, 1, visibleHeight);
+        ctx.fillRect(x, 0, 1, contentHeight);
       }
     }
 
@@ -291,7 +291,7 @@ export function PianoRoll({
       const px = playheadStep * stepWidth ;
       if (px >= 0 && px <= visibleWidth) {
         ctx.fillStyle = "rgba(251, 191, 36, 0.9)";
-        ctx.fillRect(px, 0, 2, visibleHeight);
+        ctx.fillRect(px, 0, 2, contentHeight);
       }
     }
 
