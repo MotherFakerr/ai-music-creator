@@ -73,6 +73,7 @@ export function PianoRoll({
     endPitch: number;
   } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pitchLabelsInnerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const initializedScrollRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -309,6 +310,10 @@ export function PianoRoll({
     drawCanvas();
 
     const handleScroll = () => {
+      // 同步 pitch labels 滚动位置
+      if (pitchLabelsInnerRef.current && wrapper) {
+        pitchLabelsInnerRef.current.style.transform = `translateY(${-wrapper.scrollTop}px)`;
+      }
       requestAnimationFrame(drawCanvas);
     };
     wrapper.addEventListener("scroll", handleScroll, { passive: true });
@@ -705,18 +710,20 @@ export function PianoRoll({
       </div>
 
       <div className="piano-roll-container">
-        {/* Pitch Labels - DOM */}
-        <div className="pitch-labels">
-          {pitchRows.map((row, rowIndex) => (
-            <div
-              key={row.pitch}
-              className={`pitch-label ${rowIndex % 2 === 1 ? "is-row-alt" : ""} ${
-                isBlackKeyPitch(row.pitch) ? "is-black-key-row" : "is-white-key-row"
-              }`}
-            >
-              {row.label}
-            </div>
-          ))}
+        {/* Pitch Labels - DOM (随 vertical scroll 滚动) */}
+        <div className="pitch-labels" style={{ overflow: 'hidden' }}>
+          <div className="pitch-labels-inner" ref={pitchLabelsInnerRef}>
+            {pitchRows.map((row, rowIndex) => (
+              <div
+                key={row.pitch}
+                className={`pitch-label ${rowIndex % 2 === 1 ? "is-row-alt" : ""} ${
+                  isBlackKeyPitch(row.pitch) ? "is-black-key-row" : "is-white-key-row"
+                }`}
+              >
+                {row.label}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Canvas Container - Scrollable */}
@@ -820,6 +827,11 @@ export function PianoRoll({
           flex-shrink: 0;
           width: 56px;
           overflow: hidden;
+        }
+        .pitch-labels-inner {
+          /* 内容高度与 canvas 一致 */
+          height: ${pitchRows.length * rowHeight}px;
+          position: relative;
         }
         .pitch-label {
           height: 24px;
