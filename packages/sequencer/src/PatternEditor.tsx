@@ -87,6 +87,23 @@ export function PatternEditor() {
   const [viewportStep, setViewportStep] = useState(0);
   const totalSteps = state.stepsPerBar * state.bars;
   const msPerStep = 60000 / bpm / 4;
+  const playheadStepRef = useRef(playheadStep);
+  const msPerStepRef = useRef(msPerStep);
+  const channelsRef = useRef(state.channels);
+  const notesByStepRef = useRef<Map<number, typeof state.notes>>(new Map());
+  const lastPlayheadUiSyncAtRef = useRef(0);
+  const notesByStep = useMemo(() => {
+    const grouped = new Map<number, typeof state.notes>();
+    state.notes.forEach((note) => {
+      const current = grouped.get(note.startStep);
+      if (current) {
+        current.push(note);
+      } else {
+        grouped.set(note.startStep, [note]);
+      }
+    });
+    return grouped;
+  }, [state.notes]);
   const selectedNotes = useMemo(
     () => state.notes.filter((note) => selectedNoteIds.includes(note.id)),
     [state.notes, selectedNoteIds],
@@ -96,6 +113,22 @@ export function PatternEditor() {
     setLoopStartStep((prev) => Math.max(0, Math.min(prev, totalSteps - 1)));
     setLoopEndStep((prev) => Math.max(0, Math.min(prev, totalSteps - 1)));
   }, [totalSteps]);
+
+  useEffect(() => {
+    playheadStepRef.current = playheadStep;
+  }, [playheadStep]);
+
+  useEffect(() => {
+    msPerStepRef.current = msPerStep;
+  }, [msPerStep]);
+
+  useEffect(() => {
+    channelsRef.current = state.channels;
+  }, [state.channels]);
+
+  useEffect(() => {
+    notesByStepRef.current = notesByStep;
+  }, [notesByStep]);
 
   useEffect(() => {
     if (loopStartStep > loopEndStep) {
@@ -138,21 +171,23 @@ export function PatternEditor() {
     stopTimersRef.current.push(timerId);
   };
 
-  const playStep = (absoluteStep: number) => {
-    const hasSolo = state.channels.some((channel) => channel.solo);
-    const activeChannels = state.channels.filter((channel) =>
+  const playStep = (absoluteStep: number, whenSecondsFromNow: number = 0) => {
+    const channels = channelsRef.current;
+    const notesAtStep = notesByStepRef.current.get(absoluteStep);
+    if (!notesAtStep || notesAtStep.length === 0) {
+      return;
+    }
+    const hasSolo = channels.some((channel) => channel.solo);
+    const activeChannels = channels.filter((channel) =>
       hasSolo ? channel.solo && !channel.muted : !channel.muted,
     );
     const activeChannelMap = new Map(
       activeChannels.map((channel) => [channel.id, channel]),
     );
 
-    state.notes.forEach((note) => {
+    notesAtStep.forEach((note) => {
       const channel = activeChannelMap.get(note.channelId);
       if (!channel) {
-        return;
-      }
-      if (note.startStep !== absoluteStep) {
         return;
       }
       const velocity = Math.max(
@@ -166,7 +201,11 @@ export function PatternEditor() {
         note.pitch,
         velocity,
         channel.instrument,
-        Math.max(0.09, (msPerStep * Math.max(1, note.length) * 0.95) / 1000),
+        Math.max(
+          0.09,
+          (msPerStepRef.current * Math.max(1, note.length) * 0.95) / 1000,
+        ),
+        whenSecondsFromNow,
       );
     });
   };
@@ -368,7 +407,7 @@ export function PatternEditor() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedNoteIds, undo, redo, selectedNotes, playheadStep]);
+  }, [selectedNoteIds, undo, redo, selectedNotes]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -380,14 +419,16 @@ export function PatternEditor() {
       }
       return;
     }
-    let cursor = playheadStep;
+    let cursor = playheadStepRef.current;
     if (loopEnabled && (cursor < loopStartStep || cursor > loopEndStep)) {
       cursor = loopStartStep;
+      playheadStepRef.current = loopStartStep;
       setPlayheadStep(loopStartStep);
     }
 
-    playStep(cursor);
-    let expectedAt = performance.now() + msPerStep;
+    playStep(cursor, 0);
+    let expectedAt = performance.now() + msPerStepRef.current;
+    const schedulerLookaheadMs = 90;
     const getNextStep = (current: number) => {
       let nextStep = current + 1;
       if (loopEnabled) {
@@ -403,13 +444,20 @@ export function PatternEditor() {
     const tick = () => {
       const now = performance.now();
       let guard = 0;
-      while (now >= expectedAt - 1 && guard < 8) {
+      let latestStep: number | null = null;
+      while (expectedAt <= now + schedulerLookaheadMs && guard < 16) {
         const next = getNextStep(cursor);
+        const delaySeconds = Math.max(0, (expectedAt - now) / 1000);
         cursor = next;
-        setPlayheadStep(next);
-        playStep(next);
-        expectedAt += msPerStep;
+        playheadStepRef.current = next;
+        latestStep = next;
+        playStep(next, delaySeconds);
+        expectedAt += msPerStepRef.current;
         guard += 1;
+      }
+      if (latestStep !== null && now - lastPlayheadUiSyncAtRef.current >= 33) {
+        lastPlayheadUiSyncAtRef.current = now;
+        setPlayheadStep(latestStep);
       }
       const delay = Math.max(
         8,
@@ -433,15 +481,11 @@ export function PatternEditor() {
     };
   }, [
     isPlaying,
-    playheadStep,
     loopEnabled,
     loopStartStep,
     loopEndStep,
     totalSteps,
     msPerStep,
-    state.channels,
-    state.notes,
-    state.stepsPerBar,
   ]);
 
   return (
@@ -651,7 +695,9 @@ export function PatternEditor() {
               variant="default"
               unstyled
               onClick={() => {
-                setPlayheadStep(loopEnabled ? loopStartStep : 0);
+                const nextStep = loopEnabled ? loopStartStep : 0;
+                playheadStepRef.current = nextStep;
+                setPlayheadStep(nextStep);
                 audioEngineRef.current.stopAllNotes();
                 clearStopTimers();
               }}

@@ -53,15 +53,52 @@ export function PianoRoll({
     () => notes.filter((note) => note.channelId === selectedChannelId),
     [notes, selectedChannelId],
   );
+  const notesByPitch = useMemo(() => {
+    const grouped = new Map<number, PianoRollNote[]>();
+    selectedNotes.forEach((note) => {
+      const current = grouped.get(note.pitch);
+      if (current) {
+        current.push(note);
+      } else {
+        grouped.set(note.pitch, [note]);
+      }
+    });
+    return grouped;
+  }, [selectedNotes]);
   const [snapStepSize, setSnapStepSize] = useState(1);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const initializedScrollRef = useRef(false);
   const isDraggingRef = useRef(false);
+  const lastAutoScrollAtRef = useRef(0);
 
   const labelWidth = 56;
   const rowHeight = 24;
   const selectedNoteIdSetRef = useRef(new Set<string>());
   selectedNoteIdSetRef.current = new Set(selectedNoteIds);
+  const cellsByPitch = useMemo(() => {
+    const map = new Map<number, JSX.Element[]>();
+    pitchRows.forEach((row) => {
+      map.set(
+        row.pitch,
+        Array.from({ length: totalSteps }, (_, step) => (
+          <button
+            key={`${row.pitch}-${step}`}
+            className={`
+              piano-cell
+              ${step % 2 === 1 ? "is-step-alt" : ""}
+            `}
+            data-step={step}
+            data-pitch={row.pitch}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+            title={`${row.label} / Step ${step + 1}`}
+          />
+        )),
+      );
+    });
+    return map;
+  }, [pitchRows, totalSteps]);
 
   const dragRef = useRef<{
     mode: "move" | "resize";
@@ -374,10 +411,16 @@ export function PianoRoll({
     const left = wrapper.scrollLeft;
     const right = left + wrapper.clientWidth;
     const margin = stepWidth * 4;
+    const now = performance.now();
+    if (now - lastAutoScrollAtRef.current < 40) {
+      return;
+    }
 
     if (playheadX > right - margin) {
+      lastAutoScrollAtRef.current = now;
       wrapper.scrollLeft = Math.max(0, playheadX - wrapper.clientWidth + margin);
     } else if (playheadX < left + labelWidth + margin) {
+      lastAutoScrollAtRef.current = now;
       wrapper.scrollLeft = Math.max(0, playheadX - labelWidth - margin);
     }
   }, [playheadStep, stepWidth]);
@@ -485,26 +528,8 @@ export function PianoRoll({
             >
               <div className="pitch-label">{row.label}</div>
               <div className="cells">
-                {Array.from({ length: totalSteps }, (_, step) => {
-                  return (
-                    <button
-                      key={`${row.pitch}-${step}`}
-                      className={`
-                        piano-cell
-                        ${step % 2 === 1 ? "is-step-alt" : ""}
-                      `}
-                      data-step={step}
-                      data-pitch={row.pitch}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                      }}
-                      title={`${row.label} / Step ${step + 1}`}
-                    />
-                  );
-                })}
-                {selectedNotes
-                  .filter((note) => note.pitch === row.pitch)
-                  .map((note) => (
+                {cellsByPitch.get(row.pitch)}
+                {(notesByPitch.get(row.pitch) ?? []).map((note) => (
                     <div
                       key={note.id}
                       className={`note-block ${selectedNoteIdSetRef.current.has(note.id) ? "is-selected" : ""}`}

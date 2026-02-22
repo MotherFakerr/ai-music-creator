@@ -283,13 +283,15 @@ export class AudioEngine {
     note: number,
     velocity: number = 100,
     instrument: EN_INSTRUMENT_TYPE = EN_INSTRUMENT_TYPE.PIANO,
-    durationSeconds: number = 0.2
+    durationSeconds: number = 0.2,
+    whenSecondsFromNow: number = 0
   ): void {
     const ctx = this.ensureContext();
     const safeDuration = Math.max(0.03, durationSeconds);
+    const startAt = ctx.currentTime + Math.max(0, whenSecondsFromNow);
 
     if (instrument === EN_INSTRUMENT_TYPE.DRUM) {
-      this.playDrumTransient(note);
+      this.playDrumTransient(note, startAt);
       return;
     }
 
@@ -298,14 +300,14 @@ export class AudioEngine {
       const stop = cachedPlayer.start({
         note,
         velocity,
-        time: ctx.currentTime,
+        time: startAt,
       });
-      stop(ctx.currentTime + safeDuration);
+      stop(startAt + safeDuration);
       return;
     }
 
     // 先用 fallback 兜底触发当前音，再异步加载目标音色供后续使用
-    this.playNoteFallbackTransient(note, velocity, safeDuration);
+    this.playNoteFallbackTransient(note, velocity, safeDuration, startAt);
     void this.getOrLoadInstrument(instrument).catch((error) => {
       console.error(`[AudioEngine] 预加载音色失败: ${instrument}`, error);
     });
@@ -340,7 +342,8 @@ export class AudioEngine {
   private playNoteFallbackTransient(
     note: number,
     velocity: number,
-    durationSeconds: number
+    durationSeconds: number,
+    startAt?: number
   ): void {
     const ctx = this.ensureContext();
     const osc = ctx.createOscillator();
@@ -351,7 +354,7 @@ export class AudioEngine {
 
     const velocityGain = 0.5 + (velocity / 127) * 1.0;
     const finalGain = velocityGain * this.volume;
-    const now = ctx.currentTime;
+    const now = startAt ?? ctx.currentTime;
     const endAt = now + Math.max(0.03, durationSeconds);
 
     gain.gain.setValueAtTime(0, now);
@@ -393,9 +396,9 @@ export class AudioEngine {
     this.activeNotes.set(note, { stop: () => osc.stop() });
   }
 
-  private playDrumTransient(note: number): void {
+  private playDrumTransient(note: number, startAt?: number): void {
     const ctx = this.ensureContext();
-    const now = ctx.currentTime;
+    const now = startAt ?? ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
