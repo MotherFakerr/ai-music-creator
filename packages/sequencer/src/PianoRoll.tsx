@@ -295,15 +295,29 @@ export function PianoRoll({
       if (pitchLabelsInnerRef.current && wrapper) {
         pitchLabelsInnerRef.current.style.transform = `translateY(${-wrapper.scrollTop}px)`;
       }
-      requestAnimationFrame(drawCanvas);
+      // 使用节流避免频繁重绘
+      if (frameRequestedRef.current) return;
+      frameRequestedRef.current = true;
+      requestAnimationFrame(() => {
+        drawCanvas();
+        frameRequestedRef.current = false;
+      });
     };
     wrapper.addEventListener("scroll", handleScroll, { passive: true });
     return () => wrapper.removeEventListener("scroll", handleScroll);
   }, [drawCanvas]);
 
   // State 变化时重绘
+  // 性能优化：使用 ref 跟踪是否正在绘制，避免频繁重绘
+  const frameRequestedRef = useRef(false);
+
   useEffect(() => {
-    requestAnimationFrame(drawCanvas);
+    if (frameRequestedRef.current) return;
+    frameRequestedRef.current = true;
+    requestAnimationFrame(() => {
+      drawCanvas();
+      frameRequestedRef.current = false;
+    });
   }, [drawCanvas]);
 
   const dragRef = useRef<{
