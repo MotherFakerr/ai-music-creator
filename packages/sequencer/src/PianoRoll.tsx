@@ -112,33 +112,59 @@ export function PianoRoll({
     return { step, pitch };
   }, [stepWidth, rowHeight, totalSteps, pitchRows]);
 
-  // Canvas rendering
+  // Canvas 渲染：只渲染可见区域
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const wrapper = scrollRef.current;
+    if (!canvas || !wrapper) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
+    const visibleWidth = wrapper.clientWidth;
+    const visibleHeight = wrapper.clientHeight;
+    const scrollLeft = wrapper.scrollLeft;
+    const scrollTop = wrapper.scrollTop;
+
+    // 动态调整 canvas 尺寸为可见区域大小
+    const needsResize = canvas.width !== visibleWidth * dpr || canvas.height !== visibleHeight * dpr;
+    if (needsResize) {
+      canvas.width = visibleWidth * dpr;
+      canvas.height = visibleHeight * dpr;
+      canvas.style.width = `${visibleWidth}px`;
+      canvas.style.height = `${visibleHeight}px`;
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.scale(dpr, dpr);
 
+    // 计算可见范围
+    const startStep = Math.floor(scrollLeft / stepWidth);
+    const endStep = Math.min(totalSteps, Math.ceil((scrollLeft + visibleWidth) / stepWidth) + 1);
+    const startPitchIdx = Math.floor(scrollTop / rowHeight);
+    const endPitchIdx = Math.min(pitchRows.length, Math.ceil((scrollTop + visibleHeight) / rowHeight) + 1);
+
+    // 偏移量：将内容坐标映射到 canvas 坐标
+    const offsetX = -scrollLeft;
+    const offsetY = -scrollTop;
+
     // Background
     ctx.fillStyle = "#242932";
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillRect(0, 0, visibleWidth, visibleHeight);
 
-    // Grid lines
-    for (let step = 0; step < totalSteps; step++) {
-      const x = step * stepWidth;
+    // Grid lines (只绘制可见的)
+    for (let step = startStep; step < endStep; step++) {
+      const x = step * stepWidth + offsetX;
       const isAlt = step % 2 === 1;
       const isBarStart = step % stepsPerBar === 0;
 
       // Row backgrounds
-      for (let rowIdx = 0; rowIdx < pitchRows.length; rowIdx++) {
-        const y = rowIdx * rowHeight;
-        const pitch = pitchRows[rowIdx].pitch;
+      for (let rowIdx = startPitchIdx; rowIdx < endPitchIdx; rowIdx++) {
+        const y = rowIdx * rowHeight + offsetY;
+        const pitch = pitchRows[rowIdx]?.pitch;
+        if (!pitch) continue;
         const isBlack = isBlackKeyPitch(pitch);
 
         if (isBlack) {
@@ -150,35 +176,41 @@ export function PianoRoll({
       }
 
       // Vertical lines
-      ctx.fillStyle = isBarStart ? "rgba(170, 180, 196, 0.65)" : "rgba(116, 126, 143, 0.2)";
-      ctx.fillRect(x, 0, 1, canvasHeight);
+      if (x >= -stepWidth && x <= visibleWidth) {
+        ctx.fillStyle = isBarStart ? "rgba(170, 180, 196, 0.65)" : "rgba(116, 126, 143, 0.2)";
+        ctx.fillRect(x, 0, 1, visibleHeight);
+      }
     }
 
     // Horizontal lines
-    for (let rowIdx = 0; rowIdx <= pitchRows.length; rowIdx++) {
-      const y = rowIdx * rowHeight;
-      ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
-      ctx.fillRect(0, y, canvasWidth, 1);
+    for (let rowIdx = startPitchIdx; rowIdx <= endPitchIdx; rowIdx++) {
+      const y = rowIdx * rowHeight + offsetY;
+      if (y >= -rowHeight && y <= visibleHeight) {
+        ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
+        ctx.fillRect(0, y, visibleWidth, 1);
+      }
     }
 
-    // Bar guides (darker lines at bar start)
+    // Bar guides
     for (let bar = 0; bar <= bars; bar++) {
-      const x = bar * stepsPerBar * stepWidth;
-      ctx.fillStyle = "rgba(170, 180, 196, 0.65)";
-      ctx.fillRect(x, 0, 1, canvasHeight);
+      const x = bar * stepsPerBar * stepWidth + offsetX;
+      if (x >= -stepWidth && x <= visibleWidth) {
+        ctx.fillStyle = "rgba(170, 180, 196, 0.65)";
+        ctx.fillRect(x, 0, 1, visibleHeight);
+      }
     }
 
     // Box selection
     if (boxSelectUI) {
       const minStep = Math.min(boxSelectUI.startStep, boxSelectUI.endStep);
       const maxStep = Math.max(boxSelectUI.startStep, boxSelectUI.endStep);
-      const startPitchIdx = Math.max(0, getPitchIndex(boxSelectUI.startPitch));
-      const endPitchIdx = Math.max(0, getPitchIndex(boxSelectUI.endPitch));
-      const topIndex = Math.min(startPitchIdx, endPitchIdx);
-      const bottomIndex = Math.max(startPitchIdx, endPitchIdx);
+      const startPitchIdxBox = Math.max(0, getPitchIndex(boxSelectUI.startPitch));
+      const endPitchIdxBox = Math.max(0, getPitchIndex(boxSelectUI.endPitch));
+      const topIndex = Math.min(startPitchIdxBox, endPitchIdxBox);
+      const bottomIndex = Math.max(startPitchIdxBox, endPitchIdxBox);
 
-      const bx = minStep * stepWidth;
-      const by = topIndex * rowHeight;
+      const bx = minStep * stepWidth + offsetX;
+      const by = topIndex * rowHeight + offsetY;
       const bw = (maxStep - minStep + 1) * stepWidth;
       const bh = (bottomIndex - topIndex + 1) * rowHeight;
 
@@ -191,16 +223,33 @@ export function PianoRoll({
       ctx.setLineDash([]);
     }
 
-    // Notes
+    // Notes (只绘制可见的)
     const channelColor = selectedChannel?.color ?? "#60a5fa";
     selectedNotes.forEach((note) => {
       const rowIndex = getPitchIndex(note.pitch);
       if (rowIndex < 0) return;
 
-      const nx = note.startStep * stepWidth + 1;
-      const ny = rowIndex * rowHeight + 2;
+      // 跳过完全不可见的音符
+      if (rowIndex < startPitchIdx - 1 || rowIndex > endPitchIdx) return;
+      const noteEndStep = note.startStep + note.length;
+      if (noteEndStep < startStep || note.startStep > endStep) return;
+
+      const nx = note.startStep * stepWidth + offsetX + 1;
+      const ny = rowIndex * rowHeight + offsetY + 2;
       const nw = Math.max(1, note.length) * stepWidth - 2;
       const nh = rowHeight - 4;
+
+      // 裁剪到可见区域
+      const clipX = Math.max(0, nx);
+      const clipY = Math.max(0, ny);
+      const clipW = Math.min(nx + nw, visibleWidth) - clipX;
+      const clipH = Math.min(ny + nh, visibleHeight) - clipY;
+      if (clipW <= 0 || clipH <= 0) return;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(clipX, clipY, clipW, clipH);
+      ctx.clip();
 
       ctx.fillStyle = channelColor;
       ctx.beginPath();
@@ -214,7 +263,6 @@ export function PianoRoll({
         ctx.beginPath();
         ctx.roundRect(nx, ny, nw, nh, 4);
         ctx.stroke();
-
         ctx.shadowColor = "rgba(255, 255, 255, 0.35)";
         ctx.shadowBlur = 10;
         ctx.stroke();
@@ -235,35 +283,39 @@ export function PianoRoll({
         ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
         ctx.fillRect(nx + nw - 8, ny, 1, nh);
       }
+
+      ctx.restore();
     });
 
     // Playhead
     if (playheadStep !== null) {
-      const px = playheadStep * stepWidth;
-      ctx.fillStyle = "rgba(251, 191, 36, 0.9)";
-      ctx.fillRect(px, 0, 2, canvasHeight);
+      const px = playheadStep * stepWidth + offsetX;
+      if (px >= 0 && px <= visibleWidth) {
+        ctx.fillStyle = "rgba(251, 191, 36, 0.9)";
+        ctx.fillRect(px, 0, 2, visibleHeight);
+      }
     }
 
     ctx.restore();
-  }, [totalSteps, stepsPerBar, bars, stepWidth, rowHeight, canvasWidth, canvasHeight, pitchRows, isBlackKeyPitch, boxSelectUI, selectedNotes, selectedChannel, getPitchIndex, playheadStep]);
+  }, [totalSteps, stepsPerBar, bars, stepWidth, rowHeight, pitchRows, isBlackKeyPitch, boxSelectUI, selectedNotes, selectedChannel, getPitchIndex, playheadStep]);
 
-  // Initialize canvas size
+  // 初始化 canvas 并监听 scroll
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvasWidth * dpr;
-    canvas.height = canvasHeight * dpr;
-    canvas.style.width = `${canvasWidth}px`;
-    canvas.style.height = `${canvasHeight}px`;
+    const wrapper = scrollRef.current;
+    if (!wrapper) return;
 
     drawCanvas();
-  }, [canvasWidth, canvasHeight, drawCanvas]);
 
-  // Re-render on changes
+    const handleScroll = () => {
+      requestAnimationFrame(drawCanvas);
+    };
+    wrapper.addEventListener("scroll", handleScroll, { passive: true });
+    return () => wrapper.removeEventListener("scroll", handleScroll);
+  }, [drawCanvas]);
+
+  // State 变化时重绘
   useEffect(() => {
-    drawCanvas();
+    requestAnimationFrame(drawCanvas);
   }, [drawCanvas]);
 
   const dragRef = useRef<{
