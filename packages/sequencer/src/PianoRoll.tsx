@@ -181,13 +181,11 @@ export function PianoRoll({
       }
     }
 
-    // Horizontal lines
-    for (let rowIdx = startPitchIdx; rowIdx <= endPitchIdx; rowIdx++) {
-      const y = rowIdx * rowHeight ;
-      if (y >= -rowHeight && y <= visibleHeight) {
-        ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
-        ctx.fillRect(0, y, contentWidth, 1);
-      }
+    // Horizontal lines (绘制所有行)
+    for (let rowIdx = 0; rowIdx <= pitchRows.length; rowIdx++) {
+      const y = rowIdx * rowHeight;
+      ctx.fillStyle = "rgba(116, 126, 143, 0.35)";
+      ctx.fillRect(0, y, contentWidth, 1);
     }
 
     // Bar guides
