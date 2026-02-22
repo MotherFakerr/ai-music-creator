@@ -112,7 +112,7 @@ export function PianoRoll({
     return { step, pitch };
   }, [stepWidth, rowHeight, totalSteps, pitchRows]);
 
-  // Canvas 渲染：只渲染可见区域
+  // Canvas 渲染：canvas 尺寸等于内容尺寸（支持滚动），只渲染可见区域
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const wrapper = scrollRef.current;
@@ -122,18 +122,20 @@ export function PianoRoll({
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const visibleWidth = wrapper.clientWidth;
-    const visibleHeight = wrapper.clientHeight;
+    const contentWidth = totalSteps * stepWidth;
+    const contentHeight = pitchRows.length * rowHeight;
     const scrollLeft = wrapper.scrollLeft;
     const scrollTop = wrapper.scrollTop;
+    const visibleWidth = wrapper.clientWidth;
+    const visibleHeight = wrapper.clientHeight;
 
-    // 动态调整 canvas 尺寸为可见区域大小
-    const needsResize = canvas.width !== visibleWidth * dpr || canvas.height !== visibleHeight * dpr;
+    // canvas 尺寸等于内容尺寸（这样才能滚动）
+    const needsResize = canvas.width !== contentWidth * dpr || canvas.height !== contentHeight * dpr;
     if (needsResize) {
-      canvas.width = visibleWidth * dpr;
-      canvas.height = visibleHeight * dpr;
-      canvas.style.width = `${visibleWidth}px`;
-      canvas.style.height = `${visibleHeight}px`;
+      canvas.width = contentWidth * dpr;
+      canvas.height = contentHeight * dpr;
+      canvas.style.width = `${contentWidth}px`;
+      canvas.style.height = `${contentHeight}px`;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
