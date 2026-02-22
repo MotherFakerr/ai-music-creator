@@ -143,9 +143,9 @@ export function PianoRoll({
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    // 绘制偏移量：canvas 0,0 对应内容的 scrollLeft, scrollTop
-    const offsetX = scrollLeft;
-    const offsetY = scrollTop;
+    // 绘制偏移量：canvas 本身已随 wrapper 滚动，不需要额外偏移
+    const offsetX = 0;
+    const offsetY = 0;
 
     // 计算可见范围（在内容坐标系中）
     const startStep = Math.floor(scrollLeft / stepWidth);
