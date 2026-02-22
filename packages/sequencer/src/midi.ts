@@ -110,6 +110,7 @@ export function parseMidi(
   } = {}
 ): {
   state: PatternState;
+  bpm: number;
   errors: string[];
 } {
   const { defaultInstrumentId = "piano" } = options;
@@ -122,6 +123,7 @@ export function parseMidi(
     errors.push(`MIDI 解析失败: ${e}`);
     return {
       state: createDefaultPatternState(),
+      bpm: DEFAULT_BPM,
       errors
     };
   }
@@ -204,6 +206,7 @@ export function parseMidi(
       notes,
       selectedChannelId: channels[0]?.id || null,
     },
+    bpm,
     errors,
   };
 }
@@ -213,6 +216,7 @@ export function parseMidi(
  */
 export async function parseMidiFile(file: File): Promise<{
   state: PatternState;
+  bpm: number;
   errors: string[];
 }> {
   const arrayBuffer = await file.arrayBuffer();

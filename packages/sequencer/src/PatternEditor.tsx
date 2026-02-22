@@ -3,6 +3,7 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconCircleDot,
+  IconCheck,
   IconDownload,
   IconLoader,
   IconMusic,
@@ -11,9 +12,10 @@ import {
   IconPlayerStop,
   IconRepeat,
   IconUpload,
+  IconX,
   IconZoomIn,
 } from "@tabler/icons-react";
-import { Button, Checkbox, NumberInput, Slider } from "@mantine/core";
+import { Button, Checkbox, Group, Modal, NumberInput, Slider, Text } from "@mantine/core";
 import { EN_INSTRUMENT_TYPE, getAudioEngine } from "@ai-music-creator/audio";
 import { ChannelRack } from "./ChannelRack";
 import { PianoRoll } from "./PianoRoll";
@@ -75,7 +77,7 @@ export function PatternEditor() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadStep, setPlayheadStep] = useState(0);
   const [bpm, setBpm] = useState(120);
-  const [loopEnabled, setLoopEnabled] = useState(true);
+  const [loopEnabled, setLoopEnabled] = useState(false);
   const [loopStartStep, setLoopStartStep] = useState(0);
   const [loopEndStep, setLoopEndStep] = useState(15);
   const [isAudioReady, setIsAudioReady] = useState(false);
@@ -85,6 +87,12 @@ export function PatternEditor() {
   const [panelLength, setPanelLength] = useState(2);
   const [stepWidth, setStepWidth] = useState(48);
   const [viewportStep, setViewportStep] = useState(0);
+  const [importResultModal, setImportResultModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    isError: boolean;
+  }>({ open: false, title: "", message: "", isError: false });
   const totalSteps = state.stepsPerBar * state.bars;
   const msPerStep = 60000 / bpm / 4;
   const playheadStepRef = useRef(playheadStep);
@@ -295,7 +303,12 @@ export function PatternEditor() {
       downloadMidi(midiData, `pattern-${Date.now()}.mid`);
     } catch (e) {
       console.error("MIDI export failed:", e);
-      alert("导出失败: " + e);
+      setImportResultModal({
+        open: true,
+        title: "导出失败",
+        message: String(e),
+        isError: true,
+      });
     }
   };
 
@@ -305,22 +318,33 @@ export function PatternEditor() {
     if (!file) return;
 
     try {
-      const { state: importedState, errors } = await parseMidiFile(file);
+      const { state: importedState, bpm: importedBpm, errors } = await parseMidiFile(file);
       
       if (errors.length > 0) {
         console.warn("MIDI import warnings:", errors);
       }
 
-      // 更新状态
+      // 更新状态（含 BPM）
       setState(importedState);
+      setBpm(Math.max(40, Math.min(220, Math.round(importedBpm))));
       
       // 清空选择
       setSelectedNoteIds([]);
       
-      alert(`导入成功！${importedState.channels.length} 个通道，${importedState.notes.length} 个音符`);
+      setImportResultModal({
+        open: true,
+        title: "导入成功",
+        message: `${importedState.channels.length} 个通道，${importedState.notes.length} 个音符，BPM ${importedBpm}`,
+        isError: false,
+      });
     } catch (e) {
       console.error("MIDI import failed:", e);
-      alert("导入失败: " + e);
+      setImportResultModal({
+        open: true,
+        title: "导入失败",
+        message: String(e),
+        isError: true,
+      });
     }
 
     // 清空 input 以允许再次选择同一文件
@@ -490,6 +514,41 @@ export function PatternEditor() {
 
   return (
     <div className="pattern-editor">
+      <Modal
+        opened={importResultModal.open}
+        onClose={() => setImportResultModal((prev) => ({ ...prev, open: false }))}
+        title={
+          <Group gap="xs">
+            {importResultModal.isError ? (
+              <IconX size={20} color="var(--mantine-color-red-5)" />
+            ) : (
+              <IconCheck size={20} color="var(--mantine-color-teal-5)" />
+            )}
+            <Text fw={600} size="md">
+              {importResultModal.title}
+            </Text>
+          </Group>
+        }
+        centered
+        classNames={{
+          content: "import-result-modal-content",
+          header: "import-result-modal-header",
+          body: "import-result-modal-body",
+        }}
+      >
+        <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
+          {importResultModal.message}
+        </Text>
+        <Group justify="flex-end" mt="md">
+          <Button
+            variant="light"
+            size="xs"
+            onClick={() => setImportResultModal((prev) => ({ ...prev, open: false }))}
+          >
+            确定
+          </Button>
+        </Group>
+      </Modal>
       <ChannelRack
         channels={state.channels}
         stepsPerBar={state.stepsPerBar}
@@ -879,6 +938,20 @@ export function PatternEditor() {
           display: grid;
           gap: 12px;
           min-width: 0;
+        }
+        .import-result-modal-content {
+          background: #1a1d24;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        .import-result-modal-header {
+          background: transparent;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 14px 16px;
+        }
+        .import-result-modal-body {
+          padding: 16px;
         }
         .playback-area {
           --control-border: #334155;
