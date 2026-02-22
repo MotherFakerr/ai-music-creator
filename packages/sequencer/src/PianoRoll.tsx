@@ -238,18 +238,7 @@ export function PianoRoll({
       const nw = Math.max(1, note.length) * stepWidth - 2;
       const nh = rowHeight - 4;
 
-      // 裁剪到可见区域
-      const clipX = Math.max(0, nx);
-      const clipY = Math.max(0, ny);
-      const clipW = Math.min(nx + nw, visibleWidth) - clipX;
-      const clipH = Math.min(ny + nh, visibleHeight) - clipY;
-      if (clipW <= 0 || clipH <= 0) return;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(clipX, clipY, clipW, clipH);
-      ctx.clip();
-
+      // canvas 是内容尺寸，直接绘制
       ctx.fillStyle = channelColor;
       ctx.beginPath();
       ctx.roundRect(nx, ny, nw, nh, 4);
@@ -282,8 +271,6 @@ export function PianoRoll({
         ctx.fillStyle = "rgba(255, 255, 255, 0.32)";
         ctx.fillRect(nx + nw - 8, ny, 1, nh);
       }
-
-      ctx.restore();
     });
 
     // Playhead
