@@ -137,6 +137,9 @@ export function PianoRoll({
       canvas.height = visibleHeight * dpr;
       canvas.style.width = `${visibleWidth}px`;
       canvas.style.height = `${visibleHeight}px`;
+      // 设置内容尺寸让容器可以滚动
+      canvas.style.maxWidth = `${contentWidth}px`;
+      canvas.style.maxHeight = `${contentHeight}px`;
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
