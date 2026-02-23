@@ -49,7 +49,7 @@ interface AIMusicNote {
   velocity: number;
 }
 
-const DEFAULT_MODEL = 'MiniMax-M2.1';
+const DEFAULT_MODEL = 'abab6.5s-chat';
 
 function buildPrompt(notes: PianoRollNote[], stepsPerBar: number, prompt?: string, lengthInBars = 8): string {
   const noteLines = notes
