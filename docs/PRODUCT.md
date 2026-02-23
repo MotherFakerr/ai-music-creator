@@ -34,7 +34,7 @@
 | 🎵 音乐跟奏             | `milestones/02-音乐跟奏.md`               | ✅ 已完成 |
 | 🎛️ 编曲工作台           | `milestones/02.5-编曲工作台.md`           | ✅ 已完成 |
 | 🎼 MIDI导入导出         | `milestones/03-MIDI导入导出.md`           | ✅ 已完成 |
-| 🎨 PianoRoll Canvas重构 | `milestones/03.5-PianoRoll-Canvas重构.md` | ⏳ 待开发 |
+| 🎨 PianoRoll Canvas重构 | `milestones/03.5-PianoRoll-Canvas重构.md` | ✅ 已完成 |
 | 🤖 AI共创               | `milestones/04-AI共创.md`                 | ⏳ 待创建 |
 
 **做什么**：
@@ -106,6 +106,27 @@
 
 - ❌ 实时录音录制
 - ❌ 音频波形编辑
+
+### 3.5 🎨 PianoRoll Canvas 重构
+
+**做什么**：
+
+- 将 PianoRoll 从纯 DOM 渲染改为 Canvas + DOM 混合渲染
+- 解决大量音符时的性能问题（500+ 音符时保持 60fps）
+- 保持所有原有交互体验
+
+**已完成**：
+
+- ✅ Canvas 渲染：网格线、黑键/白键背景区分、Bar Guide
+- ✅ 音符渲染：选中态发光、缩放手柄、力度值显示
+- ✅ 交互迁移：点击添加、框选、拖拽移动、拖拽缩放、右键删除
+- ✅ 多选支持：Ctrl/Cmd + 点击多选
+- ✅ 播放头：自动滚动跟随
+- ✅ 吸附：1/16、1/8、1/4 三档 snap
+
+**不做什么**：
+
+- ❌ 音符渲染效果增强（如渐变、3D效果）
 
 ### 4. 🤖 AI共创
 
