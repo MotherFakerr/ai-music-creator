@@ -27,6 +27,8 @@ export interface PianoRollProps {
   onViewportStepChange: (step: number) => void;
   onSeek?: (step: number) => void;
   onAIContinue?: (prompt: string) => Promise<void>;  // AI 续写回调
+  aiStreamingContent?: string;  // AI 流式输出内容
+  aiLoading?: boolean;  // AI 是否在加载
   stepWidth: number;
   playheadStep: number | null;
 }
@@ -52,6 +54,8 @@ export function PianoRoll({
   onViewportStepChange,
   onSeek,
   onAIContinue,
+  aiStreamingContent = "",
+  aiLoading: aiLoadingProp = false,
   stepWidth,
   playheadStep,
 }: PianoRollProps) {
@@ -67,7 +71,6 @@ export function PianoRoll({
   const [snapStepSize, setSnapStepSize] = useState(1);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -1078,6 +1081,7 @@ export function PianoRoll({
         onClose={() => setAiModalOpen(false)}
         title="AI 续写旋律"
         centered
+        size="lg"
       >
         <TextInput
           label="风格提示词（可选）"
@@ -1089,23 +1093,38 @@ export function PianoRoll({
         <Button
           fullWidth
           color="grape"
-          loading={aiLoading}
+          loading={aiLoadingProp}
           onClick={async () => {
             if (!onAIContinue) return;
-            setAiLoading(true);
             try {
               await onAIContinue(aiPrompt);
               setAiModalOpen(false);
               setAiPrompt("");
             } catch (e) {
               console.error("AI continue error:", e);
-            } finally {
-              setAiLoading(false);
             }
           }}
         >
           开始续写
         </Button>
+        {aiStreamingContent && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: 12,
+              background: "#1a1c21",
+              borderRadius: 8,
+              fontSize: 12,
+              maxHeight: 200,
+              overflow: "auto",
+              whiteSpace: "pre-wrap",
+              fontFamily: "monospace",
+              color: "#ccc",
+            }}
+          >
+            {aiStreamingContent}
+          </div>
+        )}
       </Modal>
     </div>
   );

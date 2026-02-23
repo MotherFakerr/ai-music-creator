@@ -77,6 +77,7 @@ export function PatternEditor() {
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiStreamingContent, setAiStreamingContent] = useState("");
 
   // AI 续写处理函数
   const handleAIContinue = async (prompt: string) => {
@@ -87,12 +88,16 @@ export function PatternEditor() {
     );
     
     setAiLoading(true);
+    setAiStreamingContent("");
     try {
       const newNotes = await continueMelody({}, {
         notes: channelNotes,
         stepsPerBar: state.stepsPerBar,
         prompt,
-        lengthInBars: 8,
+        lengthInBars: 4,
+        onChunk: (text) => {
+          setAiStreamingContent((prev) => prev + text);
+        },
       });
       
       if (newNotes.length > 0) {
@@ -103,6 +108,7 @@ export function PatternEditor() {
       alert(`AI 续写失败: ${e instanceof Error ? e.message : "未知错误"}`);
     } finally {
       setAiLoading(false);
+      setTimeout(() => setAiStreamingContent(""), 1000);
     }
   };
   const [isPlaying, setIsPlaying] = useState(false);
@@ -766,6 +772,8 @@ export function PatternEditor() {
             setPlayheadStep(step);
           }}
           onAIContinue={handleAIContinue}
+          aiStreamingContent={aiStreamingContent}
+          aiLoading={aiLoading}
           stepWidth={stepWidth}
           playheadStep={playheadStep}
         />
