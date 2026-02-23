@@ -389,6 +389,13 @@ export function PatternEditor() {
       setState(importedState);
       setBpm(Math.max(40, Math.min(220, Math.round(importedBpm))));
       
+      // 预加载 MIDI 用到的音色
+      await ensureAudioReady();
+      const usedInstruments = [...new Set(importedState.channels.map(ch => ch.instrument))];
+      for (const inst of usedInstruments) {
+        await audioEngineRef.current.setInstrument(inst);
+      }
+      
       // 清空选择
       setSelectedNoteIds([]);
       
