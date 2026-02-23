@@ -26,6 +26,7 @@ import {
   parseMidiFile,
   downloadMidi,
 } from "./midi";
+import { continueMelody } from "@ai-music-creator/ai";
 import type { PatternState } from "./types";
 
 export function PatternEditor() {
@@ -75,6 +76,35 @@ export function PatternEditor() {
     }>;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // AI 续写处理函数
+  const handleAIContinue = async (prompt: string) => {
+    if (!state.selectedChannelId) return;
+    
+    const channelNotes = state.notes.filter(
+      (n) => n.channelId === state.selectedChannelId
+    );
+    
+    setAiLoading(true);
+    try {
+      const newNotes = await continueMelody({}, {
+        notes: channelNotes,
+        stepsPerBar: state.stepsPerBar,
+        prompt,
+        lengthInBars: 8,
+      });
+      
+      if (newNotes.length > 0) {
+        insertPianoRollNotes(newNotes);
+      }
+    } catch (e) {
+      console.error("AI continue error:", e);
+      alert(`AI 续写失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadStep, setPlayheadStep] = useState(0);
   const [bpm, setBpm] = useState(120);
@@ -735,6 +765,7 @@ export function PatternEditor() {
             playheadStepRef.current = step;
             setPlayheadStep(step);
           }}
+          onAIContinue={handleAIContinue}
           stepWidth={stepWidth}
           playheadStep={playheadStep}
         />
