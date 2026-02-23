@@ -66,7 +66,16 @@ export function PatternEditor() {
   // 包装 setChannelInstrument 以预加载音色
   const setChannelInstrument = (channelId: string, instrument: EN_INSTRUMENT_TYPE) => {
     originalSetChannelInstrument(channelId, instrument);
-    audioEngineRef.current.setInstrument(instrument);
+    // 预加载新音色并更新状态
+    if (!loadedInstrumentsRef.current.has(instrument)) {
+      setIsPreparingAudio(true);
+      audioEngineRef.current.setInstrument(instrument).then(() => {
+        loadedInstrumentsRef.current.add(instrument);
+        setIsPreparingAudio(false);
+      }).catch(() => {
+        setIsPreparingAudio(false);
+      });
+    }
   };
   
   const audioEngineRef = useRef(getAudioEngine());
@@ -126,6 +135,8 @@ export function PatternEditor() {
   const [loopEndStep, setLoopEndStep] = useState(15);
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPreparingAudio, setIsPreparingAudio] = useState(false);
+  const isAudioReadyRef = useRef(false);  // 用 ref 避免闭包问题
+  const loadedInstrumentsRef = useRef<Set<EN_INSTRUMENT_TYPE>>(new Set());  // 已加载的音色
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [panelVelocity, setPanelVelocity] = useState(100);
   const [panelLength, setPanelLength] = useState(2);
@@ -289,7 +300,7 @@ export function PatternEditor() {
   };
 
   const ensureAudioReady = async (): Promise<boolean> => {
-    if (isAudioReady) {
+    if (isAudioReadyRef.current) {
       return true;
     }
     setIsPreparingAudio(true);
@@ -299,7 +310,9 @@ export function PatternEditor() {
       const usedInstruments = [...new Set(state.channels.map(ch => ch.instrument))];
       for (const inst of usedInstruments) {
         await audioEngineRef.current.setInstrument(inst);
+        loadedInstrumentsRef.current.add(inst);
       }
+      isAudioReadyRef.current = true;
       setIsAudioReady(true);
       return true;
     } catch (error) {
