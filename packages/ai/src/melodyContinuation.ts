@@ -187,6 +187,7 @@ export async function continueMelody(
   const decoder = new TextDecoder();
   let buffer = "";
   let fullContent = "";
+  let reasoningContent = "";
 
   while (true) {
     const { done, value } = await reader.read();
@@ -206,9 +207,14 @@ export async function continueMelody(
       try {
         const data = JSON.parse(dataStr);
         const chunk = data.choices?.[0]?.delta?.content || "";
+        const reasoning = data.choices?.[0]?.delta?.reasoning_content || "";
         if (chunk) {
           fullContent += chunk;
           onChunk?.(chunk);
+        }
+        if (reasoning) {
+          reasoningContent += reasoning;
+          onChunk?.(`[思考中...] ${reasoning}`);
         }
       } catch {
         // ignore
