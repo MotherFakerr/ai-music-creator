@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOTHERFAKER MUSIC — Logo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@300;400;700;800&family=DM+Sans:wght@200;300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #08080f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 64px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .section-label {
+    color: rgba(255,255,255,0.2);
+    font-size: 10px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: -48px;
+  }
+
+  /* ──────────────────────────────
+     PRIMARY LOGO
+  ────────────────────────────── */
+  .logo-primary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 44px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Subtle ambient glow behind */
+  .logo-primary::before {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 120px;
+    background: radial-gradient(ellipse, rgba(120,80,255,0.15) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  /* ── AI Waveform Icon ── */
+  .icon-wrap {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+  }
+
+  /* Outer ring */
+  .icon-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #7b5cff, #3b9fff, #a855f7, #7b5cff);
+    padding: 1.5px;
+    animation: spinRing 8s linear infinite;
+  }
+
+  .icon-ring-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #08080f;
+  }
+
+  @keyframes spinRing {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* Wave bars inside icon */
+  .icon-bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+  }
+
+  .icon-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #a78bff, #60a5fa);
+    animation: iconPulse var(--d) ease-in-out infinite alternate;
+    box-shadow: 0 0 6px rgba(167,139,255,0.5);
+  }
+
+  @keyframes iconPulse {
+    from { transform: scaleY(0.3); opacity: 0.5; }
+    to   { transform: scaleY(1);   opacity: 1; }
+  }
+
+  /* ── Text ── */
+  .logo-text { display: flex; flex-direction: column; gap: 3px; }
+
+  .logo-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(105deg, #c4b5fd 0%, #818cf8 40%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .logo-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 9.5px;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,0.28);
+    text-transform: uppercase;
+  }
+
+  /* ──────────────────────────────
+     ICON MARK
+  ────────────────────────────── */
+  .icon-mark {
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .icon-mark::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 60%, rgba(120,80,255,0.2), transparent 65%);
+  }
+
+  .mark-bars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 1;
+  }
+
+  .mark-bar {
+    width: 4px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #a78bff, #60a5fa);
+    animation: iconPulse var(--d) ease-in-out infinite alternate;
+    box-shadow: 0 0 8px rgba(167,139,255,0.6);
+  }
+
+  /* ──────────────────────────────
+     COMPACT HORIZONTAL
+  ────────────────────────────── */
+  .logo-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .compact-icon {
+    width: 32px;
+    height: 32px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .compact-bars {
+    display: flex;
+    align-items: center;
+    gap: 2.5px;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+  }
+
+  .compact-bar {
+    width: 2.5px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #a78bff, #60a5fa);
+    animation: iconPulse var(--d) ease-in-out infinite alternate;
+  }
+
+  .compact-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #7b5cff, #3b9fff, #a855f7, #7b5cff);
+    padding: 1px;
+    animation: spinRing 8s linear infinite;
+  }
+  .compact-ring-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #08080f;
+  }
+
+  .compact-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(105deg, #c4b5fd 0%, #818cf8 40%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ──────────────────────────────
+     GRID LAYOUT
+  ────────────────────────────── */
+  .variants-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .variant-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .variant-label {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.18);
+    text-transform: uppercase;
+  }
+
+  /* Light background version */
+  .on-light {
+    background: #f4f4f8;
+    border-radius: 16px;
+    padding: 20px 30px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .on-light .compact-ring-inner { background: #f4f4f8; }
+
+  .on-light .compact-text {
+    background: linear-gradient(105deg, #6d28d9 0%, #4f46e5 40%, #2563eb 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .sub-light {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 8px;
+    letter-spacing: 4px;
+    color: rgba(0,0,0,0.28);
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .on-light-text { display: flex; flex-direction: column; gap: 2px; }
+
+</style>
+</head>
+<body>
+
+<div class="section-label">Logo System · Motherfaker Music</div>
+
+<!-- PRIMARY LOGO -->
+<div class="variant-wrap">
+  <div class="logo-primary">
+    <div class="icon-wrap">
+      <div class="icon-ring"><div class="icon-ring-inner"></div></div>
+      <div class="icon-bars" id="iconBars"></div>
+    </div>
+    <div class="logo-text">
+      <div class="logo-name">MOTHERFAKER</div>
+      <div class="logo-sub">AI Music Studio</div>
+    </div>
+  </div>
+  <div class="variant-label">Primary — Dark</div>
+</div>
+
+<!-- VARIANTS ROW -->
+<div class="variants-row">
+
+  <!-- Icon mark -->
+  <div class="variant-wrap">
+    <div class="icon-mark">
+      <div class="mark-bars" id="markBars"></div>
+    </div>
+    <div class="variant-label">Icon Mark</div>
+  </div>
+
+  <!-- Compact dark -->
+  <div class="variant-wrap">
+    <div class="logo-compact">
+      <div class="compact-icon">
+        <div class="compact-ring"><div class="compact-ring-inner"></div></div>
+        <div class="compact-bars" id="compactBars"></div>
+      </div>
+      <div>
+        <div class="compact-text">MOTHERFAKER</div>
+        <div style="font-size:7px;letter-spacing:4px;color:rgba(255,255,255,0.2);font-family:'DM Sans',sans-serif;text-transform:uppercase;margin-top:2px">MUSIC</div>
+      </div>
+    </div>
+    <div class="variant-label">Compact — Dark</div>
+  </div>
+
+  <!-- Compact light -->
+  <div class="variant-wrap">
+    <div class="on-light">
+      <div class="compact-icon">
+        <div class="compact-ring"><div class="compact-ring-inner"></div></div>
+        <div class="compact-bars" id="compactBars2"></div>
+      </div>
+      <div class="on-light-text">
+        <div class="compact-text">MOTHERFAKER</div>
+        <div class="sub-light">MUSIC</div>
+      </div>
+    </div>
+    <div class="variant-label">Compact — Light</div>
+  </div>
+
+</div>
+
+<script>
+  const heights = [28, 50, 70, 100, 70, 50, 28];
+  const delays  = [0, 0.15, 0.3, 0.0, 0.2, 0.1, 0.25];
+  const durs    = [0.9, 0.7, 1.1, 0.8, 1.0, 0.6, 0.95];
+
+  function buildBars(containerId, count, barWidth, maxH) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const subset = heights.slice(0, count);
+    subset.forEach((h, i) => {
+      const b = document.createElement('div');
+      b.style.width = barWidth + 'px';
+      b.style.height = ((h / 100) * maxH) + 'px';
+      b.style.borderRadius = '3px';
+      b.style.background = 'linear-gradient(180deg, #a78bff, #60a5fa)';
+      b.style.boxShadow = '0 0 6px rgba(167,139,255,0.5)';
+      b.style.setProperty('--d', durs[i] + 's');
+      b.style.animationDelay = delays[i] + 's';
+      b.className = containerId.includes('compact') ? 'compact-bar' : 'icon-bar';
+      el.appendChild(b);
+    });
+  }
+
+  buildBars('iconBars',    7, 3,  26);
+  buildBars('markBars',    7, 4,  44);
+  buildBars('compactBars', 5, 2.5, 18);
+  buildBars('compactBars2',5, 2.5, 18);
+</script>
+</body>
+</html>

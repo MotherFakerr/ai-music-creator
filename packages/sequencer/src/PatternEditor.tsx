@@ -22,6 +22,7 @@ import { PianoRoll } from "./PianoRoll";
 import { usePatternEditor } from "./usePatternEditor";
 import {
   exportToMidi,
+  parseMidi,
   parseMidiFile,
   downloadMidi,
 } from "./midi";
@@ -98,6 +99,21 @@ export function PatternEditor() {
   const playheadStepRef = useRef(playheadStep);
   const msPerStepRef = useRef(msPerStep);
   const channelsRef = useRef(state.channels);
+
+  // 初始加载默认 MIDI：lumiere.mid
+  const initialMidiLoadedRef = useRef(false);
+  useEffect(() => {
+    if (initialMidiLoadedRef.current) return;
+    initialMidiLoadedRef.current = true;
+    fetch("/lumiere.mid")
+      .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(res.statusText))))
+      .then((buf) => parseMidi(buf))
+      .then(({ state: importedState, bpm: importedBpm }) => {
+        setState(importedState);
+        setBpm(importedBpm);
+      })
+      .catch((e) => console.warn("Initial MIDI load (lumiere.mid) skipped:", e));
+  }, [setState]);
   const notesByStepRef = useRef<Map<number, typeof state.notes>>(new Map());
   const lastPlayheadUiSyncAtRef = useRef(0);
   const notesByStep = useMemo(() => {
