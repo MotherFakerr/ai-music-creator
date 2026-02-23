@@ -564,6 +564,7 @@ export function PatternEditor() {
         onRemoveChannel={removeChannel}
         onRenameChannel={renameChannel}
         onMoveChannel={moveChannel}
+        playheadStep={playheadStep}
       />
       <div className="playback-area">
         <div

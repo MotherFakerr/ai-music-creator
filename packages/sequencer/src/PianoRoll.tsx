@@ -16,7 +16,11 @@ export interface PianoRollProps {
   onPreviewMovedNote: (pitch: number) => void;
   onDeleteNote: (noteId: string) => void;
   onMoveNote: (noteId: string, nextPitch: number, nextStep: number) => void;
-  onMoveNotesByDelta: (noteIds: string[], pitchDelta: number, stepDelta: number) => void;
+  onMoveNotesByDelta: (
+    noteIds: string[],
+    pitchDelta: number,
+    stepDelta: number,
+  ) => void;
   onResizeNote: (noteId: string, nextLength: number) => void;
   onBeginEditTransaction: () => void;
   onEndEditTransaction: () => void;
@@ -50,7 +54,9 @@ export function PianoRoll({
   playheadStep,
 }: PianoRollProps) {
   const totalSteps = stepsPerBar * bars;
-  const selectedChannel = channels.find((channel) => channel.id === selectedChannelId);
+  const selectedChannel = channels.find(
+    (channel) => channel.id === selectedChannelId,
+  );
   const selectedNotes = useMemo(
     () => notes.filter((note) => note.channelId === selectedChannelId),
     [notes, selectedChannelId],
@@ -62,7 +68,7 @@ export function PianoRoll({
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const initializedScrollRef = useRef(false);
   const isDraggingRef = useRef(false);
-  const lastAutoScrollAtRef = useRef(0);
+
   const rafRef = useRef(0);
   const [scrollY, setScrollY] = useState(0);
 
@@ -99,15 +105,23 @@ export function PianoRoll({
     endPitch: number;
   } | null>(null);
 
-  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+  const clamp = (value: number, min: number, max: number) =>
+    Math.max(min, Math.min(value, max));
   const snapStep = (step: number) => {
     const snapped = Math.round(step / snapStepSize) * snapStepSize;
     return clamp(snapped, 0, totalSteps - 1);
   };
-  const getPitchIndex = (pitch: number) => pitchRows.findIndex((item) => item.pitch === pitch);
+  const getPitchIndex = (pitch: number) =>
+    pitchRows.findIndex((item) => item.pitch === pitch);
   const isBlackKeyPitch = (pitch: number) => {
     const semitone = ((pitch % 12) + 12) % 12;
-    return semitone === 1 || semitone === 3 || semitone === 6 || semitone === 8 || semitone === 10;
+    return (
+      semitone === 1 ||
+      semitone === 3 ||
+      semitone === 6 ||
+      semitone === 8 ||
+      semitone === 10
+    );
   };
   const isPointerOnScrollbar = (
     event: React.PointerEvent<HTMLDivElement>,
@@ -116,8 +130,10 @@ export function PianoRoll({
     const rect = wrapper.getBoundingClientRect();
     const hasVertical = wrapper.offsetWidth > wrapper.clientWidth;
     const hasHorizontal = wrapper.offsetHeight > wrapper.clientHeight;
-    const onVerticalScrollbar = hasVertical && event.clientX >= rect.left + wrapper.clientWidth;
-    const onHorizontalScrollbar = hasHorizontal && event.clientY >= rect.top + wrapper.clientHeight;
+    const onVerticalScrollbar =
+      hasVertical && event.clientX >= rect.left + wrapper.clientWidth;
+    const onHorizontalScrollbar =
+      hasHorizontal && event.clientY >= rect.top + wrapper.clientHeight;
     return onVerticalScrollbar || onHorizontalScrollbar;
   };
 
@@ -129,7 +145,10 @@ export function PianoRoll({
     const y = clientY - rect.top + scroll.scrollTop;
     const step = clamp(Math.floor(x / stepWidth), 0, totalSteps - 1);
     const rowIndex = clamp(Math.floor(y / rowHeight), 0, pitchRows.length - 1);
-    const pitch = pitchRows[rowIndex]?.pitch ?? pitchRows[pitchRows.length - 1]?.pitch ?? 48;
+    const pitch =
+      pitchRows[rowIndex]?.pitch ??
+      pitchRows[pitchRows.length - 1]?.pitch ??
+      48;
     return { step, pitch };
   };
 
@@ -235,7 +254,8 @@ export function PianoRoll({
         }
       } else {
         const snappedStep = snapStep(currentPoint.step);
-        const nextLength = drag.originLength + (snappedStep - drag.pointerStartStep);
+        const nextLength =
+          drag.originLength + (snappedStep - drag.pointerStartStep);
         onResizeNote(drag.noteId, nextLength);
       }
     };
@@ -337,8 +357,11 @@ export function PianoRoll({
           .filter((note) => {
             const noteStepStart = note.startStep;
             const noteStepEnd = note.startStep + Math.max(1, note.length) - 1;
-            const overlapStep = !(noteStepEnd < minStep || noteStepStart > maxStep);
-            const overlapPitch = note.pitch >= minPitch && note.pitch <= maxPitch;
+            const overlapStep = !(
+              noteStepEnd < minStep || noteStepStart > maxStep
+            );
+            const overlapPitch =
+              note.pitch >= minPitch && note.pitch <= maxPitch;
             return overlapStep && overlapPitch;
           })
           .map((note) => note.id);
@@ -392,7 +415,9 @@ export function PianoRoll({
     onSeek(step);
   };
 
-  const handleTimelinePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handleTimelinePointerDown = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
     if (event.button !== 0 || !onSeek) return;
     event.preventDefault();
     seekToPointer(event.clientX);
@@ -428,7 +453,10 @@ export function PianoRoll({
     const sx = scroll.scrollLeft;
     const sy = scroll.scrollTop;
     const startRow = Math.floor(sy / rowHeight);
-    const endRow = Math.min(pitchRows.length - 1, Math.ceil((sy + ch) / rowHeight));
+    const endRow = Math.min(
+      pitchRows.length - 1,
+      Math.ceil((sy + ch) / rowHeight),
+    );
     const startStep = Math.floor(sx / stepWidth);
     const endStep = Math.min(totalSteps - 1, Math.ceil((sx + cw) / stepWidth));
 
@@ -465,7 +493,8 @@ export function PianoRoll({
     for (let b = 0; b <= bars; b++) {
       const bx = b * stepsPerBar * stepWidth - sx;
       if (bx < -1 || bx > cw) continue;
-      ctx.fillStyle = b === 0 ? "rgba(170,180,196,0.65)" : "rgba(116,126,143,0.35)";
+      ctx.fillStyle =
+        b === 0 ? "rgba(170,180,196,0.65)" : "rgba(116,126,143,0.35)";
       ctx.fillRect(bx, 0, 1, ch);
     }
 
@@ -548,8 +577,16 @@ export function PianoRoll({
       }
     }
   }, [
-    pitchRows, totalSteps, stepWidth, rowHeight, bars, stepsPerBar,
-    selectedNotes, selectedChannel, boxSelectUI, playheadStep,
+    pitchRows,
+    totalSteps,
+    stepWidth,
+    rowHeight,
+    bars,
+    stepsPerBar,
+    selectedNotes,
+    selectedChannel,
+    boxSelectUI,
+    playheadStep,
   ]);
 
   // Redraw on state changes
@@ -565,7 +602,11 @@ export function PianoRoll({
     const onScroll = () => {
       setScrollY(scroll.scrollTop);
       setScrollX(scroll.scrollLeft);
-      const step = clamp(Math.floor(scroll.scrollLeft / stepWidth), 0, totalSteps - 1);
+      const step = clamp(
+        Math.floor(scroll.scrollLeft / stepWidth),
+        0,
+        totalSteps - 1,
+      );
       onViewportStepChange(step);
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(drawCanvas);
@@ -585,27 +626,6 @@ export function PianoRoll({
     ro.observe(scroll);
     return () => ro.disconnect();
   }, [drawCanvas]);
-
-  // Playhead auto-scroll
-  useEffect(() => {
-    if (playheadStep === null) return;
-    const scroll = scrollRef.current;
-    if (!scroll) return;
-    const playheadX = playheadStep * stepWidth;
-    const left = scroll.scrollLeft;
-    const right = left + scroll.clientWidth;
-    const margin = stepWidth * 4;
-    const now = performance.now();
-    if (now - lastAutoScrollAtRef.current < 40) return;
-
-    if (playheadX > right - margin) {
-      lastAutoScrollAtRef.current = now;
-      scroll.scrollLeft = Math.max(0, playheadX - scroll.clientWidth + margin);
-    } else if (playheadX < left + margin) {
-      lastAutoScrollAtRef.current = now;
-      scroll.scrollLeft = Math.max(0, playheadX - margin);
-    }
-  }, [playheadStep, stepWidth]);
 
   // Initial scroll to center around C5
   useEffect(() => {
@@ -633,16 +653,24 @@ export function PianoRoll({
                 />
                 {`Editing: ${selectedChannel.name}`}
               </>
-            ) : "No channel selected"}
+            ) : (
+              "No channel selected"
+            )}
           </span>
-          <span className="selected-count">Selected: {selectedNoteIds.length}</span>
+          <span className="selected-count">
+            Selected: {selectedNoteIds.length}
+          </span>
         </div>
         <div className="right-group">
           <label className="snap-label">
             Snap
             <Select
               className="snap-select"
-              classNames={{ input: "snap-select-input", dropdown: "snap-select-dropdown", option: "snap-select-option" }}
+              classNames={{
+                input: "snap-select-input",
+                dropdown: "snap-select-dropdown",
+                option: "snap-select-option",
+              }}
               size="xs"
               value={String(snapStepSize)}
               data={[
@@ -656,8 +684,9 @@ export function PianoRoll({
         </div>
       </div>
       <div className="hint">
-        Click to add notes. Drag blank area for box-select. Drag note body to move selected notes,
-        drag right handle to resize, right-click note to delete, Ctrl/Cmd+Click to multi-select.
+        Click to add notes. Drag blank area for box-select. Drag note body to
+        move selected notes, drag right handle to resize, right-click note to
+        delete, Ctrl/Cmd+Click to multi-select.
       </div>
 
       <div className="piano-grid-wrapper">
@@ -666,7 +695,10 @@ export function PianoRoll({
           className="piano-timeline"
           onPointerDown={handleTimelinePointerDown}
         >
-          <div className="piano-timeline-inner" style={{ transform: `translateX(${-scrollX}px)` }}>
+          <div
+            className="piano-timeline-inner"
+            style={{ transform: `translateX(${-scrollX}px)` }}
+          >
             {Array.from({ length: bars }, (_, i) => (
               <span
                 key={i}
@@ -876,9 +908,12 @@ export function PianoRoll({
         .piano-timeline-playhead {
           position: absolute;
           top: 0;
-          width: 2px;
-          height: 100%;
-          background: rgba(251,191,36,0.9);
+          width: 0;
+          height: 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: ${timelineHeight}px solid rgba(251,191,36,0.9);
+          margin-left: -5px;
         }
         @media (max-width: 1366px), (max-height: 900px) {
           .piano-roll {
