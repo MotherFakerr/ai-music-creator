@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Select, Button, Modal } from "@mantine/core";
+import { Select, Button, Modal, Badge } from "@mantine/core";
 import type { PianoRollNote, PitchRow, SequencerChannel } from "./types";
 
 export interface PianoRollProps {
@@ -666,26 +666,26 @@ export function PianoRoll({
     <div className="piano-roll">
       <div className="piano-roll-header">
         <div className="left-group">
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              marginRight: 8,
+          <Badge
+            size="sm"
+            color={isEngineReady ? "teal" : "gray"}
+            variant="light"
+            styles={{
+              root: { textTransform: "none", height: 24, borderRadius: 4 },
             }}
           >
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: isEngineReady ? '#40c057' : isLoadingInstrument ? '#fab005' : '#868e96',
-              }}
-            />
-            <span style={{ fontSize: 12, color: isEngineReady ? '#40c057' : '#868e96' }}>
-              {isEngineReady ? '音频就绪' : isLoadingInstrument ? '加载中' : '未初始化'}
-            </span>
-          </span>
+            {isEngineReady ? "引擎就绪" : isLoadingInstrument ? "加载中" : "未初始化"}
+          </Badge>
+          <Badge
+            size="sm"
+            color={isLoadingInstrument ? "yellow" : "grape"}
+            variant="light"
+            styles={{
+              root: { textTransform: "none", height: 24, borderRadius: 4 },
+            }}
+          >
+            {isLoadingInstrument ? "音色加载中" : "可演奏"}
+          </Badge>
           <h3>Piano Roll</h3>
           <span className="channel-label">
             {selectedChannel ? (
