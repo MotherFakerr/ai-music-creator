@@ -33,6 +33,34 @@ export function setStoredApiKey(apiKey: string): void {
 if (typeof window !== 'undefined') {
   (window as unknown as { setStoredApiKey: typeof setStoredApiKey }).setStoredApiKey = setStoredApiKey;
   (window as unknown as { getStoredApiKey: typeof getStoredApiKey }).getStoredApiKey = getStoredApiKey;
+  (window as unknown as { testAIContinue: (response: unknown) => PianoRollNote[] }).testAIContinue = testAIContinue;
+}
+
+// 测试函数：直接处理 AI 返回结果（用于调试）
+function testAIContinue(aiResponse: unknown): PianoRollNote[] {
+  const data = aiResponse as { choices?: { message?: { content?: string } }[] };
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('No content');
+
+  // 解析 JSON
+  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('No JSON found');
+
+  const aiNotes: AIMusicNote[] = JSON.parse(jsonMatch[0]);
+
+  // 假设最后一个音符在 step 892
+  const startStep = 892;
+
+  const newNotes: PianoRollNote[] = aiNotes.map((n, i) => ({
+    id: `ai-test-${Date.now()}-${i}`,
+    channelId: '',
+    pitch: Math.max(0, Math.min(127, n.pitch)),
+    startStep: startStep + n.start,
+    length: Math.max(1, Math.round(n.length)),
+    velocity: Math.max(1, Math.min(127, n.velocity)),
+  }));
+
+  return newNotes;
 }
 
 export interface ContinueOptions {
