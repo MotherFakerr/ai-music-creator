@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Select } from "@mantine/core";
+import { Select, Button, TextInput, Modal } from "@mantine/core";
 import type { PianoRollNote, PitchRow, SequencerChannel } from "./types";
 
 export interface PianoRollProps {
@@ -26,6 +26,7 @@ export interface PianoRollProps {
   onEndEditTransaction: () => void;
   onViewportStepChange: (step: number) => void;
   onSeek?: (step: number) => void;
+  onAIContinue?: (prompt: string) => Promise<void>;  // AI 续写回调
   stepWidth: number;
   playheadStep: number | null;
 }
@@ -50,6 +51,7 @@ export function PianoRoll({
   onEndEditTransaction,
   onViewportStepChange,
   onSeek,
+  onAIContinue,
   stepWidth,
   playheadStep,
 }: PianoRollProps) {
@@ -63,6 +65,9 @@ export function PianoRoll({
   );
 
   const [snapStepSize, setSnapStepSize] = useState(1);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -684,6 +689,17 @@ export function PianoRoll({
               onChange={(value) => setSnapStepSize(Number(value ?? 1))}
             />
           </label>
+          {onAIContinue && (
+            <Button
+              size="xs"
+              variant="light"
+              color="grape"
+              onClick={() => setAiModalOpen(true)}
+              style={{ marginLeft: 8 }}
+            >
+              AI 续写
+            </Button>
+          )}
         </div>
       </div>
       <div className="hint">
@@ -1057,6 +1073,40 @@ export function PianoRoll({
           }
         }
       `}</style>
+      <Modal
+        opened={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        title="AI 续写旋律"
+        centered
+      >
+        <TextInput
+          label="风格提示词（可选）"
+          placeholder="例如：欢快的、悲伤的、流行的..."
+          value={aiPrompt}
+          onChange={(e) => setAiPrompt(e.target.value)}
+          mb="md"
+        />
+        <Button
+          fullWidth
+          color="grape"
+          loading={aiLoading}
+          onClick={async () => {
+            if (!onAIContinue) return;
+            setAiLoading(true);
+            try {
+              await onAIContinue(aiPrompt);
+              setAiModalOpen(false);
+              setAiPrompt("");
+            } catch (e) {
+              console.error("AI continue error:", e);
+            } finally {
+              setAiLoading(false);
+            }
+          }}
+        >
+          开始续写
+        </Button>
+      </Modal>
     </div>
   );
 }
