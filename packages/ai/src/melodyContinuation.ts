@@ -153,7 +153,7 @@ export async function continueMelody(
           { role: "user", content: promptText },
         ],
         temperature: 0.7,
-        max_tokens: 2048,
+        max_tokens: 4096,
       }),
     },
   );
@@ -170,13 +170,27 @@ export async function continueMelody(
     throw new Error("AI 返回内容为空");
   }
 
-  // 解析 JSON（处理可能的 markdown 代码块）
-  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  // 解析 JSON（处理可能的 markdown 代码块，支持被截断的情况）
+  let jsonMatch = content.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     throw new Error("AI 返回格式错误，无法解析 JSON");
   }
 
-  const aiNotes: AIMusicNote[] = JSON.parse(jsonMatch[0]);
+  let jsonStr = jsonMatch[0];
+
+  // 如果被截断，尝试修复 JSON（补全缺失的 ]）
+  let attempts = 0;
+  while (attempts < 3) {
+    try {
+      JSON.parse(jsonStr);
+      break; // 解析成功
+    } catch {
+      jsonStr += ']';
+      attempts++;
+    }
+  }
+
+  const aiNotes: AIMusicNote[] = JSON.parse(jsonStr);
 
   // 转换为 PianoRollNote
   const newNotes: PianoRollNote[] = aiNotes.map((n, i) => ({
