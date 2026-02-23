@@ -150,6 +150,11 @@ export function PatternEditor() {
       })
       .catch((e) => console.warn("Initial MIDI load (lumiere.mid) skipped:", e));
   }, [setState]);
+
+  // 进入页面时初始化音频
+  useEffect(() => {
+    ensureAudioReady();
+  }, []);
   const notesByStepRef = useRef<Map<number, typeof state.notes>>(new Map());
   const lastPlayheadUiSyncAtRef = useRef(0);
   const notesByStep = useMemo(() => {
