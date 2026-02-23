@@ -43,7 +43,7 @@ export function PatternEditor() {
     toggleChannelMute,
     toggleChannelSolo,
     setChannelVolume,
-    setChannelInstrument,
+    setChannelInstrument: originalSetChannelInstrument,
     addChannel,
     removeChannel,
     renameChannel,
@@ -62,6 +62,13 @@ export function PatternEditor() {
     endEditTransaction,
     setState,
   } = usePatternEditor();
+  
+  // 包装 setChannelInstrument 以预加载音色
+  const setChannelInstrument = (channelId: string, instrument: EN_INSTRUMENT_TYPE) => {
+    originalSetChannelInstrument(channelId, instrument);
+    audioEngineRef.current.setInstrument(instrument);
+  };
+  
   const audioEngineRef = useRef(getAudioEngine());
   const stopTimersRef = useRef<number[]>([]);
   const schedulerTimerRef = useRef<number | null>(null);
@@ -144,9 +151,15 @@ export function PatternEditor() {
     fetch("/lumiere.mid")
       .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(res.statusText))))
       .then((buf) => parseMidi(buf))
-      .then(({ state: importedState, bpm: importedBpm }) => {
+      .then(async ({ state: importedState, bpm: importedBpm }) => {
         setState(importedState);
         setBpm(importedBpm);
+        // 预加载 MIDI 用到的音色
+        await ensureAudioReady();
+        const usedInstruments = [...new Set(importedState.channels.map(ch => ch.instrument))];
+        for (const inst of usedInstruments) {
+          await audioEngineRef.current.setInstrument(inst);
+        }
       })
       .catch((e) => console.warn("Initial MIDI load (lumiere.mid) skipped:", e));
   }, [setState]);
