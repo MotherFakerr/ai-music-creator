@@ -97,7 +97,7 @@ function buildPrompt(
 - 1 step = 十六分音符，1 小节 = ${totalStepsPerBar} steps
 - 已有内容结束于 step ${continueFromStep}
 - 续写范围：step ${continueFromStep} 到 step ${continueFromStep + totalSteps - 1}
-- ⚠️ 所有 start 是相对续写起点的步数（0 = 续写第一步）
+- ⚠️ 所有 start 值使用绝对步数，必须在上述范围内
 
 ## 接续上文（最近 2 小节）
 ${noteLines || "（暂无音符，请自由创作）"}
