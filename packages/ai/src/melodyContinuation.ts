@@ -232,12 +232,11 @@ export async function continueMelody(
 
   const aiNotes: AIMusicNote[] = JSON.parse(jsonStr);
 
-  // AI 返回的 start 已经是绝对位置，直接使用
   const newNotes: PianoRollNote[] = aiNotes.map((n, i) => ({
     id: `ai-${Date.now()}-${i}`,
     channelId: notes[0]?.channelId || "",
     pitch: Math.max(0, Math.min(127, n.pitch)),
-    startStep: n.start,
+    startStep: startStep + n.start,
     length: Math.max(1, Math.round(n.length)),
     velocity: Math.max(1, Math.min(127, n.velocity)),
   }));
@@ -260,7 +259,7 @@ export function testAIContinue(aiResponse: unknown): PianoRollNote[] {
     id: `ai-test-${Date.now()}-${i}`,
     channelId: "",
     pitch: Math.max(0, Math.min(127, n.pitch)),
-    startStep: n.start, // 直接使用 AI 返回的绝对位置
+    startStep: startStep + n.start,
     length: Math.max(1, Math.round(n.length)),
     velocity: Math.max(1, Math.min(127, n.velocity)),
   }));
