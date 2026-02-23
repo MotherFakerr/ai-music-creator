@@ -282,15 +282,9 @@ export function PatternEditor() {
     setIsPreparingAudio(true);
     try {
       await audioEngineRef.current.init();
-      // 预加载所有音色
-      const allInstruments = [
-        EN_INSTRUMENT_TYPE.PIANO,
-        EN_INSTRUMENT_TYPE.SYNTH,
-        EN_INSTRUMENT_TYPE.GUITAR,
-        EN_INSTRUMENT_TYPE.DISTORTION_GUITAR,
-        EN_INSTRUMENT_TYPE.DRUM,
-      ];
-      for (const inst of allInstruments) {
+      // 预加载当前 project 所有 channel 用到的音色
+      const usedInstruments = [...new Set(state.channels.map(ch => ch.instrument))];
+      for (const inst of usedInstruments) {
         await audioEngineRef.current.setInstrument(inst);
       }
       setIsAudioReady(true);
