@@ -29,8 +29,8 @@ export interface PianoRollProps {
   onAIContinue?: (prompt: string) => Promise<void>;  // AI 续写回调
   aiStreamingContent?: string;  // AI 流式输出内容
   aiLoading?: boolean;  // AI 是否在加载
-  isAudioReady?: boolean;  // 音频是否就绪
-  isAudioLoading?: boolean;  // 音频是否在加载
+  isEngineReady?: boolean;  // 音频引擎是否就绪
+  isLoadingInstrument?: boolean;  // 音色是否在加载
   stepWidth: number;
   playheadStep: number | null;
 }
@@ -58,8 +58,8 @@ export function PianoRoll({
   onAIContinue,
   aiStreamingContent = "",
   aiLoading: aiLoadingProp = false,
-  isAudioReady = false,
-  isAudioLoading = false,
+  isEngineReady = false,
+  isLoadingInstrument = false,
   stepWidth,
   playheadStep,
 }: PianoRollProps) {
@@ -679,11 +679,11 @@ export function PianoRoll({
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: isAudioReady ? '#40c057' : isAudioLoading ? '#fab005' : '#868e96',
+                background: isEngineReady ? '#40c057' : isLoadingInstrument ? '#fab005' : '#868e96',
               }}
             />
-            <span style={{ fontSize: 12, color: isAudioReady ? '#40c057' : '#868e96' }}>
-              {isAudioReady ? '音频就绪' : isAudioLoading ? '加载中' : '未初始化'}
+            <span style={{ fontSize: 12, color: isEngineReady ? '#40c057' : '#868e96' }}>
+              {isEngineReady ? '音频就绪' : isLoadingInstrument ? '加载中' : '未初始化'}
             </span>
           </span>
           <h3>Piano Roll</h3>

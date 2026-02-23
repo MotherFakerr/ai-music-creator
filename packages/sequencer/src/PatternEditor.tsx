@@ -68,12 +68,12 @@ export function PatternEditor() {
     originalSetChannelInstrument(channelId, instrument);
     // 预加载新音色并更新状态
     if (!loadedInstrumentsRef.current.has(instrument)) {
-      setIsPreparingAudio(true);
+      setIsLoadingInstrument(true);
       audioEngineRef.current.setInstrument(instrument).then(() => {
         loadedInstrumentsRef.current.add(instrument);
-        setIsPreparingAudio(false);
+        setIsLoadingInstrument(false);
       }).catch(() => {
-        setIsPreparingAudio(false);
+        setIsLoadingInstrument(false);
       });
     }
   };
@@ -133,9 +133,9 @@ export function PatternEditor() {
   const [loopEnabled, setLoopEnabled] = useState(false);
   const [loopStartStep, setLoopStartStep] = useState(0);
   const [loopEndStep, setLoopEndStep] = useState(15);
-  const [isAudioReady, setIsAudioReady] = useState(false);
-  const [isPreparingAudio, setIsPreparingAudio] = useState(false);
-  const isAudioReadyRef = useRef(false);  // 用 ref 避免闭包问题
+  const [isEngineReady, setIsEngineReady] = useState(false);
+  const [isLoadingInstrument, setIsLoadingInstrument] = useState(false);
+  const isEngineReadyRef = useRef(false);  // 用 ref 避免闭包问题
   const loadedInstrumentsRef = useRef<Set<EN_INSTRUMENT_TYPE>>(new Set());  // 已加载的音色
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [panelVelocity, setPanelVelocity] = useState(100);
@@ -300,10 +300,10 @@ export function PatternEditor() {
   };
 
   const ensureAudioReady = async (): Promise<boolean> => {
-    if (isAudioReadyRef.current) {
+    if (isEngineReadyRef.current) {
       return true;
     }
-    setIsPreparingAudio(true);
+    setIsLoadingInstrument(true);
     try {
       await audioEngineRef.current.init();
       // 预加载当前 project 所有 channel 用到的音色
@@ -312,14 +312,14 @@ export function PatternEditor() {
         await audioEngineRef.current.setInstrument(inst);
         loadedInstrumentsRef.current.add(inst);
       }
-      isAudioReadyRef.current = true;
-      setIsAudioReady(true);
+      isEngineReadyRef.current = true;
+      setIsEngineReady(true);
       return true;
     } catch (error) {
       console.error("[PatternEditor] Audio init failed", error);
       return false;
     } finally {
-      setIsPreparingAudio(false);
+      setIsLoadingInstrument(false);
     }
   };
 
@@ -816,8 +816,8 @@ export function PatternEditor() {
           onAIContinue={handleAIContinue}
           aiStreamingContent={aiStreamingContent}
           aiLoading={aiLoading}
-          isAudioReady={isAudioReady}
-          isAudioLoading={isPreparingAudio}
+          isEngineReady={isEngineReady}
+          isLoadingInstrument={isLoadingInstrument}
           stepWidth={stepWidth}
           playheadStep={playheadStep}
         />
@@ -828,7 +828,7 @@ export function PatternEditor() {
               size="xs"
               variant="default"
               unstyled
-              disabled={isPreparingAudio}
+              disabled={isLoadingInstrument}
               onClick={async () => {
                 if (isPlaying) {
                   setIsPlaying(false);
@@ -840,14 +840,14 @@ export function PatternEditor() {
                 }
               }}
               title={
-                isPreparingAudio
+                isLoadingInstrument
                   ? "Loading Audio..."
                   : isPlaying
                     ? "Stop"
                     : "Play"
               }
               leftSection={
-                isPreparingAudio ? (
+                isLoadingInstrument ? (
                   <IconLoader size={14} />
                 ) : isPlaying ? (
                   <IconPlayerStop size={14} />
