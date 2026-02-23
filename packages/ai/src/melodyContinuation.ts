@@ -13,8 +13,20 @@ export interface PianoRollNote {
 }
 
 export interface AIConfig {
-  apiKey: string;
+  apiKey?: string;       // 优先使用传入的 key
   model?: string;
+}
+
+const STORAGE_KEY = 'ai-music-minimax-key';
+
+export function getStoredApiKey(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEY);
+}
+
+export function setStoredApiKey(apiKey: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEY, apiKey);
 }
 
 export interface ContinueOptions {
@@ -61,6 +73,12 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
   const { notes, stepsPerBar, prompt, lengthInBars = 8 } = options;
   const model = config.model || DEFAULT_MODEL;
 
+  // 优先使用传入的 API Key，否则从 localStorage 读取
+  const apiKey = config.apiKey || getStoredApiKey();
+  if (!apiKey) {
+    throw new Error('请先设置 API Key：setStoredApiKey("your-key") 或通过 UI 设置');
+  }
+
   // 找到最后一个音符的结束位置
   let startStep = 0;
   if (notes.length > 0) {
@@ -77,7 +95,7 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
