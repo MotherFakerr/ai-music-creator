@@ -97,7 +97,7 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
 
   const promptText = buildPrompt(notes, stepsPerBar, prompt, lengthInBars);
 
-  const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion_pro', {
+  const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
