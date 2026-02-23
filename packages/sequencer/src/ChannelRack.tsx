@@ -43,6 +43,7 @@ export interface ChannelRackProps {
   onRemoveChannel: (channelId: string) => void;
   onRenameChannel: (channelId: string, name: string) => void;
   onMoveChannel: (channelId: string, newIndex: number) => void;
+  playheadStep: number | null;
 }
 
 function SortableChannelRow({
@@ -63,6 +64,7 @@ function SortableChannelRow({
   onSetInstrument,
   onRemoveChannel,
   onRenameChannel,
+  playheadStep,
 }: {
   channel: SequencerChannel;
   stepsPerBar: number;
@@ -81,6 +83,7 @@ function SortableChannelRow({
   onSetInstrument: (instrument: EN_INSTRUMENT_TYPE) => void;
   onRemoveChannel: () => void;
   onRenameChannel: (name: string) => void;
+  playheadStep: number | null;
 }) {
   const PREVIEW_LANES = 10;
   const PREVIEW_PADDING_Y = 2;
@@ -314,6 +317,12 @@ function SortableChannelRow({
             />
           ))}
         </div>
+        {playheadStep !== null && (
+          <span
+            className="preview-playhead"
+            style={{ left: `${(playheadStep / totalSteps) * 100}%` }}
+          />
+        )}
       </div>
       <ActionIcon
         className="remove-btn"
@@ -349,6 +358,7 @@ export function ChannelRack({
   onRemoveChannel,
   onRenameChannel,
   onMoveChannel,
+  playheadStep,
 }: ChannelRackProps) {
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
@@ -441,6 +451,7 @@ export function ChannelRack({
                 }
                 onRemoveChannel={() => onRemoveChannel(channel.id)}
                 onRenameChannel={(name) => onRenameChannel(channel.id, name)}
+                playheadStep={playheadStep}
               />
             ))}
           </SortableContext>
@@ -713,6 +724,15 @@ export function ChannelRack({
           height: 2px;
           border-radius: 1px;
           box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+        }
+        .preview-playhead {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: rgba(251,191,36,0.9);
+          pointer-events: none;
+          z-index: 1;
         }
         .remove-btn {
           display: flex;

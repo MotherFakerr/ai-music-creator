@@ -467,6 +467,10 @@ export function PatternEditor() {
 
     const tick = () => {
       const now = performance.now();
+      if (playheadStepRef.current !== cursor) {
+        cursor = playheadStepRef.current;
+        expectedAt = now + msPerStepRef.current;
+      }
       let guard = 0;
       let latestStep: number | null = null;
       while (expectedAt <= now + schedulerLookaheadMs && guard < 16) {
@@ -564,6 +568,7 @@ export function PatternEditor() {
         onRemoveChannel={removeChannel}
         onRenameChannel={renameChannel}
         onMoveChannel={moveChannel}
+        playheadStep={playheadStep}
       />
       <div className="playback-area">
         <div
@@ -710,8 +715,12 @@ export function PatternEditor() {
           onBeginEditTransaction={beginEditTransaction}
           onEndEditTransaction={endEditTransaction}
           onViewportStepChange={setViewportStep}
+          onSeek={(step) => {
+            playheadStepRef.current = step;
+            setPlayheadStep(step);
+          }}
           stepWidth={stepWidth}
-          playheadStep={isPlaying ? playheadStep : null}
+          playheadStep={playheadStep}
         />
         <div className="transport">
           <div className="transport-group transport-group-buttons">
