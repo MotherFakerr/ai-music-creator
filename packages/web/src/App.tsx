@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Card, Container, Grid, Group, Stack } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Card,
+  Container,
+  Grid,
+  Group,
+  Stack,
+  Text,
+} from "@mantine/core";
 import {
   Keyboard,
   PianoKeyboard,
@@ -51,14 +60,11 @@ function App() {
   const mapNoteToLane = useNoteLaneMapper(baseNote, TRACK_EDGE_PADDING);
   const initPromiseRef = useRef<Promise<void> | null>(null);
 
-  // 确保音频引擎初始化（移动端需要在用户交互时调用）
   const ensureInitialized = useCallback(async () => {
     if (isInitialized) return;
-
     if (!initPromiseRef.current) {
       initPromiseRef.current = audioEngine.init();
     }
-
     try {
       await initPromiseRef.current;
       setIsInitialized(true);
@@ -68,7 +74,6 @@ function App() {
   }, [audioEngine, isInitialized]);
 
   useEffect(() => {
-    // PC端可以自动初始化
     const init = async () => {
       try {
         await audioEngine.init();
@@ -77,12 +82,9 @@ function App() {
         console.error("[App] 音频引擎初始化失败:", err);
       }
     };
-
-    // 延迟初始化，给移动端用户交互的机会
     const timer = setTimeout(() => {
       void init();
     }, 1000);
-
     return () => {
       clearTimeout(timer);
       audioEngine.dispose();
@@ -93,16 +95,11 @@ function App() {
 
   const handleNoteOn = useCallback(
     async (note: number, velocity: number) => {
-      // 移动端首次点击时初始化
-      if (!isInitialized) {
-        await ensureInitialized();
-      }
-
+      if (!isInitialized) await ensureInitialized();
       if (!canPlay) return;
       audioEngine.playNote(note, velocity);
-
       const lane = mapNoteToLane(note);
-      const hue = 8 + ((note % 12) / 12) * 35; // 暖色谱，接近“能量束”观感
+      const hue = 8 + ((note % 12) / 12) * 35;
       const strength = Math.max(0.35, Math.min(1, velocity / 127));
       const nextTrace: PerformanceTrace = {
         id: ++traceIdRef.current,
@@ -113,7 +110,6 @@ function App() {
         bornAt: Date.now(),
         strength,
       };
-
       setTraces((prev) => [...prev, nextTrace].slice(-TRACE_MAX_ITEMS));
     },
     [audioEngine, canPlay, mapNoteToLane, isInitialized, ensureInitialized],
@@ -130,11 +126,9 @@ function App() {
   const handleInstrumentChange = useCallback(
     async (newInstrument: EN_INSTRUMENT_TYPE) => {
       if (newInstrument === instrument) return;
-
       setIsInstrumentLoading(true);
       audioEngine.stopAllNotes();
       setInstrument(newInstrument);
-
       try {
         await audioEngine.setInstrument(newInstrument);
       } finally {
@@ -177,7 +171,6 @@ function App() {
         return next.length === prev.length ? prev : next;
       });
     }, 120);
-
     return () => {
       window.clearInterval(timer);
     };
@@ -186,7 +179,6 @@ function App() {
   useEffect(() => {
     audioEngine.setVolume(volume);
   }, [audioEngine, volume]);
-
   useEffect(() => {
     audioEngine.setReverb(reverb);
   }, [audioEngine, reverb]);
@@ -205,49 +197,21 @@ function App() {
             isInitialized={isInitialized}
             isInstrumentLoading={isInstrumentLoading}
           />
+
           <Card
-            radius="md"
+            radius="lg"
             padding="md"
             style={{
-              border: "1px solid rgba(148,163,184,0.2)",
-              background: "rgba(15, 19, 32, 0.7)",
+              border: "1px solid rgba(147,197,253,0.2)",
+              background: "rgba(10, 15, 28, 0.78)",
             }}
           >
             <Stack gap={10}>
-              <Group justify="space-between" align="center" wrap="wrap" gap={8}>
-                <Box
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#dbeafe",
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  演奏与跟奏
-                </Box>
-                <Button
-                  component="a"
-                  href="/sequencer"
-                  variant="default"
-                  size="xs"
-                  styles={{
-                    root: {
-                      height: 30,
-                      minHeight: 30,
-                      borderRadius: 6,
-                      borderColor: "rgba(96,165,250,0.45)",
-                      background: "rgba(30, 58, 138, 0.22)",
-                      color: "#dbeafe",
-                      paddingInline: 12,
-                    },
-                  }}
-                >
-                  进入编曲工作台
-                </Button>
-              </Group>
-
               <Grid gutter="sm" align="stretch">
-                <Grid.Col span={{ base: 12, md: 4 }} style={{ display: "flex" }}>
+                <Grid.Col
+                  span={{ base: 12, md: 4 }}
+                  style={{ display: "flex" }}
+                >
                   <SettingsPanel
                     baseNote={baseNote}
                     volume={volume}
@@ -262,7 +226,10 @@ function App() {
                   />
                 </Grid.Col>
 
-                <Grid.Col span={{ base: 12, md: 8 }} style={{ display: "flex" }}>
+                <Grid.Col
+                  span={{ base: 12, md: 8 }}
+                  style={{ display: "flex" }}
+                >
                   <PerformancePreviewPanel
                     activeNoteLabel={activeNoteLabel}
                     activeNotesSize={activeNotes.size}
@@ -282,7 +249,6 @@ function App() {
                     onChange={setKeyboardMode}
                   />
                 </Box>
-
                 <Card radius="md" padding="sm" style={MODULE_PANEL_STYLE}>
                   <Box className="keyboard-area">
                     {keyboardMode === "qwerty" ? (
@@ -304,24 +270,16 @@ function App() {
                 </Card>
               </Stack>
 
-              <Card
-                radius="md"
-                padding="sm"
-                style={MODULE_PANEL_STYLE}
-              >
+              <Card radius="md" padding="sm" style={MODULE_PANEL_STYLE}>
                 <AudioPlayer />
               </Card>
             </Stack>
           </Card>
 
           <style>{`
-            .keyboard-area {
-              height: 300px;
-            }
+            .keyboard-area { height: 300px; }
             @media (max-width: 860px) {
-              .keyboard-area {
-                height: auto;
-              }
+              .keyboard-area { height: auto; }
             }
           `}</style>
         </Stack>
