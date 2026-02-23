@@ -779,6 +779,8 @@ export function PatternEditor() {
           onAIContinue={handleAIContinue}
           aiStreamingContent={aiStreamingContent}
           aiLoading={aiLoading}
+          isAudioReady={isAudioReady}
+          isAudioLoading={isPreparingAudio}
           stepWidth={stepWidth}
           playheadStep={playheadStep}
         />

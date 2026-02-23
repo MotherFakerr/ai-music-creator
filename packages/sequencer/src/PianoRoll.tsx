@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Select, Button, TextInput, Modal } from "@mantine/core";
+import { Select, Button, Modal } from "@mantine/core";
 import type { PianoRollNote, PitchRow, SequencerChannel } from "./types";
 
 export interface PianoRollProps {
@@ -29,6 +29,8 @@ export interface PianoRollProps {
   onAIContinue?: (prompt: string) => Promise<void>;  // AI 续写回调
   aiStreamingContent?: string;  // AI 流式输出内容
   aiLoading?: boolean;  // AI 是否在加载
+  isAudioReady?: boolean;  // 音频是否就绪
+  isAudioLoading?: boolean;  // 音频是否在加载
   stepWidth: number;
   playheadStep: number | null;
 }
@@ -56,6 +58,8 @@ export function PianoRoll({
   onAIContinue,
   aiStreamingContent = "",
   aiLoading: aiLoadingProp = false,
+  isAudioReady = false,
+  isAudioLoading = false,
   stepWidth,
   playheadStep,
 }: PianoRollProps) {
@@ -662,6 +666,26 @@ export function PianoRoll({
     <div className="piano-roll">
       <div className="piano-roll-header">
         <div className="left-group">
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginRight: 8,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: isAudioReady ? '#40c057' : isAudioLoading ? '#fab005' : '#868e96',
+              }}
+            />
+            <span style={{ fontSize: 12, color: isAudioReady ? '#40c057' : '#868e96' }}>
+              {isAudioReady ? '音频就绪' : isAudioLoading ? '加载中' : '未初始化'}
+            </span>
+          </span>
           <h3>Piano Roll</h3>
           <span className="channel-label">
             {selectedChannel ? (
