@@ -76,6 +76,7 @@ export function PianoRoll({
   const rowHeight = 24;
   const timelineHeight = 20;
   const [scrollX, setScrollX] = useState(0);
+  const [scrollClientW, setScrollClientW] = useState(0);
   const selectedNoteIdSetRef = useRef(new Set<string>());
   selectedNoteIdSetRef.current = new Set(selectedNoteIds);
 
@@ -599,9 +600,11 @@ export function PianoRoll({
   useEffect(() => {
     const scroll = scrollRef.current;
     if (!scroll) return;
+    setScrollClientW(scroll.clientWidth);
     const onScroll = () => {
       setScrollY(scroll.scrollTop);
       setScrollX(scroll.scrollLeft);
+      setScrollClientW(scroll.clientWidth);
       const step = clamp(
         Math.floor(scroll.scrollLeft / stepWidth),
         0,
@@ -743,6 +746,56 @@ export function PianoRoll({
           />
         </div>
       </div>
+      <div
+        className="piano-locator"
+        onPointerDown={(e) => {
+          const scroll = scrollRef.current;
+          if (!scroll || e.button !== 0) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          const rect = e.currentTarget.getBoundingClientRect();
+          const totalW = totalSteps * stepWidth;
+          const vpLeft = (scrollX / totalW) * rect.width;
+          const vpRight = vpLeft + (scroll.clientWidth / totalW) * rect.width;
+          const px = e.clientX - rect.left;
+          const onThumb = px >= vpLeft && px <= vpRight;
+          const offset = onThumb
+            ? px - vpLeft
+            : ((scroll.clientWidth / totalW) * rect.width) / 2;
+          if (!onThumb) {
+            scroll.scrollLeft = Math.max(
+              0,
+              ((px - offset) / rect.width) * totalW,
+            );
+          }
+          const onMove = (me: PointerEvent) => {
+            const x = me.clientX - rect.left;
+            scroll.scrollLeft = Math.max(
+              0,
+              ((x - offset) / rect.width) * totalW,
+            );
+          };
+          const onUp = () => {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+          };
+          window.addEventListener("pointermove", onMove);
+          window.addEventListener("pointerup", onUp);
+        }}
+      >
+        <span
+          className="piano-locator-viewport"
+          style={{
+            left: `${(scrollX / (totalSteps * stepWidth)) * 100}%`,
+            width: `${(scrollClientW / (totalSteps * stepWidth)) * 100}%`,
+          }}
+        />
+        {playheadStep !== null && (
+          <span
+            className="piano-locator-playhead"
+            style={{ left: `${(playheadStep / totalSteps) * 100}%` }}
+          />
+        )}
+      </div>
       <style>{`
         .piano-roll {
           width: 100%;
@@ -834,6 +887,31 @@ export function PianoRoll({
           box-sizing: border-box;
           overflow: hidden;
         }
+        .piano-locator {
+          position: relative;
+          height: 8px;
+          margin-top: 4px;
+          background: #1a1e26;
+          border: 1px solid #2f3540;
+          border-radius: 4px;
+          cursor: pointer;
+          overflow: hidden;
+        }
+        .piano-locator-viewport {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          background: rgba(255,255,255,0.18);
+          border: 1px solid rgba(255,255,255,0.25);
+          border-radius: 2px;
+        }
+        .piano-locator-playhead {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: rgba(251,191,36,0.9);
+        }
         .piano-pitch-labels {
           position: absolute;
           left: 0;
@@ -872,9 +950,21 @@ export function PianoRoll({
           top: ${timelineHeight}px;
           right: 0;
           bottom: 0;
-          overflow: auto;
+          overflow-y: auto;
+          overflow-x: scroll;
           z-index: 2;
           cursor: pointer;
+        }
+        .piano-scroll::-webkit-scrollbar {
+          width: 8px;
+          height: 0;
+        }
+        .piano-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.15);
+          border-radius: 4px;
+        }
+        .piano-scroll::-webkit-scrollbar-track {
+          background: transparent;
         }
         .piano-timeline {
           position: absolute;
@@ -913,7 +1003,7 @@ export function PianoRoll({
           border-left: 6px solid transparent;
           border-right: 6px solid transparent;
           border-top: ${timelineHeight}px solid rgba(251,191,36,0.9);
-          margin-left: -5px;
+          margin-left: -4px;
         }
         @media (max-width: 1366px), (max-height: 900px) {
           .piano-roll {
