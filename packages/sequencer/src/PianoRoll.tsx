@@ -71,6 +71,7 @@ export function PianoRoll({
   const [snapStepSize, setSnapStepSize] = useState(1);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const aiOutputRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -598,6 +599,13 @@ export function PianoRoll({
     playheadStep,
   ]);
 
+  // AI 输出自动滚动到底部
+  useEffect(() => {
+    if (aiStreamingContent && aiOutputRef.current) {
+      aiOutputRef.current.scrollTop = aiOutputRef.current.scrollHeight;
+    }
+  }, [aiStreamingContent]);
+
   // Redraw on state changes
   useEffect(() => {
     cancelAnimationFrame(rafRef.current);
@@ -1112,6 +1120,7 @@ export function PianoRoll({
         </Button>
         {aiStreamingContent && (
           <div
+            ref={aiOutputRef}
             style={{
               marginTop: 8,
               padding: 16,
