@@ -710,8 +710,12 @@ export function PatternEditor() {
           onBeginEditTransaction={beginEditTransaction}
           onEndEditTransaction={endEditTransaction}
           onViewportStepChange={setViewportStep}
+          onSeek={(step) => {
+            playheadStepRef.current = step;
+            setPlayheadStep(step);
+          }}
           stepWidth={stepWidth}
-          playheadStep={isPlaying ? playheadStep : null}
+          playheadStep={playheadStep}
         />
         <div className="transport">
           <div className="transport-group transport-group-buttons">
