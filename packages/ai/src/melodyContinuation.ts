@@ -69,53 +69,60 @@ function buildPrompt(
   stepsPerBar: number,
   prompt?: string,
 ): string {
-  const noteLines = notes
-    .sort((a, b) => a.startStep - b.startStep)
-    .map((n) => `${n.pitch}, ${n.startStep}, ${n.length}, ${n.velocity}`)
-    .join("\n");
-
   const stepsPerBeat = 4;
   const beatsPerBar = 4;
   const totalStepsPerBar = stepsPerBeat * beatsPerBar;
+  const continueFromStep = Math.max(
+    ...notes.map((n) => n.startStep + n.length),
+  );
   const totalSteps = totalStepsPerBar * 4;
 
+  const contextNotes = notes
+    .filter((n) => n.startStep >= continueFromStep - 2 * totalStepsPerBar)
+    .sort((a, b) => a.startStep - b.startStep);
+
+  const noteLines = contextNotes
+    .map(
+      (n) =>
+        `pitch=${n.pitch}, start=${n.startStep}, length=${n.length}, vel=${n.velocity}`,
+    )
+    .join("\n");
+
   const keyHint = analyzeKeyHint(notes);
-  const stylePart = prompt ? `\n用户风格要求：${prompt}` : "";
+  const stylePart = prompt ? `用户风格要求：${prompt}\n` : "";
 
-  return `你是一个专业的 MIDI 旋律创作助手。请根据已有旋律续写 4 小节。
+  return `你是一个专业的 MIDI 编曲助手。请根据已有音符续写 4 小节，同时包含主旋律和低音伴奏。
 
-## 单位说明
-- 1 step = 1/4 拍（十六分音符）
-- 1 拍 = ${stepsPerBeat} steps
-- 1 小节 = ${totalStepsPerBar} steps（4/4 拍）
-- 续写范围：start 从 0 到 ${totalSteps - 1}，共 ${totalSteps} steps（4 小节）
+## 时间轴
+- 1 step = 十六分音符，1 小节 = ${totalStepsPerBar} steps
+- 已有内容结束于 step ${continueFromStep}
+- 续写范围：step ${continueFromStep} 到 step ${continueFromStep + totalSteps - 1}
+- ⚠️ 所有 start 是相对续写起点的步数（0 = 续写第一步）
 
-## 已有旋律（格式：pitch, start_step, length, velocity）
+## 接续上文（最近 2 小节）
 ${noteLines || "（暂无音符，请自由创作）"}
 
 ${keyHint}
 
-## 创作要求
+## 创作规则
 ${stylePart}
-
-## 音乐规则（必须遵守）
-1. **调性一致**：分析上方音符的调性，续写时使用相同调的音阶音符
-2. **旋律衔接**：续写的第一个音符要在音高和节奏上自然衔接上方最后一个音符
-3. **节奏多样**：混合使用不同时值（如 length = 1/2/4/8），避免全部相同长度
-4. **音域合理**：pitch 保持在 48~84 之间（C3~C6），避免跳跃超过 12 个半音
-5. **力度变化**：velocity 在 60~110 之间变化，体现强弱对比，不要全部相同
-6. **音符密度**：4 小节内安排 12~20 个音符，避免过于稀疏或拥挤
-7. **结构感**：第 4 小节最后应有终止感（可用长音符结束）
+1. **调性**：延续已有音符的调性
+2. **衔接**：第一个音符要与上文最后一个音符平滑衔接
+3. **节奏**：混合不同时值，避免单调重复
+4. **声部要求**：
+   - 主旋律（pitch 60~84）：12~18 个音符，旋律线条流畅
+   - 低音伴奏（pitch 36~59）：8~12 个音符，落在根音或五音，可用长音或律动型
+   - 两个声部的音符混合在同一数组中返回
+5. **力度区分**：主旋律 velocity 75~110，低音 velocity 55~80
+6. **终止**：第 4 小节末尾用长音结束
 
 ## 输出格式
-只返回 JSON 数组，不要任何解释文字：
-[{"pitch": 64, "start": 0, "length": 4, "velocity": 90}, {"pitch": 62, "start": 4, "length": 2, "velocity": 80}]
-
-字段说明：
-- pitch: MIDI 音高（0-127）
-- start: 相对续写起点的步数（0 = 续写第一步）
-- length: 时长步数（1=十六分音符, 4=四分音符, 8=二分音符, 16=全音符）
-- velocity: 力度（0-127）`;
+只返回 JSON 数组，主旋律和低音混合排列，按 start 升序，不要任何解释：
+[
+  {"pitch": 43, "start": ${continueFromStep}, "length": 8, "velocity": 70},
+  {"pitch": 67, "start": ${continueFromStep}, "length": 4, "velocity": 88},
+  {"pitch": 69, "start": ${continueFromStep + 4}, "length": 4, "velocity": 85}
+]`;
 }
 
 export async function continueMelody(
