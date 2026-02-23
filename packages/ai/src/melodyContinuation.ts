@@ -53,7 +53,7 @@ interface AIMusicNote {
   velocity: number;
 }
 
-const DEFAULT_MODEL = "MiniMax-M2.1";
+const DEFAULT_MODEL = "MiniMax-M2.5";
 
 function buildPrompt(
   notes: PianoRollNote[],
