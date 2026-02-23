@@ -692,6 +692,56 @@ export function PianoRoll({
         delete, Ctrl/Cmd+Click to multi-select.
       </div>
 
+      <div
+        className="piano-locator"
+        onPointerDown={(e) => {
+          const scroll = scrollRef.current;
+          if (!scroll || e.button !== 0) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          const rect = e.currentTarget.getBoundingClientRect();
+          const totalW = totalSteps * stepWidth;
+          const vpLeft = (scrollX / totalW) * rect.width;
+          const vpRight = vpLeft + (scroll.clientWidth / totalW) * rect.width;
+          const px = e.clientX - rect.left;
+          const onThumb = px >= vpLeft && px <= vpRight;
+          const offset = onThumb
+            ? px - vpLeft
+            : ((scroll.clientWidth / totalW) * rect.width) / 2;
+          if (!onThumb) {
+            scroll.scrollLeft = Math.max(
+              0,
+              ((px - offset) / rect.width) * totalW,
+            );
+          }
+          const onMove = (me: PointerEvent) => {
+            const x = me.clientX - rect.left;
+            scroll.scrollLeft = Math.max(
+              0,
+              ((x - offset) / rect.width) * totalW,
+            );
+          };
+          const onUp = () => {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+          };
+          window.addEventListener("pointermove", onMove);
+          window.addEventListener("pointerup", onUp);
+        }}
+      >
+        <span
+          className="piano-locator-viewport"
+          style={{
+            left: `${(scrollX / (totalSteps * stepWidth)) * 100}%`,
+            width: `${(scrollClientW / (totalSteps * stepWidth)) * 100}%`,
+          }}
+        />
+        {playheadStep !== null && (
+          <span
+            className="piano-locator-playhead"
+            style={{ left: `${(playheadStep / totalSteps) * 100}%` }}
+          />
+        )}
+      </div>
       <div className="piano-grid-wrapper">
         <div
           ref={timelineRef}
@@ -745,56 +795,6 @@ export function PianoRoll({
             }}
           />
         </div>
-      </div>
-      <div
-        className="piano-locator"
-        onPointerDown={(e) => {
-          const scroll = scrollRef.current;
-          if (!scroll || e.button !== 0) return;
-          e.currentTarget.setPointerCapture(e.pointerId);
-          const rect = e.currentTarget.getBoundingClientRect();
-          const totalW = totalSteps * stepWidth;
-          const vpLeft = (scrollX / totalW) * rect.width;
-          const vpRight = vpLeft + (scroll.clientWidth / totalW) * rect.width;
-          const px = e.clientX - rect.left;
-          const onThumb = px >= vpLeft && px <= vpRight;
-          const offset = onThumb
-            ? px - vpLeft
-            : ((scroll.clientWidth / totalW) * rect.width) / 2;
-          if (!onThumb) {
-            scroll.scrollLeft = Math.max(
-              0,
-              ((px - offset) / rect.width) * totalW,
-            );
-          }
-          const onMove = (me: PointerEvent) => {
-            const x = me.clientX - rect.left;
-            scroll.scrollLeft = Math.max(
-              0,
-              ((x - offset) / rect.width) * totalW,
-            );
-          };
-          const onUp = () => {
-            window.removeEventListener("pointermove", onMove);
-            window.removeEventListener("pointerup", onUp);
-          };
-          window.addEventListener("pointermove", onMove);
-          window.addEventListener("pointerup", onUp);
-        }}
-      >
-        <span
-          className="piano-locator-viewport"
-          style={{
-            left: `${(scrollX / (totalSteps * stepWidth)) * 100}%`,
-            width: `${(scrollClientW / (totalSteps * stepWidth)) * 100}%`,
-          }}
-        />
-        {playheadStep !== null && (
-          <span
-            className="piano-locator-playhead"
-            style={{ left: `${(playheadStep / totalSteps) * 100}%` }}
-          />
-        )}
       </div>
       <style>{`
         .piano-roll {
@@ -889,8 +889,8 @@ export function PianoRoll({
         }
         .piano-locator {
           position: relative;
-          height: 8px;
-          margin-top: 4px;
+          height: 20px;
+          margin-bottom: 6px;
           background: #1a1e26;
           border: 1px solid #2f3540;
           border-radius: 4px;

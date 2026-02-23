@@ -467,6 +467,10 @@ export function PatternEditor() {
 
     const tick = () => {
       const now = performance.now();
+      if (playheadStepRef.current !== cursor) {
+        cursor = playheadStepRef.current;
+        expectedAt = now + msPerStepRef.current;
+      }
       let guard = 0;
       let latestStep: number | null = null;
       while (expectedAt <= now + schedulerLookaheadMs && guard < 16) {
