@@ -55,34 +55,67 @@ interface AIMusicNote {
 
 const DEFAULT_MODEL = "MiniMax-M2.5";
 
+function analyzeKeyHint(notes: PianoRollNote[]): string {
+  if (notes.length === 0) return "";
+  const pitchClasses = [...new Set(notes.map((n) => n.pitch % 12))].sort(
+    (a, b) => a - b,
+  );
+  const lastNote = notes[notes.length - 1];
+  return `分析提示：现有旋律使用了音级 [${pitchClasses.join(", ")}]，最后一个音符为 pitch=${lastNote.pitch}，length=${lastNote.length}。续写时注意音高和节奏的自然衔接。`;
+}
+
 function buildPrompt(
   notes: PianoRollNote[],
   stepsPerBar: number,
   prompt?: string,
-  lengthInBars = 8,
 ): string {
   const noteLines = notes
     .sort((a, b) => a.startStep - b.startStep)
     .map((n) => `${n.pitch}, ${n.startStep}, ${n.length}, ${n.velocity}`)
     .join("\n");
 
+  const stepsPerBeat = 4;
+  const beatsPerBar = 4;
+  const totalStepsPerBar = stepsPerBeat * beatsPerBar;
+  const totalSteps = totalStepsPerBar * 4;
+
+  const keyHint = analyzeKeyHint(notes);
   const stylePart = prompt ? `\n用户风格要求：${prompt}` : "";
 
-  return `你是一个音乐创作助手。基于下面的 MIDI 音符数据，续写 4 小节的旋律。
+  return `你是一个专业的 MIDI 旋律创作助手。请根据已有旋律续写 4 小节。
 
-现有音符（格式：pitch, start_step, length, velocity）：
-${noteLines || "（暂无音符）"}
+## 单位说明
+- 1 step = 1/4 拍（十六分音符）
+- 1 拍 = ${stepsPerBeat} steps
+- 1 小节 = ${totalStepsPerBar} steps（4/4 拍）
+- 续写范围：start 从 0 到 ${totalSteps - 1}，共 ${totalSteps} steps（4 小节）
 
+## 已有旋律（格式：pitch, start_step, length, velocity）
+${noteLines || "（暂无音符，请自由创作）"}
+
+${keyHint}
+
+## 创作要求
 ${stylePart}
 
-请返回续写的音符数据，格式为 JSON 数组，每个音符包含 pitch（音高 0-127）, start（相对开始位置，从 0 开始）, length（时长步数）, velocity（力度 0-127）：
-[{"pitch": 60, "start": 0, "length": 2, "velocity": 100}, ...]
+## 音乐规则（必须遵守）
+1. **调性一致**：分析上方音符的调性，续写时使用相同调的音阶音符
+2. **旋律衔接**：续写的第一个音符要在音高和节奏上自然衔接上方最后一个音符
+3. **节奏多样**：混合使用不同时值（如 length = 1/2/4/8），避免全部相同长度
+4. **音域合理**：pitch 保持在 48~84 之间（C3~C6），避免跳跃超过 12 个半音
+5. **力度变化**：velocity 在 60~110 之间变化，体现强弱对比，不要全部相同
+6. **音符密度**：4 小节内安排 12~20 个音符，避免过于稀疏或拥挤
+7. **结构感**：第 4 小节最后应有终止感（可用长音符结束）
 
-注意：
-- 只需要续写 4 小节
-- start 是相对位置，从 0 开始（不是绝对步数）
-- 旋律要符合音乐逻辑，节奏可以多样化
-- 只返回 JSON 数组，不要其他内容`;
+## 输出格式
+只返回 JSON 数组，不要任何解释文字：
+[{"pitch": 64, "start": 0, "length": 4, "velocity": 90}, {"pitch": 62, "start": 4, "length": 2, "velocity": 80}]
+
+字段说明：
+- pitch: MIDI 音高（0-127）
+- start: 相对续写起点的步数（0 = 续写第一步）
+- length: 时长步数（1=十六分音符, 4=四分音符, 8=二分音符, 16=全音符）
+- velocity: 力度（0-127）`;
 }
 
 export async function continueMelody(
@@ -108,7 +141,7 @@ export async function continueMelody(
     startStep = lastNote.startStep + lastNote.length;
   }
 
-  const promptText = buildPrompt(notes, stepsPerBar, prompt, lengthInBars);
+  const promptText = buildPrompt(notes, stepsPerBar, prompt);
 
   const response = await fetch(
     "https://api.minimax.chat/v1/text/chatcompletion_v2",
