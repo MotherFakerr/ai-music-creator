@@ -59,7 +59,7 @@ function buildPrompt(notes: PianoRollNote[], stepsPerBar: number, prompt?: strin
 
   const stylePart = prompt ? `\n用户风格要求：${prompt}` : '';
 
-  return `你是一个音乐创作助手。基于下面的 MIDI 音符数据，续写 ${lengthInBars} 小节的旋律。
+  return `你是一个音乐创作助手。基于下面的 MIDI 音符数据，续写 4 小节的旋律。
 
 现有音符（格式：pitch, start_step, length, velocity）：
 ${noteLines || '（暂无音符）'}
@@ -70,6 +70,7 @@ ${stylePart}
 [{"pitch": 60, "start": 0, "length": 2, "velocity": 100}, ...]
 
 注意：
+- 只需要续写 4 小节
 - start 是相对位置，从 0 开始（不是绝对步数）
 - 旋律要符合音乐逻辑，节奏可以多样化
 - 只返回 JSON 数组，不要其他内容`;
