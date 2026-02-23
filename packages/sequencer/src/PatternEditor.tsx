@@ -126,6 +126,7 @@ export function PatternEditor() {
   const [loopEndStep, setLoopEndStep] = useState(15);
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPreparingAudio, setIsPreparingAudio] = useState(false);
+  const isAudioReadyRef = useRef(false);  // 用 ref 避免闭包问题
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [panelVelocity, setPanelVelocity] = useState(100);
   const [panelLength, setPanelLength] = useState(2);
@@ -289,7 +290,7 @@ export function PatternEditor() {
   };
 
   const ensureAudioReady = async (): Promise<boolean> => {
-    if (isAudioReady) {
+    if (isAudioReadyRef.current) {
       return true;
     }
     setIsPreparingAudio(true);
@@ -300,6 +301,7 @@ export function PatternEditor() {
       for (const inst of usedInstruments) {
         await audioEngineRef.current.setInstrument(inst);
       }
+      isAudioReadyRef.current = true;
       setIsAudioReady(true);
       return true;
     } catch (error) {
