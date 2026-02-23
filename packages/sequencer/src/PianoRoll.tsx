@@ -1078,16 +1078,18 @@ export function PianoRoll({
       `}</style>
       <Modal
         opened={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
+        onClose={() => !aiLoadingProp && setAiModalOpen(false)}
         title="AI 续写旋律"
         centered
         size="lg"
+        closeOnClickOutside={!aiLoadingProp}
       >
         <TextInput
           label="风格提示词（可选）"
           placeholder="例如：欢快的、悲伤的、流行的..."
           value={aiPrompt}
           onChange={(e) => setAiPrompt(e.target.value)}
+          disabled={aiLoadingProp}
           mb="md"
         />
         <Button
@@ -1104,22 +1106,26 @@ export function PianoRoll({
               console.error("AI continue error:", e);
             }
           }}
+          mb="md"
         >
-          开始续写
+          {aiLoadingProp ? "AI 创作中..." : "开始续写"}
         </Button>
         {aiStreamingContent && (
           <div
             style={{
-              marginTop: 16,
-              padding: 12,
-              background: "#1a1c21",
-              borderRadius: 8,
-              fontSize: 12,
-              maxHeight: 200,
+              marginTop: 8,
+              padding: 16,
+              background: "linear-gradient(135deg, #1a1c21 0%, #252836 100%)",
+              borderRadius: 12,
+              fontSize: 13,
+              maxHeight: 280,
               overflow: "auto",
               whiteSpace: "pre-wrap",
               fontFamily: "monospace",
-              color: "#ccc",
+              color: "#a8b1cf",
+              lineHeight: 1.6,
+              border: "1px solid rgba(139, 92, 246, 0.2)",
+              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.3)",
             }}
           >
             {aiStreamingContent}
