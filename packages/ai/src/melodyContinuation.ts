@@ -17,21 +17,25 @@ export interface AIConfig {
   model?: string;
 }
 
-const STORAGE_KEY = 'ai-music-minimax-key';
+const STORAGE_KEY = "ai-music-minimax-key";
 
 export function getStoredApiKey(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(STORAGE_KEY);
 }
 
 export function setStoredApiKey(apiKey: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, apiKey);
 }
 
-if (typeof window !== 'undefined') {
-  (window as unknown as { setStoredApiKey: typeof setStoredApiKey }).setStoredApiKey = setStoredApiKey;
-  (window as unknown as { getStoredApiKey: typeof getStoredApiKey }).getStoredApiKey = getStoredApiKey;
+if (typeof window !== "undefined") {
+  (
+    window as unknown as { setStoredApiKey: typeof setStoredApiKey }
+  ).setStoredApiKey = setStoredApiKey;
+  (
+    window as unknown as { getStoredApiKey: typeof getStoredApiKey }
+  ).getStoredApiKey = getStoredApiKey;
 }
 
 export interface ContinueOptions {
@@ -49,20 +53,25 @@ interface AIMusicNote {
   velocity: number;
 }
 
-const DEFAULT_MODEL = 'abab6.5s-chat';
+const DEFAULT_MODEL = "MiniMax-M2.1";
 
-function buildPrompt(notes: PianoRollNote[], stepsPerBar: number, prompt?: string, lengthInBars = 8): string {
+function buildPrompt(
+  notes: PianoRollNote[],
+  stepsPerBar: number,
+  prompt?: string,
+  lengthInBars = 8,
+): string {
   const noteLines = notes
     .sort((a, b) => a.startStep - b.startStep)
-    .map(n => `${n.pitch}, ${n.startStep}, ${n.length}, ${n.velocity}`)
-    .join('\n');
+    .map((n) => `${n.pitch}, ${n.startStep}, ${n.length}, ${n.velocity}`)
+    .join("\n");
 
-  const stylePart = prompt ? `\n用户风格要求：${prompt}` : '';
+  const stylePart = prompt ? `\n用户风格要求：${prompt}` : "";
 
   return `你是一个音乐创作助手。基于下面的 MIDI 音符数据，续写 4 小节的旋律。
 
 现有音符（格式：pitch, start_step, length, velocity）：
-${noteLines || '（暂无音符）'}
+${noteLines || "（暂无音符）"}
 
 ${stylePart}
 
@@ -76,13 +85,18 @@ ${stylePart}
 - 只返回 JSON 数组，不要其他内容`;
 }
 
-export async function continueMelody(config: AIConfig, options: ContinueOptions): Promise<PianoRollNote[]> {
+export async function continueMelody(
+  config: AIConfig,
+  options: ContinueOptions,
+): Promise<PianoRollNote[]> {
   const { notes, stepsPerBar, prompt, lengthInBars = 8, onChunk } = options;
   const model = config.model || DEFAULT_MODEL;
 
   const apiKey = config.apiKey || getStoredApiKey();
   if (!apiKey) {
-    throw new Error('请先设置 API Key：setStoredApiKey("your-key") 或通过 UI 设置');
+    throw new Error(
+      '请先设置 API Key：setStoredApiKey("your-key") 或通过 UI 设置',
+    );
   }
 
   let startStep = 0;
@@ -96,23 +110,29 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
 
   const promptText = buildPrompt(notes, stepsPerBar, prompt, lengthInBars);
 
-  const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+  const response = await fetch(
+    "https://api.minimax.chat/v1/text/chatcompletion_v2",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: "你是一个专业的音乐创作助手，擅长生成旋律。",
+          },
+          { role: "user", content: promptText },
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+        stream: true,
+      }),
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: '你是一个专业的音乐创作助手，擅长生成旋律。' },
-        { role: 'user', content: promptText },
-      ],
-      temperature: 0.7,
-      max_tokens: 4096,
-      stream: true,
-    }),
-  });
+  );
 
   if (!response.ok) {
     const err = await response.text();
@@ -121,31 +141,31 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
 
   const reader = response.body?.getReader();
   if (!reader) {
-    throw new Error('无法读取响应流');
+    throw new Error("无法读取响应流");
   }
 
   const decoder = new TextDecoder();
-  let buffer = '';
-  let fullContent = '';
+  let buffer = "";
+  let fullContent = "";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || !trimmed.startsWith('data:')) continue;
+      if (!trimmed || !trimmed.startsWith("data:")) continue;
 
       const dataStr = trimmed.slice(5).trim();
-      if (dataStr === '[DONE]') continue;
+      if (dataStr === "[DONE]") continue;
 
       try {
         const data = JSON.parse(dataStr);
-        const chunk = data.choices?.[0]?.delta?.content || '';
+        const chunk = data.choices?.[0]?.delta?.content || "";
         if (chunk) {
           fullContent += chunk;
           onChunk?.(chunk);
@@ -157,12 +177,12 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
   }
 
   if (!fullContent) {
-    throw new Error('AI 返回内容为空');
+    throw new Error("AI 返回内容为空");
   }
 
   let jsonMatch = fullContent.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
-    throw new Error('AI 返回格式错误，无法解析 JSON');
+    throw new Error("AI 返回格式错误，无法解析 JSON");
   }
 
   let jsonStr = jsonMatch[0];
@@ -172,7 +192,7 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
       JSON.parse(jsonStr);
       break;
     } catch {
-      jsonStr += ']';
+      jsonStr += "]";
       attempts++;
     }
   }
@@ -181,7 +201,7 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
 
   const newNotes: PianoRollNote[] = aiNotes.map((n, i) => ({
     id: `ai-${Date.now()}-${i}`,
-    channelId: notes[0]?.channelId || '',
+    channelId: notes[0]?.channelId || "",
     pitch: Math.max(0, Math.min(127, n.pitch)),
     startStep: startStep + n.start,
     length: Math.max(1, Math.round(n.length)),
@@ -194,17 +214,17 @@ export async function continueMelody(config: AIConfig, options: ContinueOptions)
 export function testAIContinue(aiResponse: unknown): PianoRollNote[] {
   const data = aiResponse as { choices?: { message?: { content?: string } }[] };
   const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('No content');
+  if (!content) throw new Error("No content");
 
   const jsonMatch = content.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('No JSON found');
+  if (!jsonMatch) throw new Error("No JSON found");
 
   const aiNotes: AIMusicNote[] = JSON.parse(jsonMatch[0]);
   const startStep = 892;
 
   return aiNotes.map((n, i) => ({
     id: `ai-test-${Date.now()}-${i}`,
-    channelId: '',
+    channelId: "",
     pitch: Math.max(0, Math.min(127, n.pitch)),
     startStep: startStep + n.start,
     length: Math.max(1, Math.round(n.length)),
