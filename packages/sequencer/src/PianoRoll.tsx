@@ -1087,59 +1087,104 @@ export function PianoRoll({
       <Modal
         opened={aiModalOpen}
         onClose={() => !aiLoadingProp && setAiModalOpen(false)}
-        title="AI 续写旋律"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>🎵</span>
+            <span>AI 续写旋律</span>
+          </div>
+        }
         centered
         size="lg"
         closeOnClickOutside={!aiLoadingProp}
+        styles={{
+          header: { background: 'linear-gradient(135deg, #1a1c21 0%, #252836 100%)', borderBottom: '1px solid rgba(139, 92, 246, 0.2)' },
+          body: { background: 'linear-gradient(135deg, #1a1c21 0%, #252836 100%)', paddingTop: 20 },
+          content: { background: 'linear-gradient(135deg, #1a1c21 0%, #252836 100%)', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: 16 },
+        }}
       >
-        <TextInput
-          label="风格提示词（可选）"
-          placeholder="例如：欢快的、悲伤的、流行的..."
-          value={aiPrompt}
-          onChange={(e) => setAiPrompt(e.target.value)}
-          disabled={aiLoadingProp}
-          mb="md"
-        />
-        <Button
-          fullWidth
-          color="grape"
-          loading={aiLoadingProp}
-          onClick={async () => {
-            if (!onAIContinue) return;
-            try {
-              await onAIContinue(aiPrompt);
-              setAiModalOpen(false);
-              setAiPrompt("");
-            } catch (e) {
-              console.error("AI continue error:", e);
-            }
-          }}
-          mb="md"
-        >
-          {aiLoadingProp ? "AI 创作中..." : "开始续写"}
-        </Button>
-        {aiStreamingContent && (
-          <div
-            ref={aiOutputRef}
-            style={{
-              marginTop: 8,
-              padding: 16,
-              background: "linear-gradient(135deg, #1a1c21 0%, #252836 100%)",
-              borderRadius: 12,
-              fontSize: 13,
-              maxHeight: 280,
-              overflow: "auto",
-              whiteSpace: "pre-wrap",
-              fontFamily: "monospace",
-              color: "#a8b1cf",
-              lineHeight: 1.6,
-              border: "1px solid rgba(139, 92, 246, 0.2)",
-              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.3)",
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, color: '#a8b1cf', fontSize: 13, fontWeight: 500 }}>
+              风格提示词 <span style={{ color: '#666', fontWeight: 400 }}>（可选）</span>
+            </label>
+            <input
+              type="text"
+              placeholder="例如：欢快的、悲伤的、流行的、古典的..."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              disabled={aiLoadingProp}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                background: aiLoadingProp ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: 10,
+                color: '#fff',
+                fontSize: 14,
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'rgba(139, 92, 246, 0.6)'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)'}
+            />
+          </div>
+          
+          <Button
+            fullWidth
+            size="md"
+            color="grape"
+            loading={aiLoadingProp}
+            onClick={async () => {
+              if (!onAIContinue) return;
+              try {
+                await onAIContinue(aiPrompt);
+                setAiModalOpen(false);
+                setAiPrompt("");
+              } catch (e) {
+                console.error("AI continue error:", e);
+              }
+            }}
+            styles={{
+              root: { height: 44, fontSize: 14, fontWeight: 600 },
             }}
           >
-            {aiStreamingContent}
-          </div>
-        )}
+            {aiLoadingProp ? "🎶 AI 创作中..." : "✨ 开始续写"}
+          </Button>
+          
+          {aiStreamingContent && (
+            <div>
+              <div style={{ 
+                marginBottom: 8, 
+                color: '#8b5cf6', 
+                fontSize: 12, 
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>◐</span> AI 思考过程
+              </div>
+              <div
+                ref={aiOutputRef}
+                style={{
+                  padding: 16,
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: 12,
+                  fontSize: 12,
+                  maxHeight: 260,
+                  overflow: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'monospace',
+                  color: '#9ca3af',
+                  lineHeight: 1.7,
+                  border: '1px solid rgba(139, 92, 246, 0.15)',
+                }}
+              >
+                {aiStreamingContent}
+              </div>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );
