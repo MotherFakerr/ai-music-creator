@@ -66,11 +66,11 @@ ${noteLines || '（暂无音符）'}
 
 ${stylePart}
 
-请返回续写的音符数据，格式为 JSON 数组，每个音符包含 pitch（音高 0-127）, start（开始步数）, length（时长步数）, velocity（力度 0-127）：
-[{"pitch": 60, "start": 16, "length": 2, "velocity": 100}, ...]
+请返回续写的音符数据，格式为 JSON 数组，每个音符包含 pitch（音高 0-127）, start（相对开始位置，从 0 开始）, length（时长步数）, velocity（力度 0-127）：
+[{"pitch": 60, "start": 0, "length": 2, "velocity": 100}, ...]
 
 注意：
-- start 从最后一个音符的结束位置开始
+- start 是相对位置，从 0 开始（不是绝对步数）
 - 旋律要符合音乐逻辑，节奏可以多样化
 - 只返回 JSON 数组，不要其他内容`;
 }
