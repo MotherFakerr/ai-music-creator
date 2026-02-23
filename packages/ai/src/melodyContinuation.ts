@@ -29,6 +29,12 @@ export function setStoredApiKey(apiKey: string): void {
   localStorage.setItem(STORAGE_KEY, apiKey);
 }
 
+// 暴露到 window 方便调试
+if (typeof window !== 'undefined') {
+  (window as unknown as { setStoredApiKey: typeof setStoredApiKey }).setStoredApiKey = setStoredApiKey;
+  (window as unknown as { getStoredApiKey: typeof getStoredApiKey }).getStoredApiKey = getStoredApiKey;
+}
+
 export interface ContinueOptions {
   notes: PianoRollNote[];      // 当前 channel 的音符
   stepsPerBar: number;         // 每小节步数
