@@ -17,6 +17,7 @@
     "@types/react-dom": "^18.2.0"
   },
   "dependencies": {
+    "@ai-music-creator/ai": "workspace:*",
     "@ai-music-creator/audio": "workspace:*",
     "@ai-music-creator/ui": "workspace:*",
     "@dnd-kit/core": "^6.3.1",

@@ -26,6 +26,7 @@ import {
   parseMidiFile,
   downloadMidi,
 } from "./midi";
+import { continueMelody } from "@ai-music-creator/ai";
 import type { PatternState } from "./types";
 
 export function PatternEditor() {
@@ -42,7 +43,7 @@ export function PatternEditor() {
     toggleChannelMute,
     toggleChannelSolo,
     setChannelVolume,
-    setChannelInstrument,
+    setChannelInstrument: originalSetChannelInstrument,
     addChannel,
     removeChannel,
     renameChannel,
@@ -61,6 +62,22 @@ export function PatternEditor() {
     endEditTransaction,
     setState,
   } = usePatternEditor();
+  
+  // 包装 setChannelInstrument 以预加载音色
+  const setChannelInstrument = (channelId: string, instrument: EN_INSTRUMENT_TYPE) => {
+    originalSetChannelInstrument(channelId, instrument);
+    // 预加载新音色并更新状态
+    if (!loadedInstrumentsRef.current.has(instrument)) {
+      setIsLoadingInstrument(true);
+      audioEngineRef.current.setInstrument(instrument).then(() => {
+        loadedInstrumentsRef.current.add(instrument);
+        setIsLoadingInstrument(false);
+      }).catch(() => {
+        setIsLoadingInstrument(false);
+      });
+    }
+  };
+  
   const audioEngineRef = useRef(getAudioEngine());
   const stopTimersRef = useRef<number[]>([]);
   const schedulerTimerRef = useRef<number | null>(null);
@@ -75,14 +92,51 @@ export function PatternEditor() {
     }>;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiStreamingContent, setAiStreamingContent] = useState("");
+
+  // AI 续写处理函数
+  const handleAIContinue = async (prompt: string) => {
+    if (!state.selectedChannelId) return;
+    
+    const channelNotes = state.notes.filter(
+      (n) => n.channelId === state.selectedChannelId
+    );
+    
+    setAiLoading(true);
+    setAiStreamingContent("");
+    try {
+      const newNotes = await continueMelody({}, {
+        notes: channelNotes,
+        stepsPerBar: state.stepsPerBar,
+        prompt,
+        lengthInBars: 4,
+        onChunk: (text) => {
+          setAiStreamingContent((prev) => prev + text);
+        },
+      });
+      
+      if (newNotes.length > 0) {
+        insertPianoRollNotes(newNotes);
+      }
+    } catch (e) {
+      console.error("AI continue error:", e);
+      alert(`AI 续写失败: ${e instanceof Error ? e.message : "未知错误"}`);
+    } finally {
+      setAiLoading(false);
+      setTimeout(() => setAiStreamingContent(""), 1000);
+    }
+  };
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadStep, setPlayheadStep] = useState(0);
   const [bpm, setBpm] = useState(120);
   const [loopEnabled, setLoopEnabled] = useState(false);
   const [loopStartStep, setLoopStartStep] = useState(0);
   const [loopEndStep, setLoopEndStep] = useState(15);
-  const [isAudioReady, setIsAudioReady] = useState(false);
-  const [isPreparingAudio, setIsPreparingAudio] = useState(false);
+  const [isEngineReady, setIsEngineReady] = useState(false);
+  const [isLoadingInstrument, setIsLoadingInstrument] = useState(false);
+  const isEngineReadyRef = useRef(false);  // 用 ref 避免闭包问题
+  const loadedInstrumentsRef = useRef<Set<EN_INSTRUMENT_TYPE>>(new Set());  // 已加载的音色
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [panelVelocity, setPanelVelocity] = useState(100);
   const [panelLength, setPanelLength] = useState(2);
@@ -108,12 +162,23 @@ export function PatternEditor() {
     fetch("/lumiere.mid")
       .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(res.statusText))))
       .then((buf) => parseMidi(buf))
-      .then(({ state: importedState, bpm: importedBpm }) => {
+      .then(async ({ state: importedState, bpm: importedBpm }) => {
         setState(importedState);
         setBpm(importedBpm);
+        // 预加载 MIDI 用到的音色
+        await ensureAudioReady();
+        const usedInstruments = [...new Set(importedState.channels.map(ch => ch.instrument))];
+        for (const inst of usedInstruments) {
+          await audioEngineRef.current.setInstrument(inst);
+        }
       })
       .catch((e) => console.warn("Initial MIDI load (lumiere.mid) skipped:", e));
   }, [setState]);
+
+  // 进入页面时初始化音频
+  useEffect(() => {
+    ensureAudioReady();
+  }, []);
   const notesByStepRef = useRef<Map<number, typeof state.notes>>(new Map());
   const lastPlayheadUiSyncAtRef = useRef(0);
   const notesByStep = useMemo(() => {
@@ -235,20 +300,26 @@ export function PatternEditor() {
   };
 
   const ensureAudioReady = async (): Promise<boolean> => {
-    if (isAudioReady) {
+    if (isEngineReadyRef.current) {
       return true;
     }
-    setIsPreparingAudio(true);
+    setIsLoadingInstrument(true);
     try {
       await audioEngineRef.current.init();
-      await audioEngineRef.current.setInstrument(EN_INSTRUMENT_TYPE.PIANO);
-      setIsAudioReady(true);
+      // 预加载当前 project 所有 channel 用到的音色
+      const usedInstruments = [...new Set(state.channels.map(ch => ch.instrument))];
+      for (const inst of usedInstruments) {
+        await audioEngineRef.current.setInstrument(inst);
+        loadedInstrumentsRef.current.add(inst);
+      }
+      isEngineReadyRef.current = true;
+      setIsEngineReady(true);
       return true;
     } catch (error) {
       console.error("[PatternEditor] Audio init failed", error);
       return false;
     } finally {
-      setIsPreparingAudio(false);
+      setIsLoadingInstrument(false);
     }
   };
 
@@ -343,6 +414,13 @@ export function PatternEditor() {
       // 更新状态（含 BPM）
       setState(importedState);
       setBpm(Math.max(40, Math.min(220, Math.round(importedBpm))));
+      
+      // 预加载 MIDI 用到的音色
+      await ensureAudioReady();
+      const usedInstruments = [...new Set(importedState.channels.map(ch => ch.instrument))];
+      for (const inst of usedInstruments) {
+        await audioEngineRef.current.setInstrument(inst);
+      }
       
       // 清空选择
       setSelectedNoteIds([]);
@@ -735,6 +813,11 @@ export function PatternEditor() {
             playheadStepRef.current = step;
             setPlayheadStep(step);
           }}
+          onAIContinue={handleAIContinue}
+          aiStreamingContent={aiStreamingContent}
+          aiLoading={aiLoading}
+          isEngineReady={isEngineReady}
+          isLoadingInstrument={isLoadingInstrument}
           stepWidth={stepWidth}
           playheadStep={playheadStep}
         />
@@ -745,7 +828,7 @@ export function PatternEditor() {
               size="xs"
               variant="default"
               unstyled
-              disabled={isPreparingAudio}
+              disabled={isLoadingInstrument}
               onClick={async () => {
                 if (isPlaying) {
                   setIsPlaying(false);
@@ -757,14 +840,14 @@ export function PatternEditor() {
                 }
               }}
               title={
-                isPreparingAudio
+                isLoadingInstrument
                   ? "Loading Audio..."
                   : isPlaying
                     ? "Stop"
                     : "Play"
               }
               leftSection={
-                isPreparingAudio ? (
+                isLoadingInstrument ? (
                   <IconLoader size={14} />
                 ) : isPlaying ? (
                   <IconPlayerStop size={14} />
